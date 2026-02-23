@@ -1,87 +1,87 @@
 # 🧠 cognitive-logix
 
-> **AI-powered Supply Chain Digital Twin** — Predicts delivery delays, detects fraud & forecasts demand using multi-layer machine learning.
+> **Yapay Zeka Destekli Tedarik Zinciri Dijital İkizi** — Çok katmanlı makine öğrenmesi ile teslimat gecikmelerini tahmin eder, sahteciliği tespit eder ve talebi öngörür.
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-green?logo=fastapi)](https://fastapi.tiangolo.com)
-[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E?logo=supabase)](https://supabase.com)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![Supabase](https://img.shields.io/badge/Veritabanı-Supabase-3ECF8E?logo=supabase)](https://supabase.com)
+[![License](https://img.shields.io/badge/Lisans-MIT-yellow)](LICENSE)
 
 ---
 
-## 📌 Project Overview
+## 📌 Proje Genel Bakış
 
-**cognitive-logix** is a Cognitive Control Tower for end-to-end supply chain management. Built on 180,000+ real transactions from the [DataCo Smart Supply Chain Dataset](https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis), the system goes beyond reporting — it predicts, detects, and prescribes.
+**cognitive-logix**, uçtan uca tedarik zinciri yönetimi için bir Bilişsel Kontrol Kulesi'dir. [DataCo Smart Supply Chain Veri Seti](https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis) üzerindeki 180.000'den fazla gerçek işlem kaydı üzerine inşa edilmiştir. Sistem yalnızca raporlamakla kalmaz; tahmin eder, tespit eder ve aksiyon önerir.
 
-| Module | Problem | Approach |
-|--------|---------|----------|
-| 🚚 **Predictive Logistics** | Will this order be late? | XGBoost / CatBoost + SHAP |
-| 📦 **Demand Intelligence** | What will demand look like next month? | Prophet + LSTM |
-| 🛡️ **Financial Security** | Is this order fraudulent or unprofitable? | Isolation Forest + SMOTE |
+| Modül | Problem | Yaklaşım |
+|-------|---------|----------|
+| 🚚 **Tahminleyici Lojistik** | Bu sipariş gecikecek mi? | XGBoost / CatBoost + SHAP |
+| 📦 **Talep Zekası** | Gelecek ay talep nasıl olacak? | Prophet + LSTM |
+| 🛡️ **Finansal Güvenlik** | Bu sipariş sahte ya da zararlı mı? | Isolation Forest + SMOTE |
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Mimari
 
 ```
 [Frontend]     React + Vite + Tailwind CSS + shadcn/ui + Recharts
                           ↓ REST API (JSON)
 [Backend]      FastAPI (Python 3.10+)
                           ↓
-[ML Layer]     XGBoost | Prophet + LSTM | Isolation Forest
+[ML Katmanı]   XGBoost | Prophet + LSTM | Isolation Forest
                           ↓
-[Database]     Supabase → PostgreSQL + Auth + Storage
+[Veritabanı]   Supabase → PostgreSQL + Auth + Storage
                           ↓
 [Deploy]       Vercel (Frontend) + Railway (Backend)
 ```
 
 ---
 
-## 📁 Repository Structure
+## 📁 Repo Yapısı
 
 ```
 cognitive-logix/
 │
-├── frontend/                        # React application
+├── frontend/                        # React uygulaması
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── ui/                  # shadcn/ui base components
-│   │   │   ├── charts/              # Recharts wrappers
-│   │   │   ├── ModuleA/             # Logistics dashboard components
-│   │   │   ├── ModuleB/             # Demand forecast components
-│   │   │   └── ModuleC/             # Fraud & risk components
+│   │   │   ├── ui/                  # shadcn/ui temel bileşenler
+│   │   │   ├── charts/              # Recharts sarmalayıcılar
+│   │   │   ├── ModuleA/             # Lojistik dashboard bileşenleri
+│   │   │   ├── ModuleB/             # Talep tahmini bileşenleri
+│   │   │   └── ModuleC/             # Fraud & risk bileşenleri
 │   │   ├── pages/
-│   │   │   ├── Dashboard.jsx        # Main overview
-│   │   │   ├── Logistics.jsx        # Delay prediction UI
-│   │   │   ├── Demand.jsx           # Forecast & simulation UI
-│   │   │   ├── Fraud.jsx            # Fraud detection UI
-│   │   │   └── Login.jsx            # Supabase auth
+│   │   │   ├── Dashboard.jsx        # Ana genel bakış
+│   │   │   ├── Logistics.jsx        # Gecikme tahmini arayüzü
+│   │   │   ├── Demand.jsx           # Tahmin & simülasyon arayüzü
+│   │   │   ├── Fraud.jsx            # Fraud tespit arayüzü
+│   │   │   └── Login.jsx            # Supabase kimlik doğrulama
 │   │   ├── lib/
-│   │   │   ├── supabaseClient.js    # Supabase connection
-│   │   │   └── api.js               # FastAPI calls (axios)
+│   │   │   ├── supabaseClient.js    # Supabase bağlantısı
+│   │   │   └── api.js               # FastAPI çağrıları (axios)
 │   │   └── App.jsx
 │   ├── .env.local                   # VITE_SUPABASE_URL, VITE_API_URL
 │   ├── package.json
 │   └── vite.config.js
 │
-├── backend/                         # FastAPI application
+├── backend/                         # FastAPI uygulaması
 │   ├── app/
-│   │   ├── main.py                  # FastAPI entry point
+│   │   ├── main.py                  # FastAPI giriş noktası
 │   │   ├── routers/
-│   │   │   ├── predict.py           # POST /predict (delay risk)
-│   │   │   ├── forecast.py          # POST /forecast (demand)
-│   │   │   └── fraud.py             # POST /fraud (anomaly score)
-│   │   ├── models/                  # Pydantic request/response schemas
+│   │   │   ├── predict.py           # POST /predict (gecikme riski)
+│   │   │   ├── forecast.py          # POST /forecast (talep tahmini)
+│   │   │   └── fraud.py             # POST /fraud (anomali skoru)
+│   │   ├── models/                  # Pydantic istek/yanıt şemaları
 │   │   └── ml/
-│   │       ├── logistics_model.py   # XGBoost inference
-│   │       ├── demand_model.py      # Prophet inference
-│   │       └── fraud_model.py       # Isolation Forest inference
-│   ├── trained_models/              # .pkl model files (gitignored)
+│   │       ├── logistics_model.py   # XGBoost çıkarımı
+│   │       ├── demand_model.py      # Prophet çıkarımı
+│   │       └── fraud_model.py       # Isolation Forest çıkarımı
+│   ├── trained_models/              # .pkl model dosyaları (gitignored)
 │   ├── requirements.txt
 │   └── Dockerfile
 │
-├── notebooks/                       # Jupyter — model training
+├── notebooks/                       # Jupyter — model eğitimi
 │   ├── module_a_logistics/          # Erkan
 │   ├── module_b_demand/             # Aslı
 │   └── module_c_fraud/              # Ismail
@@ -90,21 +90,21 @@ cognitive-logix/
 │   ├── raw/                         # ⚠️ Gitignored (96MB CSV)
 │   └── processed/                   # temiz_veri_final.csv, analiz_veri.csv
 │
-├── reports/                         # Weekly reports & visuals
+├── reports/                         # Haftalık raporlar & görseller
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 🚀 Setup
+## 🚀 Kurulum
 
-### Prerequisites
+### Gereksinimler
 - Node.js 18+
 - Python 3.10+
-- Supabase account (free tier)
+- Supabase hesabı (ücretsiz tier yeterli)
 
-### 1. Clone
+### 1. Klonla
 ```bash
 git clone https://github.com/YOUR_USERNAME/cognitive-logix.git
 cd cognitive-logix
@@ -114,9 +114,11 @@ cd cognitive-logix
 ```bash
 cd frontend
 npm install
-# Create .env.local (see env.example)
+# .env.local oluştur (opsiyonel - şu an auth devre dışı)
+# VITE_API_URL=http://localhost:8000
 npm run dev
 ```
+**Not:** Supabase auth şu an devre dışı (geliştirme için). Login sayfası çalışıyor ama auth kontrolü yok.
 
 ### 3. Backend
 ```bash
@@ -124,31 +126,78 @@ cd backend
 python -m venv venv
 source venv/bin/activate       # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-# Create .env (see env.example)
+# .env dosyası şu an gerekli değil (Supabase devre dışı)
 uvicorn app.main:app --reload
 ```
 
-### 4. Data
+**Alternatif (PowerShell scriptleri):**
+```powershell
+# Terminal 1: Backend
+.\start-backend.ps1
+
+# Terminal 2: Frontend  
+.\start-frontend.ps1
+```
+
+### 4. Veri
 ```bash
-# Download CSV from Kaggle → place in data/raw/
-# Then run:
+# CSV'yi Kaggle'dan indirip data/raw/ klasörüne koy
+# Ardından çalıştır:
 python notebooks/module_c_fraud/data_cleaning.py
 ```
 
 ---
 
-## 🔌 API Endpoints
+## ⚠️ Geliştiriciler için Veri Kullanım Kılavuzu
 
-| Method | Endpoint | Description | Owner |
-|--------|----------|-------------|-------|
-| `POST` | `/predict` | Delivery delay risk score + SHAP explanation | Erkan |
-| `POST` | `/forecast` | Demand forecast by category & date range | Aslı |
-| `POST` | `/fraud` | Fraud & negative profit risk score | Ismail |
-| `GET` | `/health` | API health check | — |
+> **Kritik:** İşlenmiş dosyaların tamamı her modül için uygun değildir. Model eğitiminde yanlış veri seti kullanmak hatalı ve yanıltıcı sonuçlar üretir.
 
-### Example: `/predict`
+| Dosya | Satır | Açıklama |
+|-------|-------|----------|
+| `data/processed/temiz_veri_final.csv` | 180.519 | Tüm veri, tüm flag'ler mevcut — **yalnızca arşiv ve fraud eğitimi için** |
+| `data/processed/analiz_veri.csv` | 172.765 | CANCELED + SUSPECTED_FRAUD çıkarılmış — **ana eğitim dosyası** |
+
+### Modül bazında hangi dosya kullanılacak:
+
+**🚚 Modül A — Tahminleyici Lojistik → `analiz_veri.csv`**
+- İptal ve fraud siparişlerinin teslimat davranışı anlamsızdır
+- Bu kayıtlarla eğitim yapılırsa gecikme tahmin modeli bozulur
+
+**📦 Modül B — Talep Zekası → `analiz_veri.csv`**
+- İptal siparişlerindeki satış rakamları gerçek talebi yansıtmaz
+- Bu kayıtlar dahil edilirse talep tahminleri şişer
+
+**🛡️ Modül C — Fraud Tespiti → `temiz_veri_final.csv`**
+- Fraud etiketleri (`SUSPECTED_FRAUD`) yalnızca bu dosyada mevcuttur
+- **`analiz_veri.csv` ile fraud modeli kesinlikle eğitilmez** — fraud kayıtları bu dosyadan çıkarılmıştır
+
+```python
+# Modül A ve B için
+df = pd.read_csv("data/processed/analiz_veri.csv")
+
+# Modül C — YALNIZCA fraud modeli için
+df = pd.read_csv("data/processed/temiz_veri_final.csv")
+df["is_fraud"] = (df["Order Status"] == "SUSPECTED_FRAUD").astype(int)
+```
+
+### Veri setinde bilinçli olarak bırakılan alanlar (silmeyin):
+- **Negatif karlı siparişler** (`negative_profit_flag = 1`) — gerçek iş verisi, gelir güvencesi analizinde kullanılacak
+- **`Order Zipcode`** (%86 boş) — sütun korundu, coğrafi feature'lardan hariç tutuldu
+
+---
+
+## 🔌 API Endpoint'leri
+
+| Metot | Endpoint | Açıklama | Sorumlu |
+|-------|----------|----------|---------|
+| `POST` | `/predict` | Teslimat gecikme riski skoru + SHAP açıklaması | Erkan |
+| `POST` | `/forecast` | Kategori & tarih aralığına göre talep tahmini | Aslı |
+| `POST` | `/fraud` | Fraud & negatif kar risk skoru | Ismail |
+| `GET` | `/health` | API sağlık kontrolü | — |
+
+### Örnek: `/predict`
 ```json
-// Request
+// İstek (Request)
 {
   "shipping_mode": "Standard Class",
   "order_region": "Western Europe",
@@ -157,10 +206,10 @@ python notebooks/module_c_fraud/data_cleaning.py
   "market": "Europe"
 }
 
-// Response
+// Yanıt (Response)
 {
   "delay_risk": 0.87,
-  "label": "High Risk",
+  "label": "Yüksek Risk",
   "shap_explanation": {
     "shipping_mode": 0.34,
     "order_region": 0.28,
@@ -171,58 +220,55 @@ python notebooks/module_c_fraud/data_cleaning.py
 
 ---
 
-## 🔑 Key Findings (Week 1–2 EDA)
+## 🔑 Temel Bulgular (Hafta 1–2 EDA)
 
-- **54.8% late delivery rate** — nearly 1 in 2 orders arrive late
-- **18.7% negative profit** — 33,784 orders result in a loss
-- **Fraud rate: 2.25%** — 43:1 class imbalance, requires SMOTE
-- **Zero duplicates** — data integrity confirmed across 180K+ records
-- `Product Description`: 100% empty — removed
-- `Order Zipcode`: 86% missing — excluded from geographic analysis
-
----
-
-## 🧹 Data Cleaning Summary
-
-| Step | Action | Result |
-|------|--------|--------|
-| Encoding | Latin-1 instead of UTF-8 | File loaded successfully |
-| BOM character | `ï»¿Type` → `Type` | Column name fixed |
-| Date columns | Converted to datetime | Temporal analysis enabled |
-| Sensitive columns | Removed email, password, street, image | Privacy compliant |
-| Empty columns | Removed `Product Description`, `Product Status` | Cleaner feature space |
-| Trailing spaces | Stripped all string columns | Categorical consistency |
-| Derived feature | `shipping_delay` (days) | No negative values found |
-| Flagging | `negative_profit_flag`, `is_canceled` | Records preserved, not deleted |
-| Output | `temiz_veri_final.csv`, `analiz_veri.csv` | Ready for modeling |
+- **%54,8 geç teslimat oranı** — neredeyse her 2 siparişten 1'i geç ulaşıyor
+- **%18,7 negatif kar** — 33.784 sipariş zararlı
+- **Fraud oranı: %2,25** — 43:1 sınıf dengesizliği, SMOTE zorunlu
+- **Sıfır duplicate** — 180.000'den fazla kayıtta veri bütünlüğü doğrulandı
+- `Product Description`: %100 boş — silindi
+- `Order Zipcode`: %86 boş — coğrafi analizlerden hariç tutuldu
 
 ---
 
-## 👥 Team
+## 🧹 Veri Temizliği Özeti
 
-| Name |  Module | Role |
-|------|-------------------|------|
-| **Erkan TURGUT**  | Module A | Predictive Logistics Engineer |
-| **Aslı AYDIN** | Module B | Demand & Inventory Analyst |
-| **Ismail NAIT OUCHEN** | Module C | Financial Security & Full-Stack |
-
----
-
-## 🗓️ Roadmap
-
-- [x] Week 1: Research, dataset analysis, team setup, GitHub & Colab init
-- [x] Week 2: Data cleaning, EDA, missing value analysis, cleaned CSVs
-- [ ] Week 3–4: Feature engineering (Haversine, time features, encodings)
-- [ ] Week 5: Outlier analysis & normalization
-- [ ] Week 6–7: Model development (XGBoost, Prophet, Isolation Forest)
-- [ ] Week 8: Model optimization (CatBoost, LSTM, SMOTE)
-- [ ] Week 9–10: XAI — SHAP integration
-- [ ] Week 11: FastAPI + React dashboard integration
-- [ ] Week 12: Deploy (Vercel + Railway) & final presentation
+| Adım | İşlem | Sonuç |
+|------|-------|-------|
+| Encoding | UTF-8 yerine Latin-1 | Dosya başarıyla yüklendi |
+| BOM karakteri | `ï»¿Type` → `Type` | Sütun adı düzeltildi |
+| Tarih sütunları | datetime'a dönüştürüldü | Zamansal analiz mümkün |
+| Hassas sütunlar | Email, şifre, adres, görsel silindi | Gizlilik uyumu sağlandı |
+| Boş sütunlar | `Product Description`, `Product Status` silindi | Gereksiz feature temizlendi |
+| Trailing space | Tüm metin sütunları temizlendi | Kategorik tutarlılık sağlandı |
+| Türetilmiş feature | `shipping_delay` (gün) | Negatif değer yok, tarihler tutarlı |
+| Flag'leme | `negative_profit_flag`, `is_canceled` | Kayıtlar silinmedi, işaretlendi |
+| Çıktı | `temiz_veri_final.csv`, `analiz_veri.csv` | Modellemeye hazır |
 
 ---
 
-## 📄 License
+## 👥 Takım
 
-This project is licensed under the MIT License.  
-Dataset: CC0 Public Domain via Kaggle.
+| Ad Soyad | Modül | Rol |
+|----------|-------|-----|
+| **Erkan TURGUT** |  Modül A | Tahminleyici Lojistik Mühendisi |
+| **Aslı AYDIN** |  Modül B | Talep & Envanter Analisti |
+| **Ismail NAIT OUCHEN** | Modül C | Finansal Güvenlik & Full-Stack |
+
+---
+
+## 🗓️ Yol Haritası
+
+- [x] Hafta 1: Araştırma, veri seti analizi, takım kurulumu, GitHub & Colab başlatma
+- [x] Hafta 2: Veri temizliği, EDA, boş veri analizi, temizlenmiş CSV'ler
+- [ ] Hafta 3–4: Feature engineering (Haversine mesafesi, zaman özellikleri, encoding)
+- [ ] Hafta 5: Aykırı değer analizi & normalizasyon
+- [ ] Hafta 6–7: Model geliştirme (XGBoost, Prophet, Isolation Forest)
+- [ ] Hafta 8: Model optimizasyonu (CatBoost, LSTM, SMOTE)
+- [ ] Hafta 9–10: Açıklanabilir YZ — SHAP entegrasyonu
+- [ ] Hafta 11: FastAPI + React dashboard entegrasyonu
+- [ ] Hafta 12: Deploy (Vercel + Railway) & final sunum
+
+---
+
+*Veri seti: Kaggle üzerinden alınmıştır.*

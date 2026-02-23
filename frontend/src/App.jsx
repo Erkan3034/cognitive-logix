@@ -3,7 +3,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Logistics from "./pages/Logistics.jsx";
 import Demand from "./pages/Demand.jsx";
 import Fraud from "./pages/Fraud.jsx";
-import Login from "./pages/Login.jsx";
+// import Login from "./pages/Login.jsx"; // Auth devre dışı - Login sayfası geçici olarak kaldırıldı
 
 function Nav() {
   return (
@@ -12,7 +12,7 @@ function Nav() {
       <Link to="/logistics">Logistics</Link>
       <Link to="/demand">Demand</Link>
       <Link to="/fraud">Fraud</Link>
-      <Link to="/login">Login</Link>
+      {/* Login linki kaldırıldı - Auth devre dışı */}
     </nav>
   );
 }
@@ -27,7 +27,7 @@ export default function App() {
           <Route path="/logistics" element={<Logistics />} />
           <Route path="/demand" element={<Demand />} />
           <Route path="/fraud" element={<Fraud />} />
-          <Route path="/login" element={<Login />} />
+          {/* Login route kaldırıldı - Auth devre dışı */}
         </Routes>
       </div>
     </div>
