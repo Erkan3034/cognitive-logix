@@ -154,8 +154,9 @@ python notebooks/module_c_fraud/data_cleaning.py
 
 | Dosya | Satır | Açıklama |
 |-------|-------|----------|
-| `data/processed/temiz_veri_final.csv` | 180.519 | Tüm veri, tüm flag'ler mevcut — **yalnızca arşiv ve fraud eğitimi için** |
-| `data/processed/analiz_veri.csv` | 172.765 | CANCELED + SUSPECTED_FRAUD çıkarılmış — **ana eğitim dosyası** |
+| `data/processed/temiz_veri_final_latest.csv` | 180.521 | **En güncel, tam temiz set** — yeni fraud / risk / EDA çalışmaları için ana kaynak |
+| `data/processed/temiz_veri_final.csv` | 180.519 | Önceki tam veri sürümü — arşiv amaçlı tutuluyor |
+| `data/processed/analiz_veri.csv` | 172.765 | CANCELED + SUSPECTED_FRAUD çıkarılmış — lojistik ve talep modelleri için **ana eğitim dosyası** |
 
 ### Modül bazında hangi dosya kullanılacak:
 
@@ -167,16 +168,16 @@ python notebooks/module_c_fraud/data_cleaning.py
 - İptal siparişlerindeki satış rakamları gerçek talebi yansıtmaz
 - Bu kayıtlar dahil edilirse talep tahminleri şişer
 
-**🛡️ Modül C — Fraud Tespiti → `temiz_veri_final.csv`**
-- Fraud etiketleri (`SUSPECTED_FRAUD`) yalnızca bu dosyada mevcuttur
+**🛡️ Modül C — Fraud Tespiti → `temiz_veri_final_latest.csv`**
+- Fraud etiketleri (`SUSPECTED_FRAUD`) bu dosyada mevcuttur
 - **`analiz_veri.csv` ile fraud modeli kesinlikle eğitilmez** — fraud kayıtları bu dosyadan çıkarılmıştır
 
 ```python
 # Modül A ve B için
 df = pd.read_csv("data/processed/analiz_veri.csv")
 
-# Modül C — YALNIZCA fraud modeli için
-df = pd.read_csv("data/processed/temiz_veri_final.csv")
+# Modül C — YALNIZCA fraud modeli için (en güncel set)
+df = pd.read_csv("data/processed/temiz_veri_final_latest.csv")
 df["is_fraud"] = (df["Order Status"] == "SUSPECTED_FRAUD").astype(int)
 ```
 

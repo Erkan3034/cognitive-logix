@@ -26,15 +26,16 @@ Bu rehber, cognitive-logix projesinde gerçek CSV verilerini kullanarak modeller
 
 | Dosya | Satır | Kullanım |
 |-------|-------|----------|
-| `data/processed/analiz_veri.csv` | 172,765 | **Ana eğitim dosyası** - CANCELED + SUSPECTED_FRAUD çıkarılmış |
-| `data/processed/temiz_veri_final.csv` | 180,519 | Tüm veri, flag'ler mevcut - Fraud eğitimi için |
+| `data/processed/temiz_veri_final_latest.csv` | 180,521 | **En güncel tam temiz set** — fraud / risk / EDA için ana kaynak |
+| `data/processed/analiz_veri.csv` | 172,765 | **Lojistik ve talep modelleri için eğitim dosyası** - CANCELED + SUSPECTED_FRAUD çıkarılmış |
+| `data/processed/temiz_veri_final.csv` | 180,519 | Önceki tam veri sürümü (v1) |
 | `data/processed/DataCoSupplyChainDataset-Cleaned.csv` | ~180K | Temizlenmiş ham veri |
 
 ### Hangi Dosyayı Kullanmalı?
 
 - **Module A (Logistics - Erkan)**: `analiz_veri.csv` → Geç teslimat tahmini
 - **Module B (Demand - Aslı)**: `analiz_veri.csv` → Talep tahmini
-- **Module C (Fraud - Ismail)**: `temiz_veri_final.csv` → Fraud flag'leri mevcut
+- **Module C (Fraud - Ismail)**: `temiz_veri_final_latest.csv` → Fraud flag'leri ve en güncel temizlik
 
 ---
 
