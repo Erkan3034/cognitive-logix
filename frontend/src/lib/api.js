@@ -22,3 +22,7 @@ export async function postFraud(payload) {
   return data;
 }
 
+export async function getOverviewMetrics() {
+  const { data } = await api.get("/metrics/overview");
+  return data;
+}

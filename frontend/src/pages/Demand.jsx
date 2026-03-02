@@ -1,4 +1,13 @@
 import { useState } from "react";
+import {
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  CartesianGrid
+} from "recharts";
 import { postForecast } from "../lib/api.js";
 
 export default function Demand() {
@@ -18,6 +27,12 @@ export default function Demand() {
       setLoading(false);
     }
   }
+
+  const chartData =
+    result?.points?.map((p) => ({
+      ds: p.ds,
+      yhat: p.yhat
+    })) ?? [];
 
   return (
     <div className="page-layout">
@@ -40,7 +55,7 @@ export default function Demand() {
             <div>
               <h2 className="panel-title">Forecast configuration</h2>
               <p className="panel-subtitle">
-                Horizon and series selection for the Prophet-based forecast model.
+                Horizon and series selection for the daily demand model.
               </p>
             </div>
           </div>
@@ -81,7 +96,7 @@ export default function Demand() {
             <div>
               <h2 className="panel-title">Forecast output</h2>
               <p className="panel-subtitle">
-                Forecast points returned from `/forecast` and ready to be visualised.
+                Forecast points returned from `/forecast`, visualised as a daily demand curve.
               </p>
             </div>
           </div>
@@ -91,10 +106,40 @@ export default function Demand() {
               {result.error ? (
                 <p className="badge-negative">Error: {result.error}</p>
               ) : (
-                <p className="card-caption">
-                  Received <strong>{result.points?.length ?? 0}</strong> forecast points for a{" "}
-                  {horizon}-day horizon.
-                </p>
+                <>
+                  <p className="card-caption">
+                    Received <strong>{result.points?.length ?? 0}</strong> forecast points for a{" "}
+                    {horizon}-day horizon.
+                  </p>
+                  {chartData.length > 0 && (
+                    <div style={{ height: 220, marginTop: "0.6rem" }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                          <XAxis
+                            dataKey="ds"
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <YAxis
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <Tooltip />
+                          <Line
+                            type="monotone"
+                            dataKey="yhat"
+                            stroke="#38bdf8"
+                            strokeWidth={2}
+                            dot={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </>
               )}
               <pre className="result-code" style={{ marginTop: "0.7rem" }}>
                 {JSON.stringify(result, null, 2)}

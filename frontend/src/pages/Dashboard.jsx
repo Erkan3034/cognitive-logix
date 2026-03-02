@@ -1,4 +1,47 @@
+import { useEffect, useState } from "react";
+import { getOverviewMetrics } from "../lib/api.js";
+
+function formatPct(value) {
+  if (value == null) return "--";
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatMoney(value) {
+  if (value == null) return "--";
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
+}
+
 export default function Dashboard() {
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    getOverviewMetrics()
+      .then((data) => {
+        if (mounted) setMetrics(data);
+      })
+      .catch(() => {
+        if (mounted) setMetrics(null);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const onTime = formatPct(metrics?.on_time_delivery_pct);
+  const lateRisk = formatPct(metrics?.late_delivery_risk_pct);
+  const demandRisk = formatPct(metrics?.demand_risk_pct);
+  const financialExposure = formatMoney(metrics?.financial_exposure_usd);
+  const lossOrders = metrics?.loss_making_orders?.toLocaleString() ?? "--";
+  const demandRiskCats = metrics?.demand_risk_categories ?? "--";
+
   return (
     <div className="page-layout">
       <header className="page-header">
@@ -13,7 +56,7 @@ export default function Dashboard() {
           </div>
           <div className="pill">
             <span className="pill-dot" />
-            Live data
+            {loading ? "Syncing data…" : "Live data"}
           </div>
         </div>
       </header>
@@ -22,44 +65,50 @@ export default function Dashboard() {
         <article className="card">
           <div className="card-header">
             <span className="card-title">On-time delivery</span>
-            <span className="card-trend badge-positive">+4.2 pts vs last week</span>
+            <span className="card-trend badge-positive">Model-based, last 7 days</span>
           </div>
-          <div className="card-value">45.2%</div>
+          <div className="card-value">{onTime}</div>
           <p className="card-caption">
-            Share of orders predicted to arrive on time in the next 7 days.
+            Share of orders predicted to arrive on time across the active network.
           </p>
         </article>
 
         <article className="card">
           <div className="card-header">
             <span className="card-title">Late delivery risk</span>
-            <span className="card-trend badge-negative">54.8% currently late</span>
+            <span className="card-trend badge-negative">
+              {lateRisk !== "--" ? `${lateRisk} currently late risk` : "Loading…"}
+            </span>
           </div>
-          <div className="card-value">38.7%</div>
+          <div className="card-value">{lateRisk}</div>
           <p className="card-caption">
-            Orders with high delay probability based on current network conditions.
+            Orders with high delay probability based on `Late_delivery_risk` signals.
           </p>
         </article>
 
         <article className="card">
           <div className="card-header">
             <span className="card-title">Demand risk</span>
-            <span className="card-trend badge-neutral">14 categories in focus</span>
+            <span className="card-trend badge-neutral">
+              {demandRiskCats} volatile categories
+            </span>
           </div>
-          <div className="card-value">12.3%</div>
+          <div className="card-value">{demandRisk}</div>
           <p className="card-caption">
-            Forecasted volume at risk due to demand volatility in the next 30 days.
+            Volume share in categories with high day‑to‑day volatility (CV &gt; 0.8).
           </p>
         </article>
 
         <article className="card">
           <div className="card-header">
             <span className="card-title">Financial exposure</span>
-            <span className="card-trend badge-negative">33,784 loss-making orders</span>
+            <span className="card-trend badge-negative">
+              {lossOrders} loss‑making orders
+            </span>
           </div>
-          <div className="card-value">$1.24M</div>
+          <div className="card-value">{financialExposure}</div>
           <p className="card-caption">
-            Potential negative profit from high-risk & suspected fraud transactions.
+            Potential negative profit from orders flagged with `negative_profit_flag = 1`.
           </p>
         </article>
       </section>
