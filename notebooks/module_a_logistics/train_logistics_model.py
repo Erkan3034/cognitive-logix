@@ -15,8 +15,8 @@ You can run this script from the project root (recommended virtualenv with Pytho
 from __future__ import annotations
 
 from pathlib import Path
+import pickle
 
-import joblib
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import RandomForestClassifier
@@ -118,7 +118,8 @@ def main() -> None:
   clf = build_pipeline(df)
 
   MODEL_DIR.mkdir(parents=True, exist_ok=True)
-  joblib.dump(clf, MODEL_PATH)
+  with MODEL_PATH.open("wb") as f:
+    pickle.dump(clf, f)
   print(f"\n✅ Model saved to: {MODEL_PATH}")
 
 

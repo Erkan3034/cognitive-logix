@@ -1,0 +1,28 @@
+# Top-level dependencies for cognitive-logix
+#
+# Bu dosya hem FastAPI backend'i hem de notebook / ML eğitim ortamını
+# aynı sanal ortamda kurmak için kullanılabilir.
+#
+# Önerilen kullanım:
+#   python -m venv venv
+#   venv\Scripts\activate      # Windows
+#   pip install -r requirements.txt
+#
+
+# --- API / web katmanı ---
+fastapi==0.115.8
+uvicorn[standard]==0.30.6
+pydantic==2.10.6
+python-multipart==0.0.9
+
+# --- Veri bilimi / ML ---
+numpy==2.2.5
+pandas==2.2.3
+scikit-learn==1.8.0
+scipy==1.17.1
+
+# Notebook / EDA tarafında kullanmanız muhtemel ek paketler
+jupyterlab==4.3.4
+matplotlib==3.10.0
+seaborn==0.13.2
+
