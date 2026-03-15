@@ -27,13 +27,13 @@ export default function Fraud() {
   return (
     <div className="page-layout">
       <header className="page-header">
-        <span className="page-eyebrow">Module C · Financial security</span>
+        <span className="page-eyebrow">Modül C · Finansal güvenlik</span>
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Fraud & negative profit risk</h1>
+            <h1 className="page-title">Dolandırıcılık & negatif kâr riski</h1>
             <p className="page-subtitle">
-              Combine anomaly detection and profit flags to safeguard revenue before order
-              approval.
+              Sipariş onayından önce geliri korumak için anomali tespiti ve kâr bayraklarını
+              birleştirin.
             </p>
           </div>
         </div>
@@ -43,16 +43,16 @@ export default function Fraud() {
         <form className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Transaction snapshot</h2>
+              <h2 className="panel-title">İşlem özeti</h2>
               <p className="panel-subtitle">
-                Core financial features used by the Isolation Forest fraud model.
+                Isolation Forest dolandırıcılık modeli tarafından kullanılan temel finansal özellikler.
               </p>
             </div>
           </div>
 
           <div className="form-grid">
             <div className="field">
-              <label className="field-label">Sales ($)</label>
+              <label className="field-label">Satış tutarı ($)</label>
               <input
                 type="number"
                 min={0}
@@ -66,7 +66,7 @@ export default function Fraud() {
             </div>
 
             <div className="field">
-              <label className="field-label">Benefit per order ($)</label>
+              <label className="field-label">Sipariş başına kâr ($)</label>
               <input
                 type="number"
                 step={0.01}
@@ -76,11 +76,11 @@ export default function Fraud() {
                   setFeatures({ ...features, benefit_per_order: Number(e.target.value) })
                 }
               />
-              <span className="field-helper">Negative values indicate loss-making orders.</span>
+              <span className="field-helper">Negatif değerler zarar eden siparişleri gösterir.</span>
             </div>
 
             <div className="field">
-              <label className="field-label">Market</label>
+              <label className="field-label">Pazar</label>
               <input
                 className="input"
                 value={features.market}
@@ -89,7 +89,7 @@ export default function Fraud() {
             </div>
 
             <div className="field">
-              <label className="field-label">Customer segment</label>
+              <label className="field-label">Müşteri segmenti</label>
               <input
                 className="input"
                 value={features.customer_segment}
@@ -101,16 +101,16 @@ export default function Fraud() {
           </div>
 
           <button type="submit" className="btn" disabled={loading}>
-            {loading ? "Scoring transaction…" : "Score fraud risk"}
+            {loading ? "İşlem puanlanıyor…" : "Dolandırıcılık riskini puanla"}
           </button>
         </form>
 
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Anomaly score</h2>
+              <h2 className="panel-title">Anomali skoru</h2>
               <p className="panel-subtitle">
-                Output from `/fraud` endpoint, where higher scores mean higher anomaly.
+                `/fraud` uç noktasının çıktısı; daha yüksek skor daha yüksek anomali anlamına gelir.
               </p>
             </div>
           </div>
@@ -118,10 +118,10 @@ export default function Fraud() {
           {result ? (
             <>
               {result.error ? (
-                <p className="badge-negative">Error: {result.error}</p>
+                <p className="badge-negative">Hata: {result.error}</p>
               ) : (
                 <p className="card-caption">
-                  Anomaly score:&nbsp;
+                  Anomali skoru:&nbsp;
                   <strong>{(result.anomaly_score * 100).toFixed(1)} / 100</strong>
                 </p>
               )}
@@ -131,8 +131,8 @@ export default function Fraud() {
             </>
           ) : (
             <p className="card-caption">
-              Provide a quick snapshot of the transaction on the left and run the score to see
-              how anomalous it looks compared to your historical data.
+              Soldaki işlem özetini doldurun ve geçmiş verilerinize kıyasla ne kadar anormal
+              göründüğünü görmek için puanlama yapın.
             </p>
           )}
         </div>
@@ -140,4 +140,3 @@ export default function Fraud() {
     </div>
   );
 }
-

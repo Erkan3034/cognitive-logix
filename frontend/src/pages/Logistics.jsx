@@ -30,13 +30,13 @@ export default function Logistics() {
   return (
     <div className="page-layout">
       <header className="page-header">
-        <span className="page-eyebrow">Module A · Predictive logistics</span>
+        <span className="page-eyebrow">Modül A · Tahmine dayalı lojistik</span>
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Delivery delay prediction</h1>
+            <h1 className="page-title">Teslimat gecikme tahmini</h1>
             <p className="page-subtitle">
-              Score individual orders by delay risk before fulfillment and proactively switch
-              carrier, route or service level.
+              Siparişleri yerine getirmeden önce gecikme riskine göre puanlayın ve proaktif olarak
+              taşıyıcı, güzergâh veya hizmet seviyesini değiştirin.
             </p>
           </div>
         </div>
@@ -46,16 +46,16 @@ export default function Logistics() {
         <form className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Order context</h2>
+              <h2 className="panel-title">Sipariş bilgileri</h2>
               <p className="panel-subtitle">
-                Key operational features used by the XGBoost delay risk model.
+                XGBoost gecikme riski modeli tarafından kullanılan temel operasyonel özellikler.
               </p>
             </div>
           </div>
 
           <div className="form-grid">
             <div className="field">
-              <label className="field-label">Shipping mode</label>
+              <label className="field-label">Sevkiyat modu</label>
               <select
                 className="select"
                 value={formData.shipping_mode}
@@ -69,17 +69,17 @@ export default function Logistics() {
             </div>
 
             <div className="field">
-              <label className="field-label">Order region</label>
+              <label className="field-label">Sipariş bölgesi</label>
               <input
                 className="input"
                 value={formData.order_region}
                 onChange={(e) => setFormData({ ...formData, order_region: e.target.value })}
-                placeholder="e.g. Western Europe"
+                placeholder="ör. Western Europe"
               />
             </div>
 
             <div className="field">
-              <label className="field-label">Planned shipping days</label>
+              <label className="field-label">Planlanan sevkiyat günü</label>
               <input
                 type="number"
                 min={0}
@@ -89,11 +89,11 @@ export default function Logistics() {
                   setFormData({ ...formData, days_scheduled: Number(e.target.value) })
                 }
               />
-              <span className="field-helper">From order date to promised ship date.</span>
+              <span className="field-helper">Sipariş tarihinden taahhüt edilen sevk tarihine kadar.</span>
             </div>
 
             <div className="field">
-              <label className="field-label">Category</label>
+              <label className="field-label">Kategori</label>
               <input
                 className="input"
                 value={formData.category}
@@ -102,7 +102,7 @@ export default function Logistics() {
             </div>
 
             <div className="field">
-              <label className="field-label">Market</label>
+              <label className="field-label">Pazar</label>
               <input
                 className="input"
                 value={formData.market}
@@ -111,7 +111,7 @@ export default function Logistics() {
             </div>
 
             <div className="field">
-              <label className="field-label">Order value ($)</label>
+              <label className="field-label">Sipariş tutarı ($)</label>
               <input
                 type="number"
                 min={0}
@@ -123,7 +123,7 @@ export default function Logistics() {
             </div>
 
             <div className="field">
-              <label className="field-label">Quantity</label>
+              <label className="field-label">Miktar</label>
               <input
                 type="number"
                 min={1}
@@ -137,16 +137,16 @@ export default function Logistics() {
           </div>
 
           <button type="submit" className="btn" disabled={loading}>
-            {loading ? "Scoring order…" : "Score delay risk"}
+            {loading ? "Sipariş puanlanıyor…" : "Gecikme riskini puanla"}
           </button>
         </form>
 
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Model output</h2>
+              <h2 className="panel-title">Model çıktısı</h2>
               <p className="panel-subtitle">
-                JSON payload directly returned by the FastAPI `/predict` endpoint.
+                FastAPI `/predict` uç noktası tarafından doğrudan döndürülen JSON verisi.
               </p>
             </div>
           </div>
@@ -154,21 +154,21 @@ export default function Logistics() {
           {result ? (
             <>
               {result.error ? (
-                <p className="badge-negative">Error: {result.error}</p>
+                <p className="badge-negative">Hata: {result.error}</p>
               ) : (
                 <>
                   <p className="card-caption">
-                    Delay risk:&nbsp;
+                    Gecikme riski:&nbsp;
                     <strong>{(result.delay_risk * 100).toFixed(1)}%</strong>
                   </p>
                   <p className="card-caption">
-                    Risk band:&nbsp;
+                    Risk seviyesi:&nbsp;
                     <strong>
                       {result.delay_risk > 0.7
-                        ? "High"
+                        ? "Yüksek"
                         : result.delay_risk > 0.4
-                        ? "Medium"
-                        : "Low"}
+                          ? "Orta"
+                          : "Düşük"}
                     </strong>
                   </p>
                 </>
@@ -179,7 +179,7 @@ export default function Logistics() {
             </>
           ) : (
             <p className="card-caption">
-              Fill in the order context on the left and run a score to see the model output.
+              Soldaki sipariş bilgilerini doldurun ve model çıktısını görmek için puanlama yapın.
             </p>
           )}
         </div>
@@ -187,4 +187,3 @@ export default function Logistics() {
     </div>
   );
 }
-

@@ -1,0 +1,81 @@
+# Julius AI Notebook Analizi — [julius-ai-logs.ipynb](file:///c:/yedekler/OneDrive/Masa%C3%BCst%C3%BCm/ClassNotes/Yapay_Zeka_Ders/cognitive-logix/data/julius-ai-logs.ipynb)
+
+Bu notebook, **Julius AI** platformunda `temiz_veri_final.csv` veri seti üzerinde yapılmış bir keşifsel veri analizi (EDA) ve veri hazırlama oturumunun **tam logudur**.
+
+## Veri Seti Özeti
+
+| Bilgi | Değer |
+|---|---|
+| **Dosya** | `temiz_veri_final.csv` |
+| **Boyut** | 180.519 satır × 55 sütun (hazırlanmış hali) |
+| **Konu** | E-ticaret tedarik zinciri sipariş verileri |
+| **Temel alanlar** | Sales, Order Item Product Price, Benefit per order, Delivery Status, Category Name, vb. |
+
+---
+
+## Notebook'ta Yapılan Adımlar
+
+### 1. Görselleştirmeler (EDA)
+- **Violin plot** — quartile (çeyreklik) gösterimli
+- **Scatter plot** — `Sales` vs `Order Item Product Price` (negatif kâr bayrağı ile renklendirilmiş)
+- **Dağılım grafikleri** — histogram + KDE + çarpıklık hesabı
+- **QQ (Quantile-Quantile) plot** — normallik kontrolü
+- **Boxplot** — aykırı değer görselleştirmesi
+
+### 2. Çarpıklık (Skewness) Analizi
+
+| Sütun | Çarpıklık | Sınıflandırma |
+|---|---|---|
+| Sales | ~2.884 | **Sağa çarpık** (right-skewed) |
+| Order Item Product Price | ~3.191 | **Sağa çarpık** |
+| Order Item Quantity | ~0.880 | Orta düzey sağa çarpık |
+| Order Item Discount Rate | ~0.341 | Yaklaşık **simetrik** |
+| Benefit per order | ~-4.742 | **Sola çarpık** (güçlü) |
+
+### 3. Gürültülü Veri (Noise) Kontrolü
+- **Eksik veriler**: `Customer Lname` (8 eksik), `Customer Zipcode` (3 eksik) — diğerleri tam
+- **Tekrarlayan satır**: 0 (yok)
+- **Aykırı değerler**: IQR ve z-skor (>4) yöntemleriyle tespit edildi; `Benefit per order`, `Order Profit Per Order`, `Order Item Profit Ratio` en çok aykırı değer içeren sütunlar
+- **Negatif fiyat/miktar**: Yok (veri tutarlı)
+
+### 4. Merkezi Eğilim Ölçüleri
+
+| Sütun | Ortalama | Medyan | Mod | Std |
+|---|---|---|---|---|
+| Sales | 203.77 | 199.92 | 129.99 | 132.27 |
+| Order Item Product Price | 141.23 | 59.99 | 59.99 | 139.73 |
+
+> **Yorum:** Ortalama > Medyan ilişkisi sağa çarpıklığı doğruluyor.
+
+### 5. Veri Hazırlama İşlemleri
+
+| Adım | İşlem | Neden |
+|---|---|---|
+| **Tip düzeltme** | `order date` → datetime, parasal sütunlar → numeric | Model ve agregasyonlar için doğru tip gerekli |
+| **İmputasyon** | `Customer Lname` → `Customer Fname` ile dolduruldu; `Customer Zipcode` → şehir bazlı mod ile dolduruldu | Satır sayısı korundu |
+| **İptal bayrağı** | `is_canceled` boolean sütunu oluşturuldu | İptal edilen siparişler ayrı ele alınmalı (7.754 iptal, 172.765 aktif) |
+| **Winsorization** | `Sales`, `Product Price`, `Benefit per order` → %1-%99 arası kırpma (`*_winsor`) | Aşırı aykırı değer etkisi azaltıldı |
+| **Log dönüşümü** | `Sales_log1p`, `Product Price_log1p` | Çarpıklık azaltma, varyans stabilizasyonu |
+| **Medyan impute** | Küçük eksik değerli sayısal sütunlar medyanla dolduruldu | Satır kaybı önlendi |
+
+### 6. Üretilen Dosyalar
+- `temiz_veri_final_imputed.csv` — eksik veri doldurulmuş versiyon
+- `temiz_veri_final_prepared.csv` — tam hazırlanmış versiyon
+- `temiz_veri_final_latest.csv` — son kullanılabilir versiyon (55 sütun)
+
+---
+
+## Öne Çıkan Bulgular
+
+> [!IMPORTANT]
+> - Parasal sütunlar **güçlü sağa çarpık** — log dönüşümü veya winsorize versiyonlar modellerde tercih edilmeli.
+> - `Benefit per order` **güçlü sola çarpık** (-4.742) — büyük zarar/iade siparişlerinden kaynaklanıyor.
+> - **7.754 iptal edilen sipariş** var — kâr analizi ve tahmin modelleri için ayrı ele alınmalı.
+> - Veri seti genel olarak **temiz** (0 tekrar, çok az eksik değer).
+
+## Önerilen Sonraki Adımlar
+1. RFM (Recency, Frequency, Monetary) özellikleri oluşturma
+2. Kategorik değişkenler için one-hot veya target encoding
+3. Zaman bazlı train/test split (rastgele değil)
+4. İptal edilen siparişleri filtreleme veya ayrı modelleme
+5. Korelasyon matrisi ve feature importance analizi

@@ -37,13 +37,13 @@ export default function Demand() {
   return (
     <div className="page-layout">
       <header className="page-header">
-        <span className="page-eyebrow">Module B · Demand intelligence</span>
+        <span className="page-eyebrow">Modül B · Talep istihbaratı</span>
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Category demand forecast</h1>
+            <h1 className="page-title">Kategori talep tahmini</h1>
             <p className="page-subtitle">
-              Project short-term demand curves by category and time horizon to align
-              inventory and capacity decisions.
+              Envanter ve kapasite kararlarını uyumlu hâle getirmek için kategoriye ve zaman
+              ufkuna göre kısa vadeli talep eğrilerini tahmin edin.
             </p>
           </div>
         </div>
@@ -53,16 +53,16 @@ export default function Demand() {
         <form className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Forecast configuration</h2>
+              <h2 className="panel-title">Tahmin yapılandırması</h2>
               <p className="panel-subtitle">
-                Horizon and series selection for the daily demand model.
+                Günlük talep modeli için ufuk ve seri seçimi.
               </p>
             </div>
           </div>
 
           <div className="form-grid">
             <div className="field">
-              <label className="field-label">Forecast horizon (days)</label>
+              <label className="field-label">Tahmin ufku (gün)</label>
               <input
                 type="number"
                 min={7}
@@ -71,32 +71,32 @@ export default function Demand() {
                 value={horizon}
                 onChange={(e) => setHorizon(Number(e.target.value))}
               />
-              <span className="field-helper">Typical window: 14–60 days.</span>
+              <span className="field-helper">Tipik aralık: 14–60 gün.</span>
             </div>
 
             <div className="field">
-              <label className="field-label">Category / segment</label>
+              <label className="field-label">Kategori / segment</label>
               <input
                 className="input"
-                placeholder="e.g. Fan Shop · Western Europe"
+                placeholder="ör. Fan Shop · Batı Avrupa"
               />
               <span className="field-helper">
-                In a later step this will drive filtered time series from the data warehouse.
+                Sonraki adımda bu alan, veri ambarından filtrelenmiş zaman serilerini yönlendirecektir.
               </span>
             </div>
           </div>
 
           <button type="submit" className="btn" disabled={loading}>
-            {loading ? "Generating forecast…" : "Generate forecast"}
+            {loading ? "Tahmin oluşturuluyor…" : "Tahmin oluştur"}
           </button>
         </form>
 
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Forecast output</h2>
+              <h2 className="panel-title">Tahmin çıktısı</h2>
               <p className="panel-subtitle">
-                Forecast points returned from `/forecast`, visualised as a daily demand curve.
+                `/forecast` uç noktasından dönen tahmin noktaları, günlük talep eğrisi olarak görselleştirilmiştir.
               </p>
             </div>
           </div>
@@ -104,12 +104,12 @@ export default function Demand() {
           {result ? (
             <>
               {result.error ? (
-                <p className="badge-negative">Error: {result.error}</p>
+                <p className="badge-negative">Hata: {result.error}</p>
               ) : (
                 <>
                   <p className="card-caption">
-                    Received <strong>{result.points?.length ?? 0}</strong> forecast points for a{" "}
-                    {horizon}-day horizon.
+                    {horizon} günlük ufuk için <strong>{result.points?.length ?? 0}</strong> tahmin
+                    noktası alındı.
                   </p>
                   {chartData.length > 0 && (
                     <div style={{ height: 220, marginTop: "0.6rem" }}>
@@ -147,8 +147,8 @@ export default function Demand() {
             </>
           ) : (
             <p className="card-caption">
-              Configure the horizon and category on the left, then run the forecast to inspect
-              the raw JSON output.
+              Soldaki ufuk ve kategoriyi yapılandırın, ardından ham JSON çıktısını incelemek
+              için tahmini çalıştırın.
             </p>
           )}
         </div>
@@ -156,4 +156,3 @@ export default function Demand() {
     </div>
   );
 }
-

@@ -11,7 +11,7 @@ function Nav() {
         <div className="app-logo" />
         <div className="app-title">
           <span className="app-title-main">Cognitive Logix</span>
-          <span className="app-title-sub">Supply Chain Digital Twin</span>
+          <span className="app-title-sub">Tedarik Zinciri Dijital İkizi</span>
         </div>
       </div>
       <nav className="app-nav-links">
@@ -22,7 +22,7 @@ function Nav() {
             `app-nav-link ${isActive ? "app-nav-link-active" : ""}`
           }
         >
-          Overview
+          Genel Bakış
         </NavLink>
         <NavLink
           to="/logistics"
@@ -30,7 +30,7 @@ function Nav() {
             `app-nav-link ${isActive ? "app-nav-link-active" : ""}`
           }
         >
-          Logistics
+          Lojistik
         </NavLink>
         <NavLink
           to="/demand"
@@ -38,7 +38,7 @@ function Nav() {
             `app-nav-link ${isActive ? "app-nav-link-active" : ""}`
           }
         >
-          Demand
+          Talep
         </NavLink>
         <NavLink
           to="/fraud"
@@ -46,7 +46,7 @@ function Nav() {
             `app-nav-link ${isActive ? "app-nav-link-active" : ""}`
           }
         >
-          Fraud & Risk
+          Dolandırıcılık & Risk
         </NavLink>
       </nav>
     </header>

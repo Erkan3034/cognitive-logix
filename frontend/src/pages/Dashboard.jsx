@@ -45,18 +45,18 @@ export default function Dashboard() {
   return (
     <div className="page-layout">
       <header className="page-header">
-        <span className="page-eyebrow">Executive cockpit</span>
+        <span className="page-eyebrow">Yönetici kokpiti</span>
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Control Tower Overview</h1>
+            <h1 className="page-title">Kontrol Kulesi Genel Görünüm</h1>
             <p className="page-subtitle">
-              Unified view of on-time delivery, demand risk and financial exposure across
-              your global supply chain.
+              Küresel tedarik zinciriniz genelinde zamanında teslimat, talep riski ve finansal
+              risk maruziyetinin birleşik görünümü.
             </p>
           </div>
           <div className="pill">
             <span className="pill-dot" />
-            {loading ? "Syncing data…" : "Live data"}
+            {loading ? "Veriler senkronize ediliyor…" : "Canlı veri"}
           </div>
         </div>
       </header>
@@ -64,51 +64,51 @@ export default function Dashboard() {
       <section className="kpi-grid">
         <article className="card">
           <div className="card-header">
-            <span className="card-title">On-time delivery</span>
-            <span className="card-trend badge-positive">Model-based, last 7 days</span>
+            <span className="card-title">Zamanında teslimat</span>
+            <span className="card-trend badge-positive">Model tabanlı, son 7 gün</span>
           </div>
           <div className="card-value">{onTime}</div>
           <p className="card-caption">
-            Share of orders predicted to arrive on time across the active network.
+            Aktif ağ genelinde zamanında ulaşması öngörülen siparişlerin oranı.
           </p>
         </article>
 
         <article className="card">
           <div className="card-header">
-            <span className="card-title">Late delivery risk</span>
+            <span className="card-title">Gecikme riski</span>
             <span className="card-trend badge-negative">
-              {lateRisk !== "--" ? `${lateRisk} currently late risk` : "Loading…"}
+              {lateRisk !== "--" ? `${lateRisk} mevcut gecikme riski` : "Yükleniyor…"}
             </span>
           </div>
           <div className="card-value">{lateRisk}</div>
           <p className="card-caption">
-            Orders with high delay probability based on `Late_delivery_risk` signals.
+            `Late_delivery_risk` sinyallerine dayalı yüksek gecikme olasılığına sahip siparişler.
           </p>
         </article>
 
         <article className="card">
           <div className="card-header">
-            <span className="card-title">Demand risk</span>
+            <span className="card-title">Talep riski</span>
             <span className="card-trend badge-neutral">
-              {demandRiskCats} volatile categories
+              {demandRiskCats} volatil kategori
             </span>
           </div>
           <div className="card-value">{demandRisk}</div>
           <p className="card-caption">
-            Volume share in categories with high day‑to‑day volatility (CV &gt; 0.8).
+            Günlük volatilitesi yüksek kategorilerdeki hacim payı (CV &gt; 0.8).
           </p>
         </article>
 
         <article className="card">
           <div className="card-header">
-            <span className="card-title">Financial exposure</span>
+            <span className="card-title">Finansal maruziyet</span>
             <span className="card-trend badge-negative">
-              {lossOrders} loss‑making orders
+              {lossOrders} zarar eden sipariş
             </span>
           </div>
           <div className="card-value">{financialExposure}</div>
           <p className="card-caption">
-            Potential negative profit from orders flagged with `negative_profit_flag = 1`.
+            `negative_profit_flag = 1` olarak işaretlenen siparişlerden kaynaklanan potansiyel negatif kâr.
           </p>
         </article>
       </section>
@@ -117,21 +117,21 @@ export default function Dashboard() {
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Network risk heatmap</h2>
+              <h2 className="panel-title">Ağ risk ısı haritası</h2>
               <p className="panel-subtitle">
-                Region & shipping mode breakdown by predicted delay probability.
+                Tahmini gecikme olasılığına göre bölge ve sevkiyat modu dağılımı.
               </p>
             </div>
           </div>
           <div style={{ marginTop: "0.5rem" }}>
             <div className="chip-row">
-              <span className="chip">Western Europe · Standard Class · High risk</span>
-              <span className="chip">US & Puerto Rico · Same Day · Medium risk</span>
-              <span className="chip">LATAM · Second Class · Low risk</span>
+              <span className="chip">Batı Avrupa · Standart Sınıf · Yüksek risk</span>
+              <span className="chip">ABD & Porto Riko · Aynı Gün · Orta risk</span>
+              <span className="chip">LATAM · İkinci Sınıf · Düşük risk</span>
             </div>
             <p className="card-caption" style={{ marginTop: "0.7rem" }}>
-              Visual delay heatmap and SHAP-based driver analysis will be rendered here
-              (Recharts + SHAP plots).
+              Görsel gecikme ısı haritası ve SHAP tabanlı etken analizi burada gösterilecektir
+              (Recharts + SHAP grafikleri).
             </p>
           </div>
         </div>
@@ -139,24 +139,24 @@ export default function Dashboard() {
         <div className="panel">
           <div className="panel-header">
             <div>
-              <h2 className="panel-title">Today&apos;s watchlist</h2>
+              <h2 className="panel-title">Bugünün izleme listesi</h2>
               <p className="panel-subtitle">
-                Combined view of late, high-risk demand and suspected fraud orders.
+                Gecikmeli, yüksek riskli talep ve şüpheli dolandırıcılık siparişlerinin birleşik görünümü.
               </p>
             </div>
           </div>
           <ul style={{ listStyle: "none", paddingLeft: 0, margin: 0, fontSize: "0.8rem" }}>
             <li style={{ marginBottom: "0.45rem" }}>
-              <span className="badge-negative">High delay · High margin</span> — prioritize
-              alternative carrier for Western Europe sporting goods.
+              <span className="badge-negative">Yüksek gecikme · Yüksek marj</span> — Batı Avrupa
+              spor malzemeleri için alternatif taşıyıcıyı önceliklendirin.
             </li>
             <li style={{ marginBottom: "0.45rem" }}>
-              <span className="badge-positive">High demand · Healthy margin</span> — consider
-              pulling inventory for US fan shop category.
+              <span className="badge-positive">Yüksek talep · Sağlıklı marj</span> — ABD fan
+              mağazası kategorisi için envanter çekmeyi değerlendirin.
             </li>
             <li>
-              <span className="badge-negative">Suspected fraud</span> — isolate 4,062 orders
-              with abnormal payment patterns before fulfillment.
+              <span className="badge-negative">Şüpheli dolandırıcılık</span> — Yerine getirmeden
+              önce anormal ödeme desenleri olan 4.062 siparişi izole edin.
             </li>
           </ul>
         </div>
@@ -164,4 +164,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

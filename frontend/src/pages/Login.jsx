@@ -23,27 +23,26 @@ export default function Login() {
 
   return (
     <div>
-      <h2>Login</h2>
-      <p style={{ color: "#666" }}>🔒 Authentication is currently disabled for development.</p>
+      <h2>Giriş</h2>
+      <p style={{ color: "#666" }}>🔒 Kimlik doğrulama geliştirme sürecinde geçici olarak devre dışıdır.</p>
       {/* <form onSubmit={signIn} style={{ display: "grid", gap: 8, maxWidth: 360 }}>
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="email"
+          placeholder="e-posta"
           type="email"
           required
         />
         <input
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="password"
+          placeholder="şifre"
           type="password"
           required
         />
-        <button type="submit">Sign in</button>
+        <button type="submit">Giriş yap</button>
       </form>
       {message && <p style={{ marginTop: 12 }}>{message}</p>} */}
     </div>
   );
 }
-
