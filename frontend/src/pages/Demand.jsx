@@ -1,19 +1,48 @@
 import { useState } from "react";
 import {
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  CartesianGrid
+  Line, LineChart, ResponsiveContainer, Tooltip,
+  XAxis, YAxis, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { postForecast } from "../lib/api.js";
 
+/* ── Custom Tooltip ──────────────────────────── */
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: "var(--bg-overlay)",
+      border: "1px solid var(--border-accent)",
+      borderRadius: "var(--radius-sm)",
+      padding: "8px 12px",
+      backdropFilter: "blur(12px)",
+      boxShadow: "var(--shadow-md)",
+    }}>
+      <p style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 4 }}>{label}</p>
+      <p style={{ fontSize: 14, fontWeight: 700, color: "var(--accent)" }}>
+        {payload[0].value?.toFixed(1)} <span style={{ fontSize: 11, fontWeight: 400 }}>birim</span>
+      </p>
+    </div>
+  );
+}
+
+/* ── Empty / Placeholder Chart ───────────────── */
+function EmptyChart() {
+  return (
+    <div className="empty-state" style={{ minHeight: 200 }}>
+      <div className="empty-state-icon">📈</div>
+      <div className="empty-state-title">Tahmin grafiği burada görünecek</div>
+      <div className="empty-state-desc">
+        Sol panelden ufuk ve kategori seçin, ardından "Tahmin Oluştur" butonuna basın.
+      </div>
+    </div>
+  );
+}
+
 export default function Demand() {
-  const [result, setResult] = useState(null);
+  const [result,  setResult]  = useState(null);
   const [loading, setLoading] = useState(false);
   const [horizon, setHorizon] = useState(30);
+  const [category, setCategory] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -28,19 +57,15 @@ export default function Demand() {
     }
   }
 
-  const chartData =
-    result?.points?.map((p) => ({
-      ds: p.ds,
-      yhat: p.yhat
-    })) ?? [];
+  const chartData = result?.points?.map((p) => ({ ds: p.ds, yhat: p.yhat })) ?? [];
 
   return (
     <div className="page-layout">
       <header className="page-header">
-        <span className="page-eyebrow">Modül B · Talep istihbaratı</span>
+        <span className="page-eyebrow">Modül B · Talep İstihbaratı</span>
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Kategori talep tahmini</h1>
+            <h1 className="page-title">Kategori Talep Tahmini</h1>
             <p className="page-subtitle">
               Envanter ve kapasite kararlarını uyumlu hâle getirmek için kategoriye ve zaman
               ufkuna göre kısa vadeli talep eğrilerini tahmin edin.
@@ -50,35 +75,40 @@ export default function Demand() {
       </header>
 
       <section className="two-column">
+        {/* Config Form */}
         <form className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
-            <div>
-              <h2 className="panel-title">Tahmin yapılandırması</h2>
-              <p className="panel-subtitle">
-                Günlük talep modeli için ufuk ve seri seçimi.
-              </p>
+            <div className="panel-title-block">
+              <h2 className="panel-title">Tahmin Yapılandırması</h2>
+              <p className="panel-subtitle">Günlük talep modeli için ufuk ve seri seçimi.</p>
             </div>
+            <span className="panel-header-badge blue">Prophet</span>
           </div>
 
-          <div className="form-grid">
+          <div className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
             <div className="field">
-              <label className="field-label">Tahmin ufku (gün)</label>
+              <label className="field-label">Tahmin Ufku (gün): <strong style={{ color: "var(--accent)" }}>{horizon}</strong></label>
               <input
-                type="number"
-                min={7}
-                max={90}
-                className="input"
+                type="range"
+                min={7} max={90} step={1}
                 value={horizon}
                 onChange={(e) => setHorizon(Number(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--accent)", cursor: "pointer" }}
               />
-              <span className="field-helper">Tipik aralık: 14–60 gün.</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span className="field-helper">7 gün</span>
+                <span className="field-helper">Tipik: 14–60 gün</span>
+                <span className="field-helper">90 gün</span>
+              </div>
             </div>
 
             <div className="field">
-              <label className="field-label">Kategori / segment</label>
+              <label className="field-label">Kategori / Segment</label>
               <input
                 className="input"
                 placeholder="ör. Fan Shop · Batı Avrupa"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
               />
               <span className="field-helper">
                 Sonraki adımda bu alan, veri ambarından filtrelenmiş zaman serilerini yönlendirecektir.
@@ -86,70 +116,73 @@ export default function Demand() {
             </div>
           </div>
 
-          <button type="submit" className="btn" disabled={loading}>
-            {loading ? "Tahmin oluşturuluyor…" : "Tahmin oluştur"}
+          {/* Horizon summary */}
+          <div style={{
+            background: "var(--bg-surface-2)", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)",
+            padding: "10px 14px", marginBottom: 16, display: "flex", gap: 16,
+          }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Seçilen Ufuk</span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "var(--accent)" }}>{horizon} gün</span>
+            </div>
+            {category && (
+              <div style={{ display: "flex", flexDirection: "column", borderLeft: "1px solid var(--border)", paddingLeft: 16 }}>
+                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Kategori</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-main)" }}>{category}</span>
+              </div>
+            )}
+          </div>
+
+          <button type="submit" className="btn btn-full" disabled={loading}>
+            {loading ? "⟳ Tahmin oluşturuluyor…" : "📊 Tahmin Oluştur"}
           </button>
         </form>
 
+        {/* Chart Panel */}
         <div className="panel">
           <div className="panel-header">
-            <div>
-              <h2 className="panel-title">Tahmin çıktısı</h2>
+            <div className="panel-title-block">
+              <h2 className="panel-title">Tahmin Grafiği</h2>
               <p className="panel-subtitle">
-                `/forecast` uç noktasından dönen tahmin noktaları, günlük talep eğrisi olarak görselleştirilmiştir.
+                {result?.points?.length
+                  ? `${horizon} günlük ufuk için ${result.points.length} tahmin noktası`
+                  : "Günlük talep eğrisi burada görünecek."}
               </p>
             </div>
+            {result?.points?.length > 0 && (
+              <span className="panel-header-badge green">{result.points.length} nokta</span>
+            )}
           </div>
 
           {result ? (
-            <>
-              {result.error ? (
-                <p className="badge-negative">Hata: {result.error}</p>
-              ) : (
-                <>
-                  <p className="card-caption">
-                    {horizon} günlük ufuk için <strong>{result.points?.length ?? 0}</strong> tahmin
-                    noktası alındı.
-                  </p>
-                  {chartData.length > 0 && (
-                    <div style={{ height: 220, marginTop: "0.6rem" }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                          <XAxis
-                            dataKey="ds"
-                            tick={{ fontSize: 10 }}
-                            tickLine={false}
-                            axisLine={false}
-                          />
-                          <YAxis
-                            tick={{ fontSize: 10 }}
-                            tickLine={false}
-                            axisLine={false}
-                          />
-                          <Tooltip />
-                          <Line
-                            type="monotone"
-                            dataKey="yhat"
-                            stroke="#38bdf8"
-                            strokeWidth={2}
-                            dot={false}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  )}
-                </>
-              )}
-              <pre className="result-code" style={{ marginTop: "0.7rem" }}>
-                {JSON.stringify(result, null, 2)}
-              </pre>
-            </>
+            result.error ? (
+              <div style={{ padding: "12px", background: "var(--risk-high-soft)", borderRadius: "var(--radius-md)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                <p className="badge-negative" style={{ fontSize: 13 }}>❌ {result.error}</p>
+              </div>
+            ) : chartData.length > 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div className="chart-wrapper" style={{ height: 220 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                      <XAxis dataKey="ds" tick={{ fontSize: 9, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="yhat" stroke="var(--accent)" strokeWidth={2.5} dot={false}
+                        activeDot={{ r: 4, fill: "var(--accent)", stroke: "var(--bg-body)", strokeWidth: 2 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <details className="result-details">
+                  <summary>📋 Ham JSON Verisi</summary>
+                  <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
+                </details>
+              </div>
+            ) : (
+              <EmptyChart />
+            )
           ) : (
-            <p className="card-caption">
-              Soldaki ufuk ve kategoriyi yapılandırın, ardından ham JSON çıktısını incelemek
-              için tahmini çalıştırın.
-            </p>
+            <EmptyChart />
           )}
         </div>
       </section>
