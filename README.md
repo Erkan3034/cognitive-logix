@@ -328,6 +328,52 @@ python notebooks/module_c_fraud/data_cleaning.py
 
 ---
 
+## 🤖 Model Eğitimi
+
+> **⚠️ NOT:** `backend/trained_models/` klasörü `.gitignore` dosyasında yer aldığı için modeller git deposunda saklanmazlar. Her geliştirici modelleri kendi makinelerinde eğitmelidir.
+
+### Otomatik Eğitim (Önerilen)
+
+Tüm modelleri tek bir komutla eğitmek için:
+
+```powershell
+# Proje kök dizinine girin
+cd cognitive-logix
+
+# Eğitim script'ini çalıştırın (venv otomatik oluşturulacak)
+.\train_all_models.ps1
+```
+
+**Bu komut otomatik olarak:**
+- ✅ Virtual environment oluşturur (yoksa)
+- ✅ Tüm gerekli paketleri yükler
+- ✅ 3 modeli sırayla eğitir
+- ✅ Eğitim sonuçlarını gösterir
+
+### Elle Eğitim
+
+Modelleri ayrı ayrı eğitmek için [**MODEL_TRAINING.md**](MODEL_TRAINING.md) dosyasını okuyun. Dosya şunları içerir:
+
+- 📖 Adım adım kurulum rehberi
+- 🎯 Her modülün eğitim komutları
+- 🐛 Sorun giderme ipuçları
+- 🔍 Veri gereksinimlerine ilişkin kontrol listesi
+
+### Eğitim Sonrası Kontrolü
+
+Başarılı eğitimden sonra `backend/trained_models/` klasöründe şu dosyalar olmalıdır:
+
+```
+backend/trained_models/
+├── logistics_model.pkl    (Lojistik gecikme riski)
+├── demand_model.pkl       (Talep tahmini)
+└── fraud_model.pkl        (Sahte sipariş tespiti)
+```
+
+Backend başlatıldığında bu modeller otomatik olarak yüklenir.
+
+---
+
 ## ⚠️ Veri Kullanım Kılavuzu
 
 > **Kritik:** Her modül için doğru veri seti kullanılmalıdır. Yanlış veri seti yanıltıcı sonuçlar üretir.
