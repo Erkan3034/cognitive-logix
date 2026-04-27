@@ -10,6 +10,8 @@ The model is intentionally lightweight (RandomForestRegressor on calendar featur
 so it runs reliably in a constrained environment without Prophet.
 """
 
+#prophet ve randomforestregressor ile talep tahminleme 
+
 from __future__ import annotations
 
 from datetime import datetime

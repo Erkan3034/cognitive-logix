@@ -5,12 +5,11 @@ Reads the latest cleaned dataset and trains a scikit-learn pipeline that predict
 `Late_delivery_risk` flag. The trained model is saved under:
 
     backend/trained_models/logistics_model.pkl
-
-You can run this script from the project root (recommended virtualenv with Python 3.10+):
-
     cd cognitive-logix
     python notebooks/module_a_logistics/train_logistics_model.py
 """
+
+#xgboost lojistik gecikme hesaplama
 
 from __future__ import annotations
 

@@ -1,0 +1,34 @@
+%% Cognitive Logix - Model Training Activity Diagram
+stateDiagram-v2
+  [*] --> Start
+  Start --> LoadData : Read CSV files
+
+  state "Module A: Logistics" as A {
+    [*] --> APrep
+    APrep --> ATrain : Feature prep + split
+    ATrain --> AValidate : RandomForestClassifier
+    AValidate --> ASave : Save logistics_model.pkl
+    ASave --> [*]
+  }
+
+  state "Module B: Demand" as B {
+    [*] --> BPrep
+    BPrep --> BTrain : Build time features
+    BTrain --> BValidate : RandomForestRegressor
+    BValidate --> BSave : Save demand_model.pkl payload
+    BSave --> [*]
+  }
+
+  state "Module C: Fraud" as C {
+    [*] --> CPrep
+    CPrep --> CTrain : Feature prep + split
+    CTrain --> CValidate : RandomForestClassifier
+    CValidate --> CSave : Save fraud_model.pkl
+    CSave --> [*]
+  }
+
+  LoadData --> A
+  A --> B
+  B --> C
+  C --> ArtifactsReady
+  ArtifactsReady --> [*]

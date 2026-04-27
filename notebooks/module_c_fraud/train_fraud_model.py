@@ -9,6 +9,8 @@ The trained model is saved as:
     backend/trained_models/fraud_model.pkl
 """
 
+# Isolation Forest ve XGBoost ile sahtekarlık tespiti
+
 from __future__ import annotations
 
 from pathlib import Path

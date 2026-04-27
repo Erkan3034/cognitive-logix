@@ -1,0 +1,97 @@
+%% Cognitive Logix - Backend UML Class Diagram
+classDiagram
+  direction TB
+
+  class MainApp {
+    +FastAPI app
+    +include_router(predict_router)
+    +include_router(forecast_router)
+    +include_router(fraud_router)
+    +include_router(metrics_router)
+    +health()
+    +root()
+  }
+
+  class PredictRouter {
+    +predict(req: PredictRequest) PredictResponse
+  }
+
+  class ForecastRouter {
+    +forecast(req: ForecastRequest) ForecastResponse
+  }
+
+  class FraudRouter {
+    +fraud(req: FraudRequest) FraudResponse
+  }
+
+  class MetricsRouter {
+    +get_overview_metrics() dict
+    -_load_analysis_df() DataFrame
+    -_load_full_df() DataFrame
+  }
+
+  class PredictRequest {
+    +features: Dict[str, Any]
+  }
+
+  class PredictResponse {
+    +delay_risk: float
+  }
+
+  class ForecastRequest {
+    +horizon: int
+    +series: List[TimeSeriesPoint]
+  }
+
+  class ForecastedPoint {
+    +ds: str
+    +yhat: float
+    +yhat_lower: float?
+    +yhat_upper: float?
+  }
+
+  class ForecastResponse {
+    +points: List[ForecastedPoint]
+  }
+
+  class FraudRequest {
+    +features: Dict[str, Any]
+  }
+
+  class FraudResponse {
+    +anomaly_score: float
+  }
+
+  class LogisticsModelService {
+    +predict_delay_risk(features) float
+    -_load_model()
+  }
+
+  class DemandModelService {
+    +forecast_demand(series, horizon) List[ForecastedPoint]
+    -_load_model()
+    -_build_future_features(start_ds, horizon, start_index)
+  }
+
+  class FraudModelService {
+    +score_anomaly(features) float
+    -_load_model()
+  }
+
+  MainApp --> PredictRouter
+  MainApp --> ForecastRouter
+  MainApp --> FraudRouter
+  MainApp --> MetricsRouter
+
+  PredictRouter --> PredictRequest
+  PredictRouter --> PredictResponse
+  PredictRouter --> LogisticsModelService
+
+  ForecastRouter --> ForecastRequest
+  ForecastRouter --> ForecastResponse
+  ForecastRouter --> DemandModelService
+  ForecastResponse --> ForecastedPoint
+
+  FraudRouter --> FraudRequest
+  FraudRouter --> FraudResponse
+  FraudRouter --> FraudModelService

@@ -1,0 +1,71 @@
+%% Cognitive Logix - System Component Diagram
+classDiagram
+  direction LR
+
+  class ReactFrontend {
+    <<component>>
+    +DashboardPage
+    +LogisticsPage
+    +DemandPage
+    +FraudPage
+    +api.js (Axios client)
+  }
+
+  class FastAPIBackend {
+    <<component>>
+    +/predict
+    +/forecast
+    +/fraud
+    +/metrics/overview
+  }
+
+  class LogisticsML {
+    <<component>>
+    +predict_delay_risk(features)
+    +load logistics_model.pkl
+  }
+
+  class DemandML {
+    <<component>>
+    +forecast_demand(series, horizon)
+    +load demand_model.pkl
+  }
+
+  class FraudML {
+    <<component>>
+    +score_anomaly(features)
+    +load fraud_model.pkl
+  }
+
+  class TrainedModels {
+    <<artifact>>
+    +logistics_model.pkl
+    +demand_model.pkl
+    +fraud_model.pkl
+  }
+
+  class DataLayer {
+    <<database>>
+    +data/processed/analiz_veri.csv
+    +data/temiz_veri_final_latest.csv
+  }
+
+  class NotebooksTraining {
+    <<component>>
+    +train_logistics_model.py
+    +train_demand_model.py
+    +train_fraud_model.py
+  }
+
+  ReactFrontend --> FastAPIBackend : REST/JSON
+  FastAPIBackend --> LogisticsML : route /predict
+  FastAPIBackend --> DemandML : route /forecast
+  FastAPIBackend --> FraudML : route /fraud
+  FastAPIBackend --> DataLayer : read KPI datasets
+
+  LogisticsML --> TrainedModels : loads
+  DemandML --> TrainedModels : loads
+  FraudML --> TrainedModels : loads
+
+  NotebooksTraining --> DataLayer : reads training data
+  NotebooksTraining --> TrainedModels : writes artifacts

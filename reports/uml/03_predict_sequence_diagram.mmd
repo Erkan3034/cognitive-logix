@@ -1,0 +1,23 @@
+%% Cognitive Logix - /predict UML Sequence Diagram
+sequenceDiagram
+  autonumber
+  actor User
+  participant UI as Logistics.jsx
+  participant API as frontend/lib/api.js
+  participant BE as FastAPI /predict
+  participant Schema as PredictRequest
+  participant ML as logistics_model.py
+  participant PKL as logistics_model.pkl
+
+  User->>UI: Formu doldurur ve tahmin ister
+  UI->>API: postPredict({ features })
+  API->>BE: POST /predict (JSON)
+  BE->>Schema: Request validation
+  Schema-->>BE: Validated payload
+  BE->>ML: predict_delay_risk(features)
+  ML->>PKL: Lazy-load model (if needed)
+  PKL-->>ML: Trained pipeline
+  ML-->>BE: delay_risk: float
+  BE-->>API: PredictResponse { delay_risk }
+  API-->>UI: data
+  UI-->>User: Risk score + level badge

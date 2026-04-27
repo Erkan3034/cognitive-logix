@@ -1,0 +1,21 @@
+%% Cognitive Logix - Dashboard Metrics Sequence
+sequenceDiagram
+  autonumber
+  actor Manager
+  participant Dash as Dashboard.jsx
+  participant API as getOverviewMetrics()
+  participant BE as FastAPI /metrics/overview
+  participant CSV1 as analiz_veri.csv
+  participant CSV2 as temiz_veri_final_latest.csv
+
+  Manager->>Dash: Dashboard sayfasini acar
+  Dash->>API: getOverviewMetrics()
+  API->>BE: GET /metrics/overview
+  BE->>CSV1: Read analysis dataset
+  BE->>CSV2: Read full dataset
+  BE->>BE: Compute on-time, late risk,
+  Note over BE: demand risk (CV > 0.8),
+  Note over BE: financial exposure, loss orders
+  BE-->>API: JSON KPI payload
+  API-->>Dash: metrics object
+  Dash-->>Manager: KPI cards and watchlist
