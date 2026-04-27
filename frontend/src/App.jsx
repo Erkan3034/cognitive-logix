@@ -61,6 +61,13 @@ const PAGE_TITLES = {
   "/fraud":     "Dolandırıcılık & Risk",
 };
 
+const PAGE_DESCRIPTIONS = {
+  "/": "Operasyonel durum, kritik riskler ve finansal maruziyet özet görünümü.",
+  "/logistics": "Sipariş bazında gecikme olasılığına göre önleyici karar desteği.",
+  "/demand": "Kısa vadeli talep eğrileriyle envanter ve kapasite planlama desteği.",
+  "/fraud": "Anomali sinyalleriyle işlem doğrulama ve zarar önleme desteği.",
+};
+
 function Sidebar({ collapsed, onToggle }) {
   return (
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
@@ -103,15 +110,19 @@ function Sidebar({ collapsed, onToggle }) {
   );
 }
 
-function TopBar({ collapsed }) {
+function TopBar() {
   const location = useLocation();
   const title = PAGE_TITLES[location.pathname] ?? "Sayfa";
+  const description = PAGE_DESCRIPTIONS[location.pathname] ?? "Modul ozeti";
 
   return (
     <div className="topbar">
-      <span className="topbar-breadcrumb">
-        Cognitive Logix &nbsp;/&nbsp; <span>{title}</span>
-      </span>
+      <div className="topbar-heading">
+        <span className="topbar-breadcrumb">
+          Cognitive Logix / <span>{title}</span>
+        </span>
+        <span className="topbar-description">{description}</span>
+      </div>
       <span className="topbar-spacer" />
       <span className="topbar-live-badge">
         <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--risk-low)", display: "inline-block" }} />
@@ -128,7 +139,7 @@ export default function App() {
     <div className="app-shell">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
       <div className={`app-content${collapsed ? " sidebar-collapsed" : ""}`}>
-        <TopBar collapsed={collapsed} />
+        <TopBar />
         <main className="app-main">
           <Routes>
             <Route path="/"          element={<Dashboard />} />

@@ -29,7 +29,7 @@ function CustomTooltip({ active, payload, label }) {
 function EmptyChart() {
   return (
     <div className="empty-state" style={{ minHeight: 200 }}>
-      <div className="empty-state-icon">📈</div>
+      <div className="empty-state-icon">TAH</div>
       <div className="empty-state-title">Tahmin grafiği burada görünecek</div>
       <div className="empty-state-desc">
         Sol panelden ufuk ve kategori seçin, ardından "Tahmin Oluştur" butonuna basın.
@@ -73,6 +73,33 @@ export default function Demand() {
           </div>
         </div>
       </header>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div className="panel-title-block">
+            <h2 className="panel-title">Kullanim Akisi</h2>
+            <p className="panel-subtitle">Talep tahminini planlama kararina donusturmek icin 3 adimi izleyin.</p>
+          </div>
+          <span className="panel-header-badge blue">3 Adim</span>
+        </div>
+        <div className="guide-grid">
+          <article className="guide-card">
+            <span className="guide-step">1</span>
+            <h3 className="guide-title">Ufuk ve Segmenti Secin</h3>
+            <p className="guide-text">Planlama donemine uygun gun sayisini secin ve ilgili kategori veya bolgeyi belirtin.</p>
+          </article>
+          <article className="guide-card">
+            <span className="guide-step">2</span>
+            <h3 className="guide-title">Tahmini Uretin</h3>
+            <p className="guide-text">Model grafikte gunluk talep davranisini cikarir; zirve ve dusus noktalarina odaklanin.</p>
+          </article>
+          <article className="guide-card">
+            <span className="guide-step">3</span>
+            <h3 className="guide-title">Kapasiteyi Esitleyin</h3>
+            <p className="guide-text">Yuksek talep gunleri icin stok ve insan kaynagi planini erken dengeleyin.</p>
+          </article>
+        </div>
+      </section>
 
       <section className="two-column">
         {/* Config Form */}
@@ -134,7 +161,7 @@ export default function Demand() {
           </div>
 
           <button type="submit" className="btn btn-full" disabled={loading}>
-            {loading ? "⟳ Tahmin oluşturuluyor…" : "📊 Tahmin Oluştur"}
+            {loading ? "⟳ Tahmin olusturuluyor…" : "Tahmin Olustur"}
           </button>
         </form>
 
@@ -174,7 +201,7 @@ export default function Demand() {
                   </ResponsiveContainer>
                 </div>
                 <details className="result-details">
-                  <summary>📋 Ham JSON Verisi</summary>
+                  <summary>Ham JSON Verisi</summary>
                   <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
                 </details>
               </div>

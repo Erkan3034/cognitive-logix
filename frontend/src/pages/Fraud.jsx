@@ -60,10 +60,10 @@ function AnomalyGauge({ score }) {
 
       <p className="card-caption">
         {cls === "high"
-          ? "⚠️ Bu işlem geçmiş verilerle oldukça uyumsuz. Yerine getirmeden önce manuel doğrulama yapın."
+          ? "Bu islem gecmis verilerle oldukca uyumsuz. Yerine getirmeden once manuel dogrulama yapin."
           : cls === "med"
-            ? "🔶 Hafif anomali işareti. Ödeme desenleri incelenebilir."
-            : "✅ Bu işlem normal davranış kalıplarıyla uyumlu görünüyor."}
+            ? "Hafif anomali isareti var. Odeme desenleri incelenebilir."
+            : "Bu islem normal davranis kaliplariyla uyumlu gorunuyor."}
       </p>
     </div>
   );
@@ -73,7 +73,7 @@ function AnomalyGauge({ score }) {
 function EmptyState() {
   return (
     <div className="empty-state">
-      <div className="empty-state-icon">🛡️</div>
+      <div className="empty-state-icon">RISK</div>
       <div className="empty-state-title">Henüz analiz yok</div>
       <div className="empty-state-desc">
         Soldaki işlem bilgilerini doldurun ve "Dolandırıcılık Riskini Puanla" butonuna basın.
@@ -124,6 +124,33 @@ export default function Fraud() {
           </div>
         </div>
       </header>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div className="panel-title-block">
+            <h2 className="panel-title">Kullanim Akisi</h2>
+            <p className="panel-subtitle">Supheli islemleri hizli elemek ve zarar riskini azaltmak icin adimlari izleyin.</p>
+          </div>
+          <span className="panel-header-badge blue">3 Adim</span>
+        </div>
+        <div className="guide-grid">
+          <article className="guide-card">
+            <span className="guide-step">1</span>
+            <h3 className="guide-title">Islem Verisini Girin</h3>
+            <p className="guide-text">Satis, siparis basi kar ve segment alanlarini dogru girerek model baglamini guclendirin.</p>
+          </article>
+          <article className="guide-card">
+            <span className="guide-step">2</span>
+            <h3 className="guide-title">Anomali Skorunu Okuyun</h3>
+            <p className="guide-text">Skor 66 ustune ciktiginda islemi manuel kontrole alarak finansal kaybi onleyin.</p>
+          </article>
+          <article className="guide-card">
+            <span className="guide-step">3</span>
+            <h3 className="guide-title">Aksiyon Karari Verin</h3>
+            <p className="guide-text">Yuksek riskte izolasyon, orta riskte ek dogrulama, dusuk riskte normal akisi surdurun.</p>
+          </article>
+        </div>
+      </section>
 
       <section className="two-column">
         {/* Form */}
@@ -198,7 +225,7 @@ export default function Fraud() {
           )}
 
           <button type="submit" className="btn btn-full" disabled={loading}>
-            {loading ? "⟳ Analiz ediliyor…" : "🔍 Dolandırıcılık Riskini Puanla"}
+            {loading ? "⟳ Analiz ediliyor…" : "Dolandiricilik Riskini Puanla"}
           </button>
         </form>
 
@@ -222,7 +249,7 @@ export default function Fraud() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <AnomalyGauge score={result.anomaly_score} />
                 <details className="result-details">
-                  <summary>📋 Tam API Yanıtı</summary>
+                  <summary>Tam API Yaniti</summary>
                   <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
                 </details>
               </div>

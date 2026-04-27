@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { postPredict } from "../lib/api.js";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { getDrilldownSkus, postPredict } from "../lib/api.js";
 
 /* ── Helpers ─────────────────────────────────── */
 function getRiskLevel(score) {
@@ -39,10 +40,10 @@ function RiskGauge({ score }) {
 
       <p className="card-caption">
         {level.cls === "high"
-          ? "⚠️ Bu sipariş zamanında ulaşmama riski taşıyor. Alternatif taşıyıcı veya güzergâh değerlendirin."
+          ? "Bu siparis zamaninda ulasmama riski tasiyor. Alternatif tasiyici veya guzergah degerlendirin."
           : level.cls === "med"
-            ? "🔶 Orta düzeyde gecikme riski. Takip ve proaktif müşteri bildirimi önerilir."
-            : "✅ Müşteri teslimatı büyük olasılıkla zamanında gerçekleşecek."}
+            ? "Orta duzeyde gecikme riski var. Takip ve proaktif musteri bildirimi onerilir."
+            : "Musteri teslimati buyuk olasilikla zamaninda gerceklesecek."}
       </p>
     </div>
   );
@@ -52,7 +53,7 @@ function RiskGauge({ score }) {
 function EmptyState() {
   return (
     <div className="empty-state">
-      <div className="empty-state-icon">🚚</div>
+      <div className="empty-state-icon">LOJ</div>
       <div className="empty-state-title">Henüz sonuç yok</div>
       <div className="empty-state-desc">
         Soldaki formu doldurun ve "Gecikme Riskini Puanla" butonuna basın.
@@ -62,8 +63,12 @@ function EmptyState() {
 }
 
 export default function Logistics() {
+  const [searchParams] = useSearchParams();
   const [result,   setResult]   = useState(null);
   const [loading,  setLoading]  = useState(false);
+  const [skuLoading, setSkuLoading] = useState(false);
+  const [skuItems, setSkuItems] = useState([]);
+  const [skuError, setSkuError] = useState(null);
   const [formData, setFormData] = useState({
     shipping_mode:  "Standard Class",
     order_region:   "Western Europe",
@@ -73,6 +78,61 @@ export default function Logistics() {
     sales:          150,
     quantity:       2,
   });
+
+  const drilldownContext = useMemo(() => {
+    const order_region = searchParams.get("order_region");
+    const shipping_mode = searchParams.get("shipping_mode");
+    const category = searchParams.get("category");
+    const sku = searchParams.get("sku");
+    if (!order_region && !shipping_mode && !category && !sku) return null;
+    return { order_region, shipping_mode, category, sku };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!drilldownContext) return;
+    setFormData((prev) => ({
+      ...prev,
+      order_region: drilldownContext.order_region || prev.order_region,
+      shipping_mode: drilldownContext.shipping_mode || prev.shipping_mode,
+      category: drilldownContext.category || prev.category,
+    }));
+  }, [drilldownContext]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!drilldownContext) {
+      setSkuItems([]);
+      setSkuError(null);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    setSkuLoading(true);
+    setSkuError(null);
+    getDrilldownSkus({
+      order_region: drilldownContext.order_region,
+      shipping_mode: drilldownContext.shipping_mode,
+      category: drilldownContext.category,
+      limit: 8,
+    })
+      .then((data) => {
+        if (!mounted) return;
+        setSkuItems(data?.items ?? []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setSkuItems([]);
+        setSkuError("SKU listesi yuklenemedi.");
+      })
+      .finally(() => {
+        if (mounted) setSkuLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [drilldownContext]);
 
   function set(key, val) {
     setFormData((prev) => ({ ...prev, [key]: val }));
@@ -104,6 +164,88 @@ export default function Logistics() {
           </div>
         </div>
       </header>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div className="panel-title-block">
+            <h2 className="panel-title">Kullanim Akisi</h2>
+            <p className="panel-subtitle">Operasyon ekibinin risk puanini aksiyona cevirmesi icin net adimlar.</p>
+          </div>
+          <span className="panel-header-badge blue">3 Adim</span>
+        </div>
+        <div className="guide-grid">
+          <article className="guide-card">
+            <span className="guide-step">1</span>
+            <h3 className="guide-title">Siparis Ozelliklerini Girin</h3>
+            <p className="guide-text">Sevkiyat modu, bolge ve ticari degerler dogru girildiginde model guvenilir skor uretir.</p>
+          </article>
+          <article className="guide-card">
+            <span className="guide-step">2</span>
+            <h3 className="guide-title">Risk Seviyesini Degerlendirin</h3>
+            <p className="guide-text">Skor cubugunda dusuk, orta ve yuksek bolgeyi okuyarak teslimat baskisini hizla anlayin.</p>
+          </article>
+          <article className="guide-card">
+            <span className="guide-step">3</span>
+            <h3 className="guide-title">Onleyici Karar Alin</h3>
+            <p className="guide-text">Yuksek riskte tasiyici degisimi, rota guncellemesi veya hizmet seviyesi revizyonu planlayin.</p>
+          </article>
+        </div>
+      </section>
+
+      {drilldownContext && (
+        <section className="panel" aria-label="Drill-down filtre ozeti">
+          <div className="panel-header">
+            <div className="panel-title-block">
+              <h2 className="panel-title">Drill-down Sonucu</h2>
+              <p className="panel-subtitle">Kontrol Kulesi risk bolgesinden otomatik filtreyle geldiniz.</p>
+            </div>
+            <span className="panel-header-badge amber">Progressive Disclosure</span>
+          </div>
+          <div className="chip-row" style={{ marginBottom: 10 }}>
+            {drilldownContext.order_region && <span className="chip">Bolge: {drilldownContext.order_region}</span>}
+            {drilldownContext.shipping_mode && <span className="chip">Tasima: {drilldownContext.shipping_mode}</span>}
+            {drilldownContext.category && <span className="chip">Kategori: {drilldownContext.category}</span>}
+            {drilldownContext.sku && <span className="chip risk-med">SKU: {drilldownContext.sku}</span>}
+          </div>
+          <div className="quick-note">
+            <strong>SKU Odakli Inceleme:</strong> Bu filtre ile acilan siparis, ayni bolgedeki SKU risk grubu icinde oncelikli olarak isaretlendi.
+          </div>
+
+          <div className="divider" />
+          <div className="panel-title-block" style={{ marginBottom: 8 }}>
+            <h3 className="panel-title" style={{ fontSize: 14 }}>Gercek SKU Listesi</h3>
+            <p className="panel-subtitle">Bu liste backend drill-down endpointinden canli cekilmektedir.</p>
+          </div>
+
+          {skuLoading ? (
+            <div className="chip-row">
+              <span className="chip">SKU listesi yukleniyor...</span>
+            </div>
+          ) : skuError ? (
+            <div className="chip-row">
+              <span className="chip risk-high">{skuError}</span>
+            </div>
+          ) : skuItems.length > 0 ? (
+            <div style={{ display: "grid", gap: 8 }}>
+              {skuItems.map((item) => (
+                <div key={`${item.sku}-${item.sample_order_id}`} className="alert-item" style={{ animation: "none" }}>
+                  <span className={`alert-indicator ${item.late_risk_pct > 0.66 ? "red" : item.late_risk_pct > 0.4 ? "amber" : "green"}`} />
+                  <div className="alert-body">
+                    <div className="alert-title">{item.sku} · {item.product_name}</div>
+                    <div className="alert-desc">
+                      Gecikme riski: {(item.late_risk_pct * 100).toFixed(1)}% · Ortalama satis: ${item.avg_sales_usd.toFixed(1)} · Ornek siparis: #{item.sample_order_id}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="chip-row">
+              <span className="chip">Filtreye uygun SKU bulunamadi.</span>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="two-column">
         {/* Form */}
@@ -169,8 +311,8 @@ export default function Logistics() {
 
           <button type="submit" className="btn btn-full" disabled={loading}>
             {loading
-              ? <><span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span> Puanlanıyor…</>
-              : "🔍 Gecikme Riskini Puanla"}
+              ? <><span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span> Puanlaniyor…</>
+              : "Gecikme Riskini Puanla"}
           </button>
         </form>
 
@@ -192,7 +334,7 @@ export default function Logistics() {
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <RiskGauge score={result.delay_risk} />
                 <details className="result-details">
-                  <summary>📋 Tam API Yanıtı</summary>
+                  <summary>Tam API Yaniti</summary>
                   <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
                 </details>
               </div>

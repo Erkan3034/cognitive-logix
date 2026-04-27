@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" pages="5">
   <diagram name="01_system_component" id="9eRtUwxcPbzJ-EtgUDpw">
-    <mxGraphModel dx="2455" dy="1325" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1528" dy="791" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -122,7 +122,8 @@
           <mxGeometry height="18" width="277" y="166.2" as="geometry" />
         </mxCell>
         <mxCell id="6VwpgivYB7KoH3Izl40F-40" edge="1" parent="1" source="6VwpgivYB7KoH3Izl40F-1" style="curved=1;startArrow=none;endArrow=open;endSize=12;exitX=1;exitY=0.5;entryX=0;entryY=0.5;rounded=0;labelBackgroundColor=none;strokeColor=#457B9D;fontColor=default;" target="6VwpgivYB7KoH3Izl40F-8" value="REST/JSON">
-          <mxGeometry relative="1" as="geometry">
+          <mxGeometry relative="1" x="0.0452" y="13" as="geometry">
+            <mxPoint as="offset" />
             <Array as="points" />
           </mxGeometry>
         </mxCell>
@@ -194,7 +195,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="VQmcY4dSc_KWZIlCBUiv" name="02_backend_class_diagram">
-    <mxGraphModel dx="3273" dy="1767" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="849" dy="439" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
