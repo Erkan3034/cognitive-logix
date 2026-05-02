@@ -14,6 +14,7 @@ const ModelHealth = lazy(() => import("./pages/ModelHealth.jsx"));
 const Usage = lazy(() => import("./pages/Usage.jsx"));
 const AuditLog = lazy(() => import("./pages/AuditLog.jsx"));
 const ApiKeys = lazy(() => import("./pages/ApiKeys.jsx"));
+const Billing = lazy(() => import("./pages/Billing.jsx"));
 
 const IconGrid = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -77,6 +78,13 @@ const IconKey = () => (
   </svg>
 );
 
+const IconCreditCard = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+    <line x1="1" y1="10" x2="23" y2="10"></line>
+  </svg>
+);
+
 const IconChevronLeft = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
     <polyline points="15 18 9 12 15 6" />
@@ -106,6 +114,7 @@ const NAV_ITEMS = [
   { to: "/app/audit", label: "Audit Log", Icon: IconAudit },
   { to: "/app/model-health", label: "Model Health", Icon: IconPulse },
   { to: "/app/api-keys", label: "API Keys", Icon: IconKey },
+  { to: "/app/billing", label: "Abonelik", Icon: IconCreditCard },
 ];
 
 const PAGE_TITLES = {
@@ -118,6 +127,7 @@ const PAGE_TITLES = {
   "/app/audit": "Audit Log",
   "/app/model-health": "Model Health",
   "/app/api-keys": "API Key Yonetimi",
+  "/app/billing": "Abonelik ve Faturalama",
 };
 
 const PAGE_DESCRIPTIONS = {
@@ -130,6 +140,7 @@ const PAGE_DESCRIPTIONS = {
   "/app/audit": "Kullanici aksiyonlari ve incident karar izleri.",
   "/app/model-health": "Model surumleri, validasyon metrikleri ve drift izleme.",
   "/app/api-keys": "Dis sistemler icin API key uretimi, yonetimi ve kullanim ornekleri.",
+  "/app/billing": "Kullanim kotanizi takip edin ve planinizi yonetin.",
 };
 
 function RouteLoader() {
@@ -207,6 +218,7 @@ function AppShell({ collapsed, setCollapsed }) {
                 <Route path="/audit" element={<AuditLog />} />
                 <Route path="/model-health" element={<ModelHealth />} />
                 <Route path="/api-keys" element={<ApiKeys />} />
+                <Route path="/billing" element={<Billing />} />
               </Routes>
             </Suspense>
           </main>

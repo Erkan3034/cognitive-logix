@@ -1,12 +1,36 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
+import { onboardBilling } from "../lib/api";
+import { supabase } from "../lib/supabaseClient";
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [onboarding, setOnboarding] = useState(false);
 
-  if (loading) {
+  useEffect(() => {
+    const tenantId = user?.user_metadata?.tenant_id || user?.app_metadata?.tenant_id;
+    if (user && !tenantId) {
+      setOnboarding(true);
+      onboardBilling({
+        company_name: (user.user_metadata?.full_name || "Kullanici") + " A.S.",
+        user_id: user.id
+      })
+      .then(() => {
+        // Token'i yenile ki metadata'daki tenant_id güncellensin
+        return supabase.auth.refreshSession();
+      })
+      .catch((err) => {
+        console.error("Onboarding hatasi:", err);
+      })
+      .finally(() => {
+        setOnboarding(false);
+      });
+    }
+  }, [user]);
+
+  if (loading || onboarding) {
     return (
       <div style={{
         minHeight: "100vh",
@@ -24,7 +48,9 @@ export default function ProtectedRoute({ children }) {
           borderRadius: "50%",
           animation: "spin 0.8s linear infinite"
         }} />
-        <span style={{ color: "#64748b", fontSize: 14 }}>Oturum kontrol ediliyor…</span>
+        <span style={{ color: "#64748b", fontSize: 14 }}>
+          {onboarding ? "Hesabiniz hazirlaniyor..." : "Oturum kontrol ediliyor..."}
+        </span>
       </div>
     );
   }

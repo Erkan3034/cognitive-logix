@@ -123,3 +123,33 @@ export async function revokeApiKey(keyId) {
   const { data } = await api.delete(`/api/v1/keys/${keyId}`);
   return data;
 }
+
+// ── Billing Management ────────────────────────
+export async function getBillingStatus() {
+  const { data } = await api.get("/api/v1/billing/status");
+  return data;
+}
+
+export async function onboardBilling(payload) {
+  const { data } = await api.post("/api/v1/billing/onboard", payload);
+  return data;
+}
+
+export async function upgradePlan(payload) {
+  const { data } = await api.post("/api/v1/billing/upgrade", payload);
+  return data;
+}
+
+// ── Interceptor for 429 Quota Exceeded ──────
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 429) {
+      // Sadece /app/... sayfalarında çalışırken yönlendirme yap (Landing'de vs. yapma)
+      if (window.location.pathname.startsWith("/app") && !window.location.pathname.includes("/app/billing")) {
+        window.location.href = "/app/billing?error=quota_exceeded";
+      }
+    }
+    return Promise.reject(error);
+  }
+);

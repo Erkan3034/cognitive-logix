@@ -71,6 +71,36 @@ class TenantUsageMiddleware(BaseHTTPMiddleware):
                 content={"detail": "Tenant authentication is required for this endpoint."},
             )
 
+        # Limit kontrolü
+        if tracked and tenant_id and is_configured():
+            try:
+                from app.services.supabase_ops import get_supabase_admin
+                from app.routers.billing import PLAN_LIMITS
+                import datetime
+                
+                sb = get_supabase_admin()
+                tenant_resp = sb.table("tenants").select("plan").eq("id", tenant_id).execute()
+                tenant_data = getattr(tenant_resp, "data", [])
+                
+                if tenant_data:
+                    plan = tenant_data[0].get("plan", "free")
+                    limit = PLAN_LIMITS.get(plan, 100)
+                    
+                    first_day_of_month = datetime.datetime.now(datetime.timezone.utc).replace(day=1, hour=0, minute=0, second=0).isoformat()
+                    usage_resp = sb.table("usage_logs").select("id", count="exact").eq("tenant_id", tenant_id).gte("created_at", first_day_of_month).execute()
+                    used_count = getattr(usage_resp, "count", 0) or 0
+                    
+                    if used_count >= limit:
+                        return JSONResponse(
+                            status_code=429,
+                            content={
+                                "detail": f"Aylik kota asildi. {plan.upper()} plani {limit} istek ile sinirlidir.",
+                                "code": "QUOTA_EXCEEDED"
+                            }
+                        )
+            except Exception:
+                pass  # DB hatası olursa isteği engelleme
+
         started = time.perf_counter()
         response = await call_next(request)
         elapsed_ms = round((time.perf_counter() - started) * 1000, 2)

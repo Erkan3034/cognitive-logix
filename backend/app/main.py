@@ -1,6 +1,13 @@
 import asyncio
 import logging
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# .env dosyasını yükle (Supabase key'leri burada tanımlı)
+_env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(_env_path)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +24,7 @@ from app.routers.metrics import warmup_overview_metrics
 from app.routers.api_keys import router as api_keys_router
 from app.routers.ops import router as ops_router
 from app.routers.predict import router as predict_router
+from app.routers.billing import router as billing_router
 from app.services.supabase_ops import is_configured as supabase_is_configured
 
 app = FastAPI(title="Cognitive Logix API", version="1.0.0")
@@ -48,6 +56,7 @@ app.include_router(metrics_router)
 app.include_router(ingestion_router)
 app.include_router(ops_router)
 app.include_router(api_keys_router)
+app.include_router(billing_router)
 
 
 async def _periodic_metrics_refresh_task() -> None:
