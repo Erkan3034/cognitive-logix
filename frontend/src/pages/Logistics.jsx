@@ -332,9 +332,34 @@ export default function Logistics() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <RiskGauge score={result.delay_risk} />
+                <RiskGauge score={result.calibrated_delay_risk ?? result.delay_risk} />
+                <div className="risk-result-box">
+                  <h3 className="panel-title">Model Açıklaması</h3>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {(result.top_factors ?? []).map((factor) => (
+                      <div key={factor.feature} className="alert-item" style={{ animation: "none" }}>
+                        <span className={`alert-indicator ${factor.direction === "raises_risk" ? "red" : "green"}`} />
+                        <div className="alert-body">
+                          <div className="alert-title">{factor.feature}</div>
+                          <div className="alert-desc">SHAP etkisi: {Number(factor.impact).toFixed(4)} · {factor.direction}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="risk-result-box">
+                  <h3 className="panel-title">Önerilen Aksiyonlar</h3>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {(result.recommendations ?? []).map((item) => (
+                      <div key={item.action} className="quick-note">
+                        <strong>{item.priority}:</strong> {item.action}
+                        <p className="card-caption">{item.expected_effect}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <details className="result-details">
-                  <summary>Tam API Yaniti</summary>
+                  <summary>Model ayrıntıları</summary>
                   <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
                 </details>
               </div>

@@ -8,6 +8,5 @@ router = APIRouter(tags=["logistics"])
 
 @router.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest):
-    score = predict_delay_risk(req.features)
-    return PredictResponse(delay_risk=score)
+    return PredictResponse(**predict_delay_risk(req.features))
 

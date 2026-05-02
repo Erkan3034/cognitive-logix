@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  getIncidents,
   getOverviewMetrics,
+  getRiskMap,
   getXaiExplanations,
+  postIncidentAction,
   postWhatIfScenario,
 } from "../lib/api.js";
 
@@ -90,6 +93,18 @@ const FALLBACK_XAI = {
   financial_exposure_usd:
     "AI analizi: Negatif kar bayragi, siparis tutari dagilimi ve anomali sinyallerinden finansal maruziyet tahmin edildi.",
 };
+
+function severityClass(severity) {
+  if (severity === "critical" || severity === "high") return "red";
+  if (severity === "medium") return "amber";
+  return "green";
+}
+
+function riskClass(score) {
+  if (score >= 0.7) return "risk-high";
+  if (score >= 0.4) return "risk-med";
+  return "risk-low";
+}
 
 function KpiCard({
   title,
@@ -300,11 +315,14 @@ export default function Dashboard() {
   const [simulatedMetrics, setSimulatedMetrics] = useState(null);
   const [xaiMap, setXaiMap] = useState(FALLBACK_XAI);
   const [loading, setLoading] = useState(true);
+  const [riskZones, setRiskZones] = useState([]);
+  const [incidents, setIncidents] = useState([]);
   const [scenarioLoading, setScenarioLoading] = useState(false);
   const [openXaiKey, setOpenXaiKey] = useState(null);
   const [scenarioOpen, setScenarioOpen] = useState(false);
   const [isSimulationApplied, setIsSimulationApplied] = useState(false);
   const [decisions, setDecisions] = useState({});
+  const [decisionLoading, setDecisionLoading] = useState({});
   const [scenario, setScenario] = useState({
     portClosed: false,
     demandSurge: 0,
@@ -317,10 +335,14 @@ export default function Dashboard() {
     Promise.all([
       getOverviewMetrics(),
       getXaiExplanations({ port_closed: false, demand_surge_pct: 0, supplier_strike: "none" }),
+      getRiskMap({ limit: 8 }),
+      getIncidents({ limit: 6 }),
     ])
-      .then(([overviewData, xaiData]) => {
+      .then(([overviewData, xaiData, riskMapData, incidentData]) => {
         if (!mounted) return;
         setMetrics(overviewData);
+        setRiskZones(riskMapData?.items ?? []);
+        setIncidents(incidentData?.items ?? []);
         if (xaiData?.explanations) {
           setXaiMap((prev) => ({ ...prev, ...xaiData.explanations }));
         }
@@ -343,18 +365,36 @@ export default function Dashboard() {
     [isSimulationApplied, simulatedMetrics, metrics],
   );
 
-  const onApproveDecision = (id) => {
-    setDecisions((prev) => ({ ...prev, [id]: "approved" }));
+  const onApproveDecision = async (item) => {
+    setDecisionLoading((prev) => ({ ...prev, [item.id]: true }));
+    try {
+      await postIncidentAction({
+        incident_id: item.id,
+        action: item.recommended_action,
+        status: "approved",
+        metadata: {
+          title: item.title,
+          severity: item.severity,
+          impact_usd: item.impact_usd,
+          source: "control_tower",
+        },
+      });
+      setDecisions((prev) => ({ ...prev, [item.id]: "approved" }));
+    } catch {
+      setDecisions((prev) => ({ ...prev, [item.id]: "failed" }));
+    } finally {
+      setDecisionLoading((prev) => ({ ...prev, [item.id]: false }));
+    }
   };
 
   const onInspectDecision = (params) => {
     const search = new URLSearchParams(params).toString();
-    navigate(`/logistics?${search}`);
+    navigate(`/app/logistics?${search}`);
   };
 
   const goRiskDrilldown = (params) => {
     const search = new URLSearchParams(params).toString();
-    navigate(`/logistics?${search}`);
+    navigate(`/app/logistics?${search}`);
   };
 
   return (
@@ -419,15 +459,20 @@ export default function Dashboard() {
             <span className="panel-header-badge red">Drill-down Aktif</span>
           </div>
           <div className="chip-row">
-            {RISK_ZONES.map((zone) => (
+            {riskZones.map((zone) => (
               <button
                 key={zone.id}
                 type="button"
-                onClick={() => goRiskDrilldown(zone.params)}
-                aria-label={`${zone.text} icin lojistik detayina git`}
-                className={`chip ${zone.risk}`}
+                onClick={() => goRiskDrilldown({
+                  order_region: zone.order_region,
+                  shipping_mode: zone.shipping_mode,
+                  category: zone.category_name,
+                  sku: zone.sku,
+                })}
+                aria-label={`${zone.order_region} icin lojistik detayina git`}
+                className={`chip ${riskClass(zone.late_risk_pct)}`}
               >
-                {zone.text}
+                {zone.order_region} · {zone.shipping_mode} · {(zone.late_risk_pct * 100).toFixed(1)}%
               </button>
             ))}
           </div>
@@ -442,37 +487,42 @@ export default function Dashboard() {
               <h2 className="panel-title">Bugunun Izleme Listesi</h2>
               <p className="panel-subtitle">Statik uyarilar yerine AI onerili mudahale kartlari.</p>
             </div>
-            <span className="panel-header-badge amber">{WATCHLIST.length} karar</span>
+            <span className="panel-header-badge amber">{incidents.length} karar</span>
           </div>
           <div className="ct-watchlist">
-            {WATCHLIST.map((item) => {
+            {incidents.map((item) => {
               const approved = decisions[item.id] === "approved";
+              const failed = decisions[item.id] === "failed";
+              const saving = decisionLoading[item.id];
               return (
                 <article key={item.id} className="ct-decision-card">
                   <div className="ct-decision-head">
-                    <span className={`ct-dot ${item.color}`} />
+                    <span className={`ct-dot ${severityClass(item.severity)}`} />
                     <div>
                       <h3 className="ct-decision-title">{item.title}</h3>
-                      <p className="ct-decision-desc">{item.desc}</p>
+                      <p className="ct-decision-desc">{item.description}</p>
                     </div>
                   </div>
                   <div className="ct-decision-actions">
                     <button
                       type="button"
                       aria-label={`${item.title} icin AI onerisini onayla`}
-                      onClick={() => onApproveDecision(item.id)}
+                      onClick={() => onApproveDecision(item)}
                       className="ct-action-btn ct-action-btn-approve"
+                      disabled={approved || saving}
                     >
-                      {approved ? "Onaylandi" : item.approveLabel}
+                      {saving ? "Kaydediliyor..." : approved ? "Onaylandi" : failed ? "Tekrar Dene" : item.recommended_action}
                     </button>
-                    <button
-                      type="button"
-                      aria-label={`${item.title} icin lojistik modulune git`}
-                      onClick={() => onInspectDecision(item.drillParams)}
-                      className="ct-action-btn ct-action-btn-review"
-                    >
-                      Lojistik Modulune Git
-                    </button>
+                    {Object.keys(item.drilldown_params ?? {}).length > 0 && (
+                      <button
+                        type="button"
+                        aria-label={`${item.title} icin lojistik modulune git`}
+                        onClick={() => onInspectDecision(item.drilldown_params)}
+                        className="ct-action-btn ct-action-btn-review"
+                      >
+                        Lojistik Modulune Git
+                      </button>
+                    )}
                   </div>
                 </article>
               );

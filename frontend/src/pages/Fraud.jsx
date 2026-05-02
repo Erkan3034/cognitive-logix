@@ -247,9 +247,33 @@ export default function Fraud() {
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <AnomalyGauge score={result.anomaly_score} />
+                <AnomalyGauge score={result.combined_risk_score ?? result.anomaly_score} />
+                <div className="risk-result-box">
+                  <h3 className="panel-title">Risk Nedenleri</h3>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {(result.reason_codes ?? []).map((reason, index) => (
+                      <div key={`${reason.reason}-${index}`} className="alert-item" style={{ animation: "none" }}>
+                        <span className={`alert-indicator ${reason.impact === "raises_risk" ? "red" : "green"}`} />
+                        <div className="alert-body">
+                          <div className="alert-title">{reason.reason}</div>
+                          <div className="alert-desc">
+                            {reason.impact} {reason.shap_value != null ? `· SHAP: ${Number(reason.shap_value).toFixed(4)}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="risk-result-box">
+                  <h3 className="panel-title">Vaka Aksiyonları</h3>
+                  {(result.recommended_actions ?? []).map((item) => (
+                    <div key={item.action} className="quick-note">
+                      <strong>{item.priority}:</strong> {item.action}
+                    </div>
+                  ))}
+                </div>
                 <details className="result-details">
-                  <summary>Tam API Yaniti</summary>
+                  <summary>Model ayrıntıları</summary>
                   <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
                 </details>
               </div>

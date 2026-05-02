@@ -43,12 +43,26 @@ export default function Demand() {
   const [loading, setLoading] = useState(false);
   const [horizon, setHorizon] = useState(30);
   const [category, setCategory] = useState("");
+  const [market, setMarket] = useState("");
+  const [orderRegion, setOrderRegion] = useState("");
+  const [sku, setSku] = useState("");
+  const [currentInventory, setCurrentInventory] = useState(0);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     try {
-      const data = await postForecast({ horizon, series: [] });
+      const data = await postForecast({
+        horizon,
+        category: category || null,
+        market: market || null,
+        order_region: orderRegion || null,
+        sku: sku || null,
+        current_inventory: Number(currentInventory) || 0,
+        service_level: 0.95,
+        lead_time_days: 7,
+        series: [],
+      });
       setResult(data);
     } catch (error) {
       setResult({ error: error.message });
@@ -57,7 +71,12 @@ export default function Demand() {
     }
   }
 
-  const chartData = result?.points?.map((p) => ({ ds: p.ds, yhat: p.yhat })) ?? [];
+  const chartData = result?.points?.map((p) => ({
+    ds: p.ds,
+    yhat: p.yhat,
+    yhat_lower: p.yhat_lower,
+    yhat_upper: p.yhat_upper,
+  })) ?? [];
 
   return (
     <div className="page-layout">
@@ -109,7 +128,7 @@ export default function Demand() {
               <h2 className="panel-title">Tahmin Yapılandırması</h2>
               <p className="panel-subtitle">Günlük talep modeli için ufuk ve seri seçimi.</p>
             </div>
-            <span className="panel-header-badge blue">Prophet</span>
+            <span className="panel-header-badge blue">LightGBM Quantile</span>
           </div>
 
           <div className="form-grid" style={{ gridTemplateColumns: "1fr" }}>
@@ -138,8 +157,28 @@ export default function Demand() {
                 onChange={(e) => setCategory(e.target.value)}
               />
               <span className="field-helper">
-                Sonraki adımda bu alan, veri ambarından filtrelenmiş zaman serilerini yönlendirecektir.
+                Bu alan gerçek tahmin segmentine gönderilir; boş bırakılırsa toplam seviye kullanılır.
               </span>
+            </div>
+
+            <div className="field">
+              <label className="field-label">Pazar</label>
+              <input className="input" placeholder="ör. Europe" value={market} onChange={(e) => setMarket(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label className="field-label">Bölge</label>
+              <input className="input" placeholder="ör. Western Europe" value={orderRegion} onChange={(e) => setOrderRegion(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label className="field-label">SKU</label>
+              <input className="input" placeholder="ör. SKU-1360" value={sku} onChange={(e) => setSku(e.target.value)} />
+            </div>
+
+            <div className="field">
+              <label className="field-label">Mevcut Stok</label>
+              <input type="number" min={0} className="input" value={currentInventory} onChange={(e) => setCurrentInventory(Number(e.target.value))} />
             </div>
           </div>
 
@@ -195,13 +234,32 @@ export default function Demand() {
                       <XAxis dataKey="ds" tick={{ fontSize: 9, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
                       <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} tickLine={false} axisLine={false} />
                       <Tooltip content={<CustomTooltip />} />
+                      <Line type="monotone" dataKey="yhat_lower" stroke="rgba(45,212,191,0.35)" strokeWidth={1.5} dot={false} />
                       <Line type="monotone" dataKey="yhat" stroke="var(--accent)" strokeWidth={2.5} dot={false}
                         activeDot={{ r: 4, fill: "var(--accent)", stroke: "var(--bg-body)", strokeWidth: 2 }} />
+                      <Line type="monotone" dataKey="yhat_upper" stroke="rgba(245,158,11,0.45)" strokeWidth={1.5} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+                <div className="risk-result-box">
+                  <div className="risk-score-header">
+                    <div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Güvenlik Stoğu</div>
+                      <div className="risk-score-number low">{result.safety_stock?.toFixed(0)}</div>
+                    </div>
+                    <span className={`risk-badge ${result.reorder_recommendation?.should_reorder ? "high" : "low"}`}>
+                      {result.reorder_recommendation?.should_reorder ? "Yeniden Sipariş" : "Stok Yeterli"}
+                    </span>
+                  </div>
+                  <p className="card-caption">
+                    Reorder point: {result.reorder_point?.toFixed(0)} · Önerilen sipariş:
+                    {" "}{result.reorder_recommendation?.recommended_order_quantity?.toFixed(0)}
+                    {" "}· Seviye: {result.hierarchy_level}
+                    {result.intermittent_method_used ? " · Croston/TSB etkin" : ""}
+                  </p>
+                </div>
                 <details className="result-details">
-                  <summary>Ham JSON Verisi</summary>
+                  <summary>Model ve karar ayrıntıları</summary>
                   <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
                 </details>
               </div>

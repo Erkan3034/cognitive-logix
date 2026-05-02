@@ -1,24 +1,41 @@
 import asyncio
 import logging
+import os
 
 from fastapi import FastAPI
-from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 
+from app.api.ingestion import router as ingestion_router
+from app.middleware.tenant_context import TenantUsageMiddleware
+from app.ml.model_contract import ARTIFACT_VERSION
 from app.routers.forecast import router as forecast_router
 from app.routers.fraud import router as fraud_router
+from app.routers.metrics import get_model_health
 from app.routers.metrics import router as metrics_router
 from app.routers.metrics import warmup_overview_metrics
+from app.routers.api_keys import router as api_keys_router
+from app.routers.ops import router as ops_router
 from app.routers.predict import router as predict_router
+from app.services.supabase_ops import is_configured as supabase_is_configured
 
-app = FastAPI(title="Cognitive Logix API", version="0.1.0")
+app = FastAPI(title="Cognitive Logix API", version="1.0.0")
 logger = logging.getLogger(__name__)
 
 METRICS_REFRESH_INTERVAL_SECONDS = 30
 
+
+def _allowed_origins() -> list[str]:
+    if os.getenv("ALLOW_ALL_CORS", "false").lower() == "true":
+        return ["*"]
+    raw = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:5173,http://localhost:3000")
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+app.add_middleware(TenantUsageMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,6 +45,9 @@ app.include_router(predict_router)
 app.include_router(forecast_router)
 app.include_router(fraud_router)
 app.include_router(metrics_router)
+app.include_router(ingestion_router)
+app.include_router(ops_router)
+app.include_router(api_keys_router)
 
 
 async def _periodic_metrics_refresh_task() -> None:
@@ -61,25 +81,47 @@ async def on_shutdown() -> None:
 
 @app.get("/health")
 def health():
-    return {"status": "ok NO PROBLEM :) "}
+    return {
+        "status": "ok",
+        "artifact_version": ARTIFACT_VERSION,
+        "supabase_configured": supabase_is_configured(),
+    }
+
+
+@app.get("/ready")
+def ready():
+    health_data = get_model_health()
+    model_ready = all(model.status == "ready" for model in health_data.models)
+    return {
+        "ready": model_ready and supabase_is_configured(),
+        "models_ready": model_ready,
+        "supabase_configured": supabase_is_configured(),
+        "artifact_version": ARTIFACT_VERSION,
+        "models": [
+            model.model_dump() if hasattr(model, "model_dump") else model.dict()
+            for model in health_data.models
+        ],
+    }
 
 
 @app.get("/")
 def root():
     return {
-        "message": "Cognitive Logix - Bilişsel Tedarik Zinciri Dijital İkizi API",
-        "version": "0.1.0",
-        "Proudly Developed By": "ERKAN TURGUT",
+        "message": "Cognitive Logix Supply Chain Intelligence API",
+        "version": "1.0.0",
+        "artifact_version": ARTIFACT_VERSION,
     }
+
 
 @app.get("/api")
 def api_root():
     return {
-        "message": "Welcome to the Cognitive Logix API! Explore the endpoints for forecasting, fraud detection, and more.",
+        "message": "Cognitive Logix API is ready.",
         "endpoints": {
-            "/predict": "Make predictions based on input data.",
-            "/forecast": "Get forecasts for various metrics.",
-            "/fraud": "Detect potential fraud in transactions.",
-            "/metrics": "Access performance metrics and insights."
-        }
+            "/predict": "Late delivery risk scoring.",
+            "/forecast": "Demand forecasting and inventory planning.",
+            "/fraud": "Fraud and anomaly risk scoring.",
+            "/metrics": "Operational intelligence metrics.",
+            "/ops": "SaaS usage, audit and incident action operations.",
+        },
     }

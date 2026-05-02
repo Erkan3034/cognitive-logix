@@ -8,6 +8,5 @@ router = APIRouter(tags=["demand"])
 
 @router.post("/forecast", response_model=ForecastResponse)
 def forecast(req: ForecastRequest):
-    points = forecast_demand(req.series, req.horizon)
-    return ForecastResponse(points=points)
+    return forecast_demand(req)
 

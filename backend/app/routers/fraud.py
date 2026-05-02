@@ -8,6 +8,5 @@ router = APIRouter(tags=["fraud"])
 
 @router.post("/fraud", response_model=FraudResponse)
 def fraud(req: FraudRequest):
-    score = score_anomaly(req.features)
-    return FraudResponse(anomaly_score=score)
+    return FraudResponse(**score_anomaly(req.features))
 

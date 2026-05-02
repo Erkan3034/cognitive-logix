@@ -44,3 +44,63 @@ class DrilldownSkuItem(BaseModel):
 class DrilldownSkuResponse(BaseModel):
     total: int
     items: List[DrilldownSkuItem]
+
+
+class IncidentItem(BaseModel):
+    id: str
+    type: Literal["logistics", "demand", "fraud", "inventory"]
+    severity: Literal["low", "medium", "high", "critical"]
+    title: str
+    description: str
+    impact_usd: float = 0.0
+    confidence: float = 0.0
+    recommended_action: str
+    drilldown_params: Dict[str, str] = Field(default_factory=dict)
+
+
+class IncidentResponse(BaseModel):
+    total: int
+    items: List[IncidentItem]
+
+
+class RiskMapItem(BaseModel):
+    id: str
+    order_region: str
+    shipping_mode: str
+    category_name: str
+    late_risk_pct: float
+    financial_exposure_usd: float
+    order_count: int
+    sku: str
+
+
+class RiskMapResponse(BaseModel):
+    total: int
+    items: List[RiskMapItem]
+
+
+class DriftMetric(BaseModel):
+    feature: str
+    psi: float
+    status: Literal["stable", "watch", "drift"]
+
+
+class DriftResponse(BaseModel):
+    window_a_rows: int
+    window_b_rows: int
+    metrics: List[DriftMetric]
+
+
+class ModelHealthItem(BaseModel):
+    name: str
+    status: Literal["ready", "missing", "invalid"]
+    model_version: str | None = None
+    model_type: str | None = None
+    artifact_created_at: str | None = None
+    validation_metrics: Dict[str, object] = Field(default_factory=dict)
+    error: str | None = None
+
+
+class ModelHealthResponse(BaseModel):
+    models: List[ModelHealthItem]
+    drift: DriftResponse
