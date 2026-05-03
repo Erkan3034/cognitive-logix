@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import { useAuth } from "./lib/AuthContext.jsx";
 
 const Dashboard = lazy(() => import("./pages/Dashboard.jsx"));
 const Logistics = lazy(() => import("./pages/Logistics.jsx"));
@@ -15,6 +16,11 @@ const Usage = lazy(() => import("./pages/Usage.jsx"));
 const AuditLog = lazy(() => import("./pages/AuditLog.jsx"));
 const ApiKeys = lazy(() => import("./pages/ApiKeys.jsx"));
 const Billing = lazy(() => import("./pages/Billing.jsx"));
+const Algorithms = lazy(() => import("./pages/Algorithms.jsx"));
+const Docs = lazy(() => import("./pages/Docs.jsx"));
+const DocArticle = lazy(() => import("./pages/DocArticle.jsx"));
+const ApiDocs = lazy(() => import("./pages/ApiDocs.jsx"));
+const Profile = lazy(() => import("./pages/Profile.jsx"));
 
 const IconGrid = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -148,6 +154,17 @@ function RouteLoader() {
 }
 
 function Sidebar({ collapsed, onToggle }) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    await signOut();
+    navigate("/");
+  }
+
+  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "CL";
+  const email = user?.email ?? "";
+
   return (
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
       <div className="sidebar-header">
@@ -171,9 +188,22 @@ function Sidebar({ collapsed, onToggle }) {
         ))}
       </nav>
 
-      <div className="sidebar-footer">
-        <span className="status-dot" />
-        <span className="status-label">Canli veri baglantisi</span>
+      <div className="sidebar-user-section">
+        <NavLink to="/app/profile" className={({ isActive }) => `sidebar-user-card${isActive ? " active" : ""}`}>
+          <div className="sidebar-avatar">{initials}</div>
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-email">{email}</span>
+            <span className="sidebar-user-sub">Profili Görüntüle</span>
+          </div>
+        </NavLink>
+        <button className="sidebar-logout-btn" onClick={handleLogout} title="Çıkış Yap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          <span className="sidebar-logout-label">Çıkış Yap</span>
+        </button>
       </div>
     </aside>
   );
@@ -219,6 +249,7 @@ function AppShell({ collapsed, setCollapsed }) {
                 <Route path="/model-health" element={<ModelHealth />} />
                 <Route path="/api-keys" element={<ApiKeys />} />
                 <Route path="/billing" element={<Billing />} />
+                <Route path="/profile" element={<Profile />} />
               </Routes>
             </Suspense>
           </main>
@@ -237,6 +268,10 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/algorithms" element={<Algorithms />} />
+        <Route path="/docs" element={<Docs />} />
+        <Route path="/docs/:slug" element={<DocArticle />} />
+        <Route path="/api-docs" element={<ApiDocs />} />
         <Route path="/app/*" element={<AppShell collapsed={collapsed} setCollapsed={setCollapsed} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

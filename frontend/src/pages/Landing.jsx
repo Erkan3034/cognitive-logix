@@ -1,7 +1,8 @@
 import "../landing.css";
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../lib/AuthContext";
 
 /* ─── SVG Icons ─────────────────────────────────────────── */
 const IconBrain = () => (
@@ -145,7 +146,7 @@ const fadeIn = {
 };
 
 /* ─── Reusable Section Wrapper ────────────────────────────── */
-function Section({ children, className = "" }) {
+function Section({ children, className = "", ...props }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
   return (
@@ -154,6 +155,7 @@ function Section({ children, className = "" }) {
       initial="hidden"
       animate={inView ? "visible" : "hidden"}
       className={className}
+      {...props}
     >
       {children}
     </motion.section>
@@ -166,12 +168,14 @@ function Orb({ style }) {
 }
 
 /* ─── Navbar ──────────────────────────────────────────────── */
-function Navbar({ scrolled }) {
+export function Navbar({ scrolled }) {
+  const { user } = useAuth();
+
   return (
     <motion.nav
       className={`landing-nav${scrolled ? " scrolled" : ""}`}
-      initial={{ y: -60, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+      initial={{ y: -60, x: "-50%", opacity: 0 }}
+      animate={{ y: 0, x: "-50%", opacity: 1 }}
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
       <div className="landing-nav-inner">
@@ -180,15 +184,23 @@ function Navbar({ scrolled }) {
           <span className="landing-nav-name">Cognitive Logix</span>
         </div>
         <div className="landing-nav-links">
-          <a href="#features" className="landing-nav-link">Özellikler</a>
-          <a href="#pricing" className="landing-nav-link">Fiyatlandırma</a>
-          <a href="#testimonials" className="landing-nav-link">Müşteriler</a>
+          <a href="/#features" className="landing-nav-link">Özellikler</a>
+          <a href="/#pricing" className="landing-nav-link">Fiyatlandırma</a>
+          <a href="/#testimonials" className="landing-nav-link">Müşteriler</a>
         </div>
         <div className="landing-nav-actions">
-          <Link to="/login" className="landing-btn-ghost">Giriş Yap</Link>
-          <Link to="/register" className="landing-btn-primary">
-            Ücretsiz Başla <IconArrow />
-          </Link>
+          {user ? (
+            <Link to="/app" className="landing-btn-primary">
+              Uygulamaya Git <IconArrow />
+            </Link>
+          ) : (
+            <>
+              <Link to="/login" className="landing-btn-ghost">Giriş Yap</Link>
+              <Link to="/register" className="landing-btn-primary">
+                Ücretsiz Başla <IconArrow />
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>
@@ -460,7 +472,7 @@ function CTABanner() {
 }
 
 /* ─── Footer ──────────────────────────────────────────────── */
-function Footer() {
+export function Footer() {
   return (
     <footer className="landing-footer">
       <div className="footer-inner">
@@ -471,23 +483,23 @@ function Footer() {
         </div>
         <div className="footer-links">
           <span className="footer-links-title">Platform</span>
-          <a href="#features">Özellikler</a>
-          <a href="#pricing">Fiyatlandırma</a>
+          <a href="/#features">Özellikler</a>
+          <a href="/#pricing">Fiyatlandırma</a>
           <Link to="/login">Giriş Yap</Link>
           <Link to="/register">Kayıt Ol</Link>
         </div>
         <div className="footer-links">
           <span className="footer-links-title">Algoritmalar</span>
-          <span>CatBoost / LightGBM</span>
-          <span>SHAP Explainability</span>
-          <span>Isolation Forest</span>
-          <span>Monte Carlo</span>
+          <Link to="/algorithms#catboost">CatBoost / LightGBM</Link>
+          <Link to="/algorithms#shap">SHAP Explainability</Link>
+          <Link to="/algorithms#isolation">Isolation Forest</Link>
+          <Link to="/algorithms#montecarlo">Monte Carlo</Link>
         </div>
         <div className="footer-links">
           <span className="footer-links-title">Destek</span>
           <a href="mailto:hello@cognitive-logix.app">İletişim</a>
-          <span>Dokümantasyon</span>
-          <span>API Referansı</span>
+          <Link to="/docs">Dokümantasyon</Link>
+          <Link to="/api-docs">API Referansı</Link>
         </div>
       </div>
       <div className="footer-bottom">
@@ -501,12 +513,24 @@ function Footer() {
 /* ─── Main Landing Component ──────────────────────────────── */
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (location.hash) {
+      const el = document.getElementById(location.hash.slice(1));
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [location]);
 
   return (
     <div className="landing-root">

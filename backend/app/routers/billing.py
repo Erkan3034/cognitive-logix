@@ -38,6 +38,20 @@ def onboard_user(payload: OnboardRequest):
     try:
         sb = get_supabase_admin()
         
+        # 0. Kullanıcının zaten bir tenant'ı var mı kontrol et
+        profile_resp = sb.table("profiles").select("tenant_id").eq("id", payload.user_id).execute()
+        profile_data = getattr(profile_resp, "data", [])
+        
+        if profile_data and profile_data[0].get("tenant_id"):
+            # Zaten tenant_id atanmış, yenisini oluşturmaya gerek yok
+            existing_tenant_id = profile_data[0]["tenant_id"]
+            return {
+                "status": "success",
+                "tenant_id": existing_tenant_id,
+                "plan": "free",
+                "message": "User already onboarded."
+            }
+            
         # 1. Tenant oluştur
         tenant_resp = sb.table("tenants").insert({
             "name": payload.company_name,
@@ -62,6 +76,8 @@ def onboard_user(payload: OnboardRequest):
             "message": "Onboarding successful. Free plan activated."
         }
     except Exception as e:
+        import traceback
+        print("Onboard Error:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Onboard error: {str(e)}")
 
 

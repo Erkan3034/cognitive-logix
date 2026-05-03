@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../lib/AuthContext";
 import "../landing.css";
@@ -22,7 +22,14 @@ const SmallIcon = ({ type }) => {
 };
 
 export default function Register() {
-  const { signUp } = useAuth();
+  const { signUp, user } = useAuth();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || "/app";
+
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
+
   const [fullName, setFullName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");

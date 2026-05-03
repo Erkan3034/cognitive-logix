@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../lib/AuthContext";
 import "../landing.css";
@@ -34,10 +34,14 @@ const IconEye = ({ show }) => (
 );
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/app";
+
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

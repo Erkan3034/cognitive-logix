@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { onboardBilling } from "../lib/api";
@@ -8,21 +8,24 @@ export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [onboarding, setOnboarding] = useState(false);
+  const onboardingAttempted = useRef(false);
 
   useEffect(() => {
     const tenantId = user?.user_metadata?.tenant_id || user?.app_metadata?.tenant_id;
-    if (user && !tenantId) {
+    
+    if (user && !tenantId && !onboardingAttempted.current) {
+      onboardingAttempted.current = true;
       setOnboarding(true);
+      
       onboardBilling({
         company_name: (user.user_metadata?.full_name || "Kullanici") + " A.S.",
         user_id: user.id
       })
       .then(() => {
-        // Token'i yenile ki metadata'daki tenant_id güncellensin
         return supabase.auth.refreshSession();
       })
       .catch((err) => {
-        console.error("Onboarding hatasi:", err);
+        console.error("Onboarding hatasi:", err.response?.data?.detail || err.message || err);
       })
       .finally(() => {
         setOnboarding(false);
