@@ -230,10 +230,11 @@ function TopBar() {
 }
 
 function AppShell({ collapsed, setCollapsed }) {
+  const toggle = () => setCollapsed((v) => !v);
   return (
     <ProtectedRoute>
       <div className="app-shell">
-        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((v) => !v)} />
+        <Sidebar collapsed={collapsed} onToggle={toggle} />
         <div className={`app-content${collapsed ? " sidebar-collapsed" : ""}`}>
           <TopBar />
           <main className="app-main">
