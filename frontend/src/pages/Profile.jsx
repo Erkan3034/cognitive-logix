@@ -4,14 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 import { api, getBillingStatus } from "../lib/api";
 
-/* ── Icons ──────────────────────────────── */
-const Icon = ({ d, size = 18 }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
-    strokeLinecap="round" strokeLinejoin="round" style={{ width: size, height: size }}>
-    <path d={d} />
-  </svg>
-);
-
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.07 } }),
@@ -19,24 +11,31 @@ const fadeUp = {
 
 function StatCard({ label, value, color, icon }) {
   return (
-    <motion.div variants={fadeUp} className="panel" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 8 }}>
+    <motion.div variants={fadeUp} style={{
+      background: "var(--bg-surface-1)", border: "1px solid var(--border)",
+      borderRadius: 14, padding: "20px 20px", display: "flex", flexDirection: "column", gap: 6,
+      borderTop: `3px solid ${color}`
+    }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-        <span style={{ color: color || "#818cf8", fontSize: 20 }}>{icon}</span>
-        <span className="panel-subtitle">{label}</span>
+        <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-main)" }}>{label}</span>
       </div>
-      <span style={{ fontSize: 28, fontWeight: 700, color: color || "#f1f5f9" }}>{value}</span>
+      <span style={{ fontSize: 26, fontWeight: 800, color }}>{value}</span>
     </motion.div>
   );
 }
 
 function InfoRow({ label, value }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid rgba(148,163,184,0.07)" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: "1px solid rgba(148,163,184,0.07)" }}>
       <span style={{ fontSize: 13, color: "#64748b" }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{value || "—"}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{value || "—"}</span>
     </div>
   );
 }
+
+const PLAN_LABELS = { free: "Başlangıç", pro: "Pro", enterprise: "Kurumsal" };
+const PLAN_COLORS = { free: "#64748b", pro: "#6366f1", enterprise: "#f59e0b" };
 
 export default function Profile() {
   const { user, signOut } = useAuth();
@@ -69,19 +68,37 @@ export default function Profile() {
   const joinedDate = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("tr-TR", { year: "numeric", month: "long", day: "numeric" })
     : "—";
+  
   const plan = tenantInfo?.plan ?? "free";
-  const planLabel = { free: "Ücretsiz", starter: "Starter", pro: "Pro" }[plan] || plan;
-  const planColor = { free: "#64748b", starter: "#6366f1", pro: "#10b981" }[plan] || "#64748b";
+  const planLabel = PLAN_LABELS[plan] || plan;
+  const planColor = PLAN_COLORS[plan] || "#64748b";
+
+  const usedPredictions = usage?.used_this_month ?? tenantInfo?.used ?? 0;
+  const limitPredictions = tenantInfo?.limit ?? 100;
+  const remaining = Math.max(0, limitPredictions - usedPredictions);
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      {/* ── Hero ── */}
+    <div className="page-layout">
+      {/* ── Header ── */}
+      <header className="page-header">
+        <span className="page-eyebrow">Hesap & Ayarlar</span>
+        <div className="page-title-row">
+          <div>
+            <h1 className="page-title">Profilim</h1>
+            <p className="page-subtitle">
+              Kişisel bilgilerinizi yönetin, sistem özelliklerini yapılandırın ve kullanım haklarınızı inceleyin.
+            </p>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Hero / User Identity ── */}
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="panel"
-        style={{ padding: "32px 32px 28px", marginBottom: 24, display: "flex", gap: 28, alignItems: "center" }}
+        style={{ padding: "32px 32px", marginBottom: 24, display: "flex", gap: 24, alignItems: "center", flexWrap: "wrap" }}
       >
         {/* Avatar */}
         <div style={{
@@ -94,45 +111,42 @@ export default function Profile() {
           {initials}
         </div>
 
-        <div style={{ flex: 1 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#f1f5f9", margin: 0 }}>
-            {user?.user_metadata?.full_name || "Kullanıcı"}
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#f1f5f9", margin: 0, marginBottom: 4 }}>
+            {user?.user_metadata?.full_name || "Platform Kullanıcısı"}
           </h1>
-          <p style={{ fontSize: 14, color: "#64748b", margin: "4px 0 12px" }}>{user?.email}</p>
+          <p style={{ fontSize: 14, color: "#94a3b8", margin: 0, marginBottom: 12 }}>{user?.email}</p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <span style={{
-              background: `${planColor}20`, color: planColor,
+              background: `${planColor}15`, color: planColor,
               border: `1px solid ${planColor}40`,
-              padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700
+              padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700
             }}>
-              {planLabel} Plan
+              {planLabel} Planı
             </span>
             <span style={{
               background: "rgba(16,185,129,0.1)", color: "#10b981",
               border: "1px solid rgba(16,185,129,0.2)",
-              padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700
+              padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700
             }}>
-              ● Aktif
+              ✓ Sistem Aktif
             </span>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
-          <Link to="/app/billing" className="btn btn-ghost" style={{ fontSize: 13 }}>
-            Planı Yönet
+          <Link to="/app/billing" className="btn" style={{ background: "rgba(148,163,184,0.08)", color: "#e2e8f0", border: "1px solid rgba(148,163,184,0.2)" }}>
+            Planı Değiştir
           </Link>
           <button
             onClick={handleLogout}
             style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)",
+              padding: "10px 16px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.3)",
               background: "rgba(239,68,68,0.08)", color: "#ef4444",
-              cursor: "pointer", fontSize: 13, fontWeight: 600
+              cursor: "pointer", fontSize: 13, fontWeight: 700,
+              display: "flex", alignItems: "center", gap: 6
             }}
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 15, height: 15 }}>
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
             Çıkış Yap
           </button>
         </div>
@@ -142,75 +156,79 @@ export default function Profile() {
       <motion.div
         initial="hidden" animate="visible"
         variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}
+        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}
       >
-        <StatCard label="Kullanılan Tahmin" icon="🤖"
-          value={loading ? "—" : (usage?.used_this_month ?? tenantInfo?.used_predictions ?? "0")}
+        <StatCard label="Bu Ay Kullanılan Analiz" icon="🤖"
+          value={loading ? "—" : usedPredictions.toLocaleString("tr-TR")}
           color="#6366f1" />
-        <StatCard label="Kota Limiti" icon="📊"
-          value={loading ? "—" : (tenantInfo?.monthly_limit ?? "500")}
+        <StatCard label="Kalan Analiz Hakkı" icon="⚡"
+          value={loading ? "—" : remaining.toLocaleString("tr-TR")}
+          color="#10b981" />
+        <StatCard label="Toplam Aylık Hak" icon="📊"
+          value={loading ? "—" : limitPredictions.toLocaleString("tr-TR")}
           color="#8b5cf6" />
         <StatCard label="Hesap Yaşı" icon="📅"
           value={joinedDate}
           color="#64748b" />
-        <StatCard label="Tenant ID" icon="🏢"
-          value={loading ? "—" : (tenantInfo?.tenant_id?.slice(0, 8) + "..." || "—")}
-          color="#10b981" />
       </motion.div>
 
       {/* ── Bottom Panels ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+        
         {/* Account info */}
-        <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={1} className="panel" style={{ padding: 24 }}>
-          <h3 className="panel-title" style={{ marginBottom: 4 }}>Hesap Bilgileri</h3>
-          <p className="panel-subtitle" style={{ marginBottom: 16 }}>Kayıtlı profil detayları</p>
-          <InfoRow label="E-posta" value={user?.email} />
-          <InfoRow label="Ad Soyad" value={user?.user_metadata?.full_name} />
-          <InfoRow label="Kayıt Tarihi" value={joinedDate} />
-          <InfoRow label="Kimlik Doğrulama" value="E-posta + Şifre" />
-          <InfoRow label="Son Giriş" value={
-            user?.last_sign_in_at
-              ? new Date(user.last_sign_in_at).toLocaleString("tr-TR")
-              : "—"
-          } />
-        </motion.div>
-
-        {/* Plan info */}
-        <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={2} className="panel" style={{ padding: 24 }}>
-          <h3 className="panel-title" style={{ marginBottom: 4 }}>Abonelik Detayı</h3>
-          <p className="panel-subtitle" style={{ marginBottom: 16 }}>Plan ve kota bilgileriniz</p>
-          <InfoRow label="Aktif Plan" value={planLabel} />
-          <InfoRow label="Aylık Kota" value={`${tenantInfo?.monthly_limit ?? 500} tahmin`} />
-          <InfoRow label="Bu Ay Kullanılan" value={`${tenantInfo?.used_predictions ?? 0} tahmin`} />
-          <InfoRow label="Kalan Kota" value={
-            tenantInfo
-              ? `${Math.max(0, (tenantInfo.monthly_limit ?? 500) - (tenantInfo.used_predictions ?? 0))} tahmin`
-              : "—"
-          } />
-          <div style={{ marginTop: 20 }}>
-            <Link to="/app/billing" className="btn btn-primary" style={{ width: "100%", textAlign: "center", display: "block" }}>
-              Planı Yükselt →
-            </Link>
+        <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={1} className="panel">
+          <div className="panel-header">
+            <div className="panel-title-block">
+              <h3 className="panel-title">Profil Detayları</h3>
+              <p className="panel-subtitle">Sisteme kayıtlı temel bilgileriniz</p>
+            </div>
+          </div>
+          <div>
+            <InfoRow label="E-posta Adresi" value={user?.email} />
+            <InfoRow label="Ad Soyad" value={user?.user_metadata?.full_name} />
+            <InfoRow label="Kayıt Tarihi" value={joinedDate} />
+            <InfoRow label="Giriş Yöntemi" value="E-posta + Şifre" />
+            <InfoRow label="Son Oturum Açma" value={
+              user?.last_sign_in_at
+                ? new Date(user.last_sign_in_at).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" })
+                : "—"
+            } />
           </div>
         </motion.div>
 
-        {/* Security */}
-        <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={3} className="panel" style={{ padding: 24, gridColumn: "1 / -1" }}>
-          <h3 className="panel-title" style={{ marginBottom: 4 }}>Güvenlik</h3>
-          <p className="panel-subtitle" style={{ marginBottom: 16 }}>Hesap güvenliği ayarları</p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            <button className="btn btn-ghost" style={{ fontSize: 13 }}
-              onClick={() => alert("Şifre sıfırlama e-postası gönderildi! (Demo)")}>
-              🔒 Şifre Değiştir
-            </button>
-            <Link to="/app/api-keys" className="btn btn-ghost" style={{ fontSize: 13 }}>
-              🔑 API Anahtarlarını Yönet
-            </Link>
-            <Link to="/app/audit" className="btn btn-ghost" style={{ fontSize: 13 }}>
-              📋 Audit Log'a Git
-            </Link>
+        {/* Security & Settings */}
+        <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={2} className="panel">
+          <div className="panel-header">
+            <div className="panel-title-block">
+              <h3 className="panel-title">Güvenlik ve İzinler</h3>
+              <p className="panel-subtitle">Bağlantı ve sistem güvenliği yapılandırması</p>
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ padding: "16px", borderRadius: 12, background: "rgba(148,163,184,0.05)", border: "1px solid rgba(148,163,184,0.1)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", marginBottom: 6 }}>Şifre Değişikliği</div>
+              <p style={{ fontSize: 12, color: "#64748b", marginBottom: 12, lineHeight: 1.5 }}>
+                Hesabınızın güvenliğini sağlamak için parolanızı düzenli aralıklarla değiştirin.
+              </p>
+              <button className="btn" style={{ background: "rgba(148,163,184,0.08)", color: "#e2e8f0", border: "1px solid rgba(148,163,184,0.2)" }}
+                onClick={() => alert("Şifre sıfırlama e-postası gönderildi!")}>
+                🔒 Şifre Değiştir
+              </button>
+            </div>
+
+            <div style={{ padding: "16px", borderRadius: 12, background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.15)" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#818cf8", marginBottom: 6 }}>Dış Sistem Entegrasyonu</div>
+              <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12, lineHeight: 1.5 }}>
+                ERP veya muhasebe sisteminizi bağlamak için API bağlantı anahtarlarını kullanın.
+              </p>
+              <Link to="/app/api-keys" className="btn btn-primary" style={{ width: "max-content" }}>
+                🔑 Bağlantı Anahtarları →
+              </Link>
+            </div>
           </div>
         </motion.div>
+
       </div>
     </div>
   );

@@ -1,62 +1,189 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, RadialBarChart, RadialBar,
+} from "recharts";
 import { getDrilldownSkus, postPredict } from "../lib/api.js";
 
-/* ── Helpers ─────────────────────────────────── */
+/* ── Türkçe çeviriler ─────────────────────────────── */
+const FACTOR_TR = {
+  shipping_mode: "Gönderim Hızı",
+  days_for_shipment_scheduled: "Planlanan Sevkiyat Süresi",
+  days_for_shipping_real: "Gerçek Teslimat Süresi",
+  order_region: "Sipariş Bölgesi",
+  category_name: "Ürün Kategorisi",
+  category: "Ürün Kategorisi",
+  market: "Hedef Pazar",
+  sales: "Sipariş Değeri",
+  quantity: "Sipariş Miktarı",
+  benefit_per_order: "Kâr Marjı",
+  customer_segment: "Müşteri Tipi",
+  "Shipping Mode": "Gönderim Hızı",
+  "Days for shipment Scheduled": "Planlanan Süre",
+  "Days for shipment scheduled": "Planlanan Süre",
+  "Order Region": "Sipariş Bölgesi",
+  "Category Name": "Ürün Kategorisi",
+  "Market": "Hedef Pazar",
+};
+const toTR = (key) => FACTOR_TR[key] || key;
+
+/* ── Risk seviyesi ─────────────────────────────────── */
 function getRiskLevel(score) {
   if (score == null) return null;
-  if (score > 0.7) return { label: "Yüksek Risk", cls: "high" };
-  if (score > 0.4) return { label: "Orta Risk",   cls: "med" };
-  return            { label: "Düşük Risk",  cls: "low" };
+  if (score > 0.7) return { label: "Yüksek Risk", cls: "high", color: "#ef4444" };
+  if (score > 0.4) return { label: "Orta Risk", cls: "med", color: "#f59e0b" };
+  return { label: "Düşük Risk", cls: "low", color: "#10b981" };
 }
 
-/* ── Risk Gauge Component ────────────────────── */
+/* ── Yarım daire gauge ─────────────────────────────── */
 function RiskGauge({ score }) {
-  const pct   = Math.round(score * 100);
+  const pct = Math.round((score ?? 0) * 100);
   const level = getRiskLevel(score);
+  const data = [{ name: "Risk", value: pct, fill: level?.color ?? "#6366f1" }];
 
   return (
-    <div className="risk-result-box">
-      <div className="risk-score-header">
-        <div>
-          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>Gecikme Riski Skoru</div>
-          <div className={`risk-score-number ${level.cls}`}>{pct}<span style={{ fontSize: 22, fontWeight: 500 }}>%</span></div>
-        </div>
-        <span className={`risk-badge ${level.cls}`}>{level.label}</span>
-      </div>
-
-      <div>
-        <div className="risk-bar-track">
-          <div className={`risk-bar-fill ${level.cls}`} style={{ width: `${pct}%` }} />
-        </div>
-        <div className="risk-label-row">
-          <span>0%</span>
-          <span>Düşük (&lt;40%)</span>
-          <span>Orta</span>
-          <span>Yüksek (&gt;70%)</span>
-          <span>100%</span>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      <div style={{ position: "relative", width: 200, height: 110 }}>
+        <RadialBarChart width={200} height={200} innerRadius={65} outerRadius={95}
+          data={data} startAngle={180} endAngle={180 - pct * 1.8}>
+          <RadialBar dataKey="value" cornerRadius={6}
+            background={{ fill: "rgba(148,163,184,0.1)" }} />
+        </RadialBarChart>
+        <div style={{ position: "absolute", bottom: 6, left: "50%", transform: "translateX(-50%)", textAlign: "center" }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: level?.color, lineHeight: 1 }}>{pct}%</div>
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>Gecikme İhtimali</div>
         </div>
       </div>
-
-      <p className="card-caption">
-        {level.cls === "high"
-          ? "Bu siparis zamaninda ulasmama riski tasiyor. Alternatif tasiyici veya guzergah degerlendirin."
-          : level.cls === "med"
-            ? "Orta duzeyde gecikme riski var. Takip ve proaktif musteri bildirimi onerilir."
-            : "Musteri teslimati buyuk olasilikla zamaninda gerceklesecek."}
-      </p>
+      <span style={{
+        padding: "5px 16px", borderRadius: 20, fontSize: 13, fontWeight: 700,
+        background: `${level?.color}18`, color: level?.color,
+        border: `1px solid ${level?.color}40`,
+      }}>
+        {level?.label}
+      </span>
     </div>
   );
 }
 
-/* ── Empty State ─────────────────────────────── */
-function EmptyState() {
+/* ── Kullanıcı dostu sonuç ─────────────────────────── */
+function RiskSummaryCard({ score, level }) {
+  const pct = Math.round((score ?? 0) * 100);
+  const configs = {
+    high: {
+      icon: "🚨", color: "#ef4444", bg: "rgba(239,68,68,0.06)",
+      border: "rgba(239,68,68,0.2)",
+      headline: "Bu sipariş gecikme riski taşıyor!",
+      text: `Siparişin zamanında ulaşma ihtimali düşük (%${100 - pct}). Şu an harekete geçerseniz teslimattaki aksaklığı önleyebilirsiniz.`,
+      actions: [
+        { icon: "🚀", text: "Ekspres kargo seçeneğine geçin" },
+        { icon: "📞", text: "Müşteriyi önceden bilgilendirin" },
+        { icon: "🔄", text: "Alternatif tedarikçi/güzergah araştırın" },
+      ],
+    },
+    med: {
+      icon: "⚠️", color: "#f59e0b", bg: "rgba(245,158,11,0.06)",
+      border: "rgba(245,158,11,0.2)",
+      headline: "Dikkat: Olası gecikme sinyali var",
+      text: `Sipariş büyük olasılıkla ulaşır, ancak %${pct} gecikme riski göz ardı edilmemeli.`,
+      actions: [
+        { icon: "📋", text: "Siparişi takip listesine alın" },
+        { icon: "📩", text: "Müşteriye hazırlık mesajı gönderin" },
+      ],
+    },
+    low: {
+      icon: "✅", color: "#10b981", bg: "rgba(16,185,129,0.06)",
+      border: "rgba(16,185,129,0.2)",
+      headline: "Teslimat zamanında gerçekleşecek",
+      text: "Sipariş normal seyrinde ilerliyor. Herhangi bir özel önlem almanız gerekmiyor.",
+      actions: [
+        { icon: "👍", text: "Mevcut planla devam edin" },
+      ],
+    },
+  };
+  const c = configs[level?.cls ?? "low"];
+
   return (
-    <div className="empty-state">
-      <div className="empty-state-icon">LOJ</div>
-      <div className="empty-state-title">Henüz sonuç yok</div>
-      <div className="empty-state-desc">
-        Soldaki formu doldurun ve "Gecikme Riskini Puanla" butonuna basın.
+    <div style={{
+      background: c.bg, border: `1px solid ${c.border}`,
+      borderRadius: 14, padding: "18px 20px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{ fontSize: 22 }}>{c.icon}</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: c.color }}>{c.headline}</span>
+      </div>
+      <p style={{ fontSize: 13, color: "#94a3b8", margin: "0 0 14px", lineHeight: 1.7 }}>{c.text}</p>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 8 }}>Önerilen Adımlar:</div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {c.actions.map((a, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "8px 12px", borderRadius: 8,
+            background: "rgba(148,163,184,0.05)",
+            border: "1px solid rgba(148,163,184,0.1)",
+          }}>
+            <span style={{ fontSize: 16 }}>{a.icon}</span>
+            <span style={{ fontSize: 12, color: "#cbd5e1" }}>{a.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Faktör grafiği ───────────────────────────────── */
+function FactorChart({ factors }) {
+  if (!factors?.length) return null;
+  const data = factors.map(f => ({
+    name: toTR(f.feature),
+    etki: parseFloat(Math.abs(f.impact).toFixed(3)),
+    dir: f.direction,
+    tip: f.direction === "raises_risk" ? "Riski Artırıyor" : "Riski Azaltıyor",
+  }));
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>
+        Riski Etkileyen Başlıca Faktörler
+      </div>
+      <div style={{ fontSize: 11, color: "#64748b", marginBottom: 12 }}>
+        Bu sipariş için AI modeli hangi değerlerin riski artırdığını veya azalttığını hesapladı.
+      </div>
+      <ResponsiveContainer width="100%" height={Math.max(data.length * 40, 120)}>
+        <BarChart data={data} layout="vertical" margin={{ top: 0, right: 60, left: 10, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.07)" horizontal={false} />
+          <XAxis type="number" tick={{ fontSize: 9, fill: "#64748b" }} tickLine={false} axisLine={false} />
+          <YAxis dataKey="name" type="category" width={160}
+            tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
+          <Tooltip content={({ payload }) => payload?.[0] ? (
+            <div style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 10, padding: "10px 14px" }}>
+              <p style={{ color: "#94a3b8", fontSize: 11, marginBottom: 4 }}>{payload[0].payload.name}</p>
+              <p style={{
+                color: payload[0].payload.dir === "raises_risk" ? "#ef4444" : "#10b981",
+                fontWeight: 700, fontSize: 13, margin: 0
+              }}>
+                {payload[0].payload.tip}
+              </p>
+            </div>
+          ) : null} />
+          <Bar dataKey="etki" radius={[0, 5, 5, 0]}>
+            {data.map((e, i) => (
+              <Cell key={i}
+                fill={e.dir === "raises_risk" ? "#ef4444" : "#10b981"}
+                fillOpacity={0.85} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <div style={{ display: "flex", gap: 16, marginTop: 8 }}>
+        <span style={{ fontSize: 11, color: "#ef4444", display: "flex", gap: 5, alignItems: "center" }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: "#ef4444", display: "inline-block" }} />
+          Riski Artırıyor
+        </span>
+        <span style={{ fontSize: 11, color: "#10b981", display: "flex", gap: 5, alignItems: "center" }}>
+          <span style={{ width: 10, height: 10, borderRadius: 2, background: "#10b981", display: "inline-block" }} />
+          Riski Azaltıyor
+        </span>
       </div>
     </div>
   );
@@ -64,19 +191,15 @@ function EmptyState() {
 
 export default function Logistics() {
   const [searchParams] = useSearchParams();
-  const [result,   setResult]   = useState(null);
-  const [loading,  setLoading]  = useState(false);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [skuLoading, setSkuLoading] = useState(false);
   const [skuItems, setSkuItems] = useState([]);
-  const [skuError, setSkuError] = useState(null);
   const [formData, setFormData] = useState({
-    shipping_mode:  "Standard Class",
-    order_region:   "Western Europe",
-    days_scheduled: 4,
-    category:       "Sporting Goods",
-    market:         "Europe",
-    sales:          150,
-    quantity:       2,
+    shipping_mode: "Standard Class", order_region: "Western Europe",
+    days_scheduled: 4, days_real: 4, category: "Sporting Goods",
+    market: "Europe", sales: 150, quantity: 2,
+    benefit_per_order: 20, discount_rate: 0.0,
   });
 
   const drilldownContext = useMemo(() => {
@@ -90,282 +213,237 @@ export default function Logistics() {
 
   useEffect(() => {
     if (!drilldownContext) return;
-    setFormData((prev) => ({
-      ...prev,
-      order_region: drilldownContext.order_region || prev.order_region,
-      shipping_mode: drilldownContext.shipping_mode || prev.shipping_mode,
-      category: drilldownContext.category || prev.category,
+    setFormData(p => ({
+      ...p,
+      order_region: drilldownContext.order_region || p.order_region,
+      shipping_mode: drilldownContext.shipping_mode || p.shipping_mode,
+      category: drilldownContext.category || p.category,
     }));
   }, [drilldownContext]);
 
   useEffect(() => {
     let mounted = true;
-    if (!drilldownContext) {
-      setSkuItems([]);
-      setSkuError(null);
-      return () => {
-        mounted = false;
-      };
-    }
-
+    if (!drilldownContext) { setSkuItems([]); return () => { mounted = false; }; }
     setSkuLoading(true);
-    setSkuError(null);
-    getDrilldownSkus({
-      order_region: drilldownContext.order_region,
-      shipping_mode: drilldownContext.shipping_mode,
-      category: drilldownContext.category,
-      limit: 8,
-    })
-      .then((data) => {
-        if (!mounted) return;
-        setSkuItems(data?.items ?? []);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setSkuItems([]);
-        setSkuError("SKU listesi yuklenemedi.");
-      })
-      .finally(() => {
-        if (mounted) setSkuLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
+    getDrilldownSkus({ order_region: drilldownContext.order_region, shipping_mode: drilldownContext.shipping_mode, category: drilldownContext.category, limit: 6 })
+      .then(d => { if (mounted) setSkuItems(d?.items ?? []); })
+      .catch(() => { if (mounted) setSkuItems([]); })
+      .finally(() => { if (mounted) setSkuLoading(false); });
+    return () => { mounted = false; };
   }, [drilldownContext]);
 
-  function set(key, val) {
-    setFormData((prev) => ({ ...prev, [key]: val }));
-  }
+  function set(key, val) { setFormData(p => ({ ...p, [key]: val })); }
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const data = await postPredict({ features: formData });
-      setResult(data);
-    } catch (error) {
-      setResult({ error: error.message });
-    } finally {
-      setLoading(false);
-    }
+    e.preventDefault(); setLoading(true);
+    try { setResult(await postPredict({ features: formData })); }
+    catch (err) { setResult({ error: err.message }); }
+    finally { setLoading(false); }
   }
+
+  const score = result && !result.error ? (result.calibrated_delay_risk ?? result.delay_risk) : null;
+  const level = getRiskLevel(score);
 
   return (
     <div className="page-layout">
+      {/* Header */}
       <header className="page-header">
-        <span className="page-eyebrow">Modül A · Tahmine Dayalı Lojistik</span>
+        <span className="page-eyebrow">Lojistik Modülü</span>
         <div className="page-title-row">
           <div>
-            <h1 className="page-title">Teslimat Gecikme Tahmini</h1>
+            <h1 className="page-title">Sipariş Teslimat Risk Analizi</h1>
             <p className="page-subtitle">
-              Siparişleri yerine getirmeden önce gecikme riskine göre puanlayın; proaktif olarak taşıyıcı, güzergâh veya hizmet seviyesini değiştirin.
+              Siparişin zamanında ulaşıp ulaşmayacağını yapay zeka ile önceden öğrenin ve gerekli önlemi alın.
             </p>
           </div>
         </div>
       </header>
 
-      <section className="panel">
+      {/* How it works */}
+      <section className="panel" style={{ marginBottom: 20 }}>
         <div className="panel-header">
           <div className="panel-title-block">
-            <h2 className="panel-title">Kullanim Akisi</h2>
-            <p className="panel-subtitle">Operasyon ekibinin risk puanini aksiyona cevirmesi icin net adimlar.</p>
+            <h2 className="panel-title">Bu Modül Ne İşe Yarar?</h2>
+            <p className="panel-subtitle">Siparişi onaylamadan önce teslimat riskini öğrenin</p>
           </div>
-          <span className="panel-header-badge blue">3 Adim</span>
+          <span className="panel-header-badge blue">3 Adım</span>
         </div>
         <div className="guide-grid">
-          <article className="guide-card">
-            <span className="guide-step">1</span>
-            <h3 className="guide-title">Siparis Ozelliklerini Girin</h3>
-            <p className="guide-text">Sevkiyat modu, bolge ve ticari degerler dogru girildiginde model guvenilir skor uretir.</p>
-          </article>
-          <article className="guide-card">
-            <span className="guide-step">2</span>
-            <h3 className="guide-title">Risk Seviyesini Degerlendirin</h3>
-            <p className="guide-text">Skor cubugunda dusuk, orta ve yuksek bolgeyi okuyarak teslimat baskisini hizla anlayin.</p>
-          </article>
-          <article className="guide-card">
-            <span className="guide-step">3</span>
-            <h3 className="guide-title">Onleyici Karar Alin</h3>
-            <p className="guide-text">Yuksek riskte tasiyici degisimi, rota guncellemesi veya hizmet seviyesi revizyonu planlayin.</p>
-          </article>
+          {[
+            { icon: "📝", step: "1", title: "Sipariş Bilgilerini Girin", desc: "Kargo tipi, bölge ve sipariş değeri gibi temel bilgileri soldaki forma girin." },
+            { icon: "🤖", step: "2", title: "Yapay Zeka Analiz Eder", desc: "Sistem bu siparişin geç kalıp kalmayacağını geçmiş binlerce siparişten öğrendiği kalıplarla tahmin eder." },
+            { icon: "⚡", step: "3", title: "Önlem Alın", desc: "Yüksek risk çıkarsa hemen alternatif kargo seçin veya müşteriyi bilgilendirin." },
+          ].map((s, i) => (
+            <article key={i} className="guide-card">
+              <span className="guide-step">{s.icon}</span>
+              <h3 className="guide-title"><strong style={{ color: "#6366f1" }}>{s.step}.</strong> {s.title}</h3>
+              <p className="guide-text">{s.desc}</p>
+            </article>
+          ))}
         </div>
       </section>
 
+      {/* Drilldown alert */}
       {drilldownContext && (
-        <section className="panel" aria-label="Drill-down filtre ozeti">
-          <div className="panel-header">
-            <div className="panel-title-block">
-              <h2 className="panel-title">Drill-down Sonucu</h2>
-              <p className="panel-subtitle">Kontrol Kulesi risk bolgesinden otomatik filtreyle geldiniz.</p>
-            </div>
-            <span className="panel-header-badge amber">Progressive Disclosure</span>
-          </div>
-          <div className="chip-row" style={{ marginBottom: 10 }}>
-            {drilldownContext.order_region && <span className="chip">Bolge: {drilldownContext.order_region}</span>}
-            {drilldownContext.shipping_mode && <span className="chip">Tasima: {drilldownContext.shipping_mode}</span>}
-            {drilldownContext.category && <span className="chip">Kategori: {drilldownContext.category}</span>}
-            {drilldownContext.sku && <span className="chip risk-med">SKU: {drilldownContext.sku}</span>}
-          </div>
-          <div className="quick-note">
-            <strong>SKU Odakli Inceleme:</strong> Bu filtre ile acilan siparis, ayni bolgedeki SKU risk grubu icinde oncelikli olarak isaretlendi.
-          </div>
-
-          <div className="divider" />
-          <div className="panel-title-block" style={{ marginBottom: 8 }}>
-            <h3 className="panel-title" style={{ fontSize: 14 }}>Gercek SKU Listesi</h3>
-            <p className="panel-subtitle">Bu liste backend drill-down endpointinden canli cekilmektedir.</p>
-          </div>
-
-          {skuLoading ? (
-            <div className="chip-row">
-              <span className="chip">SKU listesi yukleniyor...</span>
-            </div>
-          ) : skuError ? (
-            <div className="chip-row">
-              <span className="chip risk-high">{skuError}</span>
-            </div>
-          ) : skuItems.length > 0 ? (
-            <div style={{ display: "grid", gap: 8 }}>
-              {skuItems.map((item) => (
-                <div key={`${item.sku}-${item.sample_order_id}`} className="alert-item" style={{ animation: "none" }}>
-                  <span className={`alert-indicator ${item.late_risk_pct > 0.66 ? "red" : item.late_risk_pct > 0.4 ? "amber" : "green"}`} />
-                  <div className="alert-body">
-                    <div className="alert-title">{item.sku} · {item.product_name}</div>
-                    <div className="alert-desc">
-                      Gecikme riski: {(item.late_risk_pct * 100).toFixed(1)}% · Ortalama satis: ${item.avg_sales_usd.toFixed(1)} · Ornek siparis: #{item.sample_order_id}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="chip-row">
-              <span className="chip">Filtreye uygun SKU bulunamadi.</span>
-            </div>
-          )}
-        </section>
+        <div style={{
+          marginBottom: 16, padding: "12px 18px", borderRadius: 10,
+          background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.25)",
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+        }}>
+          <span style={{ fontSize: 16 }}>🔍</span>
+          <span style={{ fontSize: 13, color: "#fbbf24", fontWeight: 600 }}>Kontrol Kulesinden Yönlendirildiniz:</span>
+          {drilldownContext.order_region && <span className="chip">📍 {drilldownContext.order_region}</span>}
+          {drilldownContext.shipping_mode && <span className="chip">🚚 {drilldownContext.shipping_mode}</span>}
+          {drilldownContext.category && <span className="chip">📦 {drilldownContext.category}</span>}
+        </div>
       )}
 
+      {/* Main content */}
       <section className="two-column">
         {/* Form */}
         <form className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Sipariş Bilgileri</h2>
-              <p className="panel-subtitle">XGBoost modeli tarafından kullanılan temel operasyonel özellikler.</p>
+              <h2 className="panel-title">Sipariş Detayları</h2>
+              <p className="panel-subtitle">Analiz edilecek siparişin bilgileri</p>
             </div>
-            <span className="panel-header-badge blue">XGBoost</span>
           </div>
-
           <div className="form-grid">
             <div className="field">
-              <label className="field-label">Sevkiyat Modu</label>
-              <select className="select" value={formData.shipping_mode}
-                onChange={(e) => set("shipping_mode", e.target.value)}>
-                <option>Standard Class</option>
-                <option>Second Class</option>
-                <option>First Class</option>
-                <option>Same Day</option>
+              <label className="field-label">Kargo Hızı</label>
+              <select className="select" value={formData.shipping_mode} onChange={e => set("shipping_mode", e.target.value)}>
+                <option value="Standard Class">Standart (3-5 gün)</option>
+                <option value="Second Class">Ekonomi (4-7 gün)</option>
+                <option value="First Class">Hızlı (2-3 gün)</option>
+                <option value="Same Day">Aynı Gün</option>
               </select>
+              <span className="field-helper">Seçtiğiniz kargo hızı teslimat riskini doğrudan etkiler.</span>
             </div>
-
             <div className="field">
-              <label className="field-label">Sipariş Bölgesi</label>
+              <label className="field-label">Teslimat Bölgesi</label>
               <input className="input" value={formData.order_region}
-                onChange={(e) => set("order_region", e.target.value)}
-                placeholder="ör. Western Europe" />
+                onChange={e => set("order_region", e.target.value)} placeholder="örn. Western Europe" />
             </div>
-
             <div className="field">
-              <label className="field-label">Planlanan Sevkiyat (gün)</label>
+              <label className="field-label">Tahmini Sevkiyat Süresi (gün)</label>
               <input type="number" min={0} className="input" value={formData.days_scheduled}
-                onChange={(e) => set("days_scheduled", Number(e.target.value))} />
-              <span className="field-helper">Sipariş tarihinden taahhüt edilen sevk tarihine kadar.</span>
+                onChange={e => set("days_scheduled", Number(e.target.value))} />
+              <span className="field-helper">Siparişi teslim etmek için planladığınız gün sayısı.</span>
             </div>
-
+            <div className="field">
+              <label className="field-label">Gerçek Sevkiyat Süresi (gün)</label>
+              <input type="number" min={0} className="input" value={formData.days_real}
+                onChange={e => set("days_real", Number(e.target.value))} />
+              <span className="field-helper" style={{ color: formData.days_real > formData.days_scheduled ? "#ef4444" : undefined }}>
+                {formData.days_real > formData.days_scheduled ? "⚠ Gerçek süre plandan uzun — gecikme mevcut!" : "Fiilen geçen veya beklenen gerçek süre."}
+              </span>
+            </div>
             <div className="field">
               <label className="field-label">Ürün Kategorisi</label>
-              <input className="input" value={formData.category}
-                onChange={(e) => set("category", e.target.value)} />
+              <input className="input" value={formData.category} onChange={e => set("category", e.target.value)} />
             </div>
-
             <div className="field">
-              <label className="field-label">Pazar</label>
-              <input className="input" value={formData.market}
-                onChange={(e) => set("market", e.target.value)} />
+              <label className="field-label">Pazar / Ülke Grubu</label>
+              <input className="input" value={formData.market} onChange={e => set("market", e.target.value)} />
             </div>
-
             <div className="field">
               <label className="field-label">Sipariş Tutarı ($)</label>
               <input type="number" min={0} step={0.01} className="input" value={formData.sales}
-                onChange={(e) => set("sales", Number(e.target.value))} />
+                onChange={e => set("sales", Number(e.target.value))} />
             </div>
-
             <div className="field">
-              <label className="field-label">Miktar</label>
+              <label className="field-label">Sipariş Başına Kâr ($)</label>
+              <input type="number" step={0.01} className="input" value={formData.benefit_per_order}
+                onChange={e => set("benefit_per_order", Number(e.target.value))} />
+              <span className="field-helper" style={{ color: formData.benefit_per_order < 0 ? "#ef4444" : undefined }}>
+                {formData.benefit_per_order < 0 ? "⚠ Zarar eden sipariş!" : "Net kâr tutarı (negatif = zarar)."}
+              </span>
+            </div>
+            <div className="field">
+              <label className="field-label">Sipariş Adedi</label>
               <input type="number" min={1} className="input" value={formData.quantity}
-                onChange={(e) => set("quantity", Number(e.target.value))} />
+                onChange={e => set("quantity", Number(e.target.value))} />
+            </div>
+            <div className="field">
+              <label className="field-label">
+                İndirim Oranı: <strong style={{ color: formData.discount_rate > 0.25 ? "#ef4444" : "var(--accent)" }}>
+                  %{Math.round(formData.discount_rate * 100)}
+                </strong>
+              </label>
+              <input type="range" min={0} max={0.5} step={0.01}
+                value={formData.discount_rate}
+                onChange={e => set("discount_rate", Number(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--accent)", cursor: "pointer" }} />
             </div>
           </div>
-
-          <button type="submit" className="btn btn-full" disabled={loading}>
-            {loading
-              ? <><span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⟳</span> Puanlaniyor…</>
-              : "Gecikme Riskini Puanla"}
+          <button type="submit" className="btn btn-full" disabled={loading} style={{ marginTop: 8 }}>
+            {loading ? "⟳ Analiz ediliyor..." : "🔍 Teslimat Riskini Analiz Et"}
           </button>
         </form>
 
-        {/* Result */}
+        {/* Result panel */}
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Model Çıktısı</h2>
-              <p className="panel-subtitle">Gerçek zamanlı risk skoru ve öneri.</p>
+              <h2 className="panel-title">Analiz Sonucu</h2>
+              <p className="panel-subtitle">Yapay zeka değerlendirmesi</p>
             </div>
           </div>
 
-          {result ? (
-            result.error ? (
-              <div style={{ padding: "12px", background: "var(--risk-high-soft)", borderRadius: "var(--radius-md)", border: "1px solid rgba(239,68,68,0.3)" }}>
-                <p className="badge-negative" style={{ fontSize: 13 }}>❌ {result.error}</p>
+          {!result ? (
+            <div className="empty-state">
+              <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+              <div className="empty-state-title">Sipariş analizi bekleniyor</div>
+              <div className="empty-state-desc">
+                Soldaki formu doldurun ve <strong>"Teslimat Riskini Analiz Et"</strong> butonuna basın.
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <RiskGauge score={result.calibrated_delay_risk ?? result.delay_risk} />
-                <div className="risk-result-box">
-                  <h3 className="panel-title">Model Açıklaması</h3>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {(result.top_factors ?? []).map((factor) => (
-                      <div key={factor.feature} className="alert-item" style={{ animation: "none" }}>
-                        <span className={`alert-indicator ${factor.direction === "raises_risk" ? "red" : "green"}`} />
-                        <div className="alert-body">
-                          <div className="alert-title">{factor.feature}</div>
-                          <div className="alert-desc">SHAP etkisi: {Number(factor.impact).toFixed(4)} · {factor.direction}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="risk-result-box">
-                  <h3 className="panel-title">Önerilen Aksiyonlar</h3>
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {(result.recommendations ?? []).map((item) => (
-                      <div key={item.action} className="quick-note">
-                        <strong>{item.priority}:</strong> {item.action}
-                        <p className="card-caption">{item.expected_effect}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <details className="result-details">
-                  <summary>Model ayrıntıları</summary>
-                  <pre className="result-code">{JSON.stringify(result, null, 2)}</pre>
-                </details>
-              </div>
-            )
+            </div>
+          ) : result.error ? (
+            <div style={{ padding: 16, background: "rgba(239,68,68,0.08)", borderRadius: 12, border: "1px solid rgba(239,68,68,0.3)" }}>
+              <p style={{ color: "#ef4444", margin: 0 }}>Bağlantı hatası. Lütfen tekrar deneyin.</p>
+            </div>
           ) : (
-            <EmptyState />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Gauge */}
+              <div style={{ display: "flex", justifyContent: "center", padding: "16px 0 8px" }}>
+                <RiskGauge score={score} />
+              </div>
+
+              {/* User-friendly summary */}
+              <RiskSummaryCard score={score} level={level} />
+
+              {/* Factor chart */}
+              {result.top_factors?.length > 0 && (
+                <div className="risk-result-box">
+                  <FactorChart factors={result.top_factors} />
+                </div>
+              )}
+
+              {/* SKU list if drilldown */}
+              {skuItems.length > 0 && (
+                <div className="risk-result-box">
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8", marginBottom: 8 }}>
+                    📋 Bu Segmentteki Riskli Ürünler
+                  </div>
+                  {skuItems.map(item => (
+                    <div key={item.sku} style={{ display: "flex", justifyContent: "space-between",
+                      padding: "8px 0", borderBottom: "1px solid rgba(148,163,184,0.08)", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{item.product_name}</div>
+                        <div style={{ fontSize: 11, color: "#64748b" }}>{item.sku}</div>
+                      </div>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, padding: "3px 10px", borderRadius: 12,
+                        background: item.late_risk_pct > 0.6 ? "rgba(239,68,68,0.12)" : "rgba(245,158,11,0.12)",
+                        color: item.late_risk_pct > 0.6 ? "#ef4444" : "#f59e0b",
+                      }}>
+                        %{(item.late_risk_pct * 100).toFixed(0)} risk
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </section>
