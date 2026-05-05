@@ -1,86 +1,85 @@
-﻿/* ================================================
-   COGNITIVE LOGIX â€” Design System v2
+/* ================================================
+   COGNITIVE LOGIX — Design System v3 (Enterprise Dark)
    ================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Sora:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* â”€â”€ Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Tokens ────────────────────────────────────────────── */
 :root {
   /* Surfaces */
-  --bg-body:        #0b1220;
-  --bg-sidebar:     #0f172a;
-  --bg-surface:     #111c32;
-  --bg-surface-2:   #162440;
-  --bg-overlay:     rgba(17, 28, 50, 0.82);
+  --bg-body:        #09090b; /* Zinc 950 */
+  --bg-sidebar:     #09090b;
+  --bg-surface:     #18181b; /* Zinc 900 */
+  --bg-surface-2:   #27272a; /* Zinc 800 */
+  --bg-overlay:     rgba(9, 9, 11, 0.85);
 
   /* Borders */
-  --border:         rgba(148, 163, 184, 0.12);
-  --border-hover:   rgba(148, 163, 184, 0.28);
-  --border-accent:  rgba(56, 189, 248, 0.45);
+  --border:         rgba(255, 255, 255, 0.08);
+  --border-hover:   rgba(255, 255, 255, 0.15);
+  --border-accent:  rgba(255, 255, 255, 0.25);
 
   /* Brand / Accent */
-  --accent:         #2dd4bf;
-  --accent-soft:    rgba(45, 212, 191, 0.12);
-  --accent-glow:    rgba(45, 212, 191, 0.3);
-  --accent-strong:  #14b8a6;
+  --accent:         #ffffff; /* Clean white primary */
+  --accent-soft:    rgba(255, 255, 255, 0.1);
+  --accent-glow:    rgba(255, 255, 255, 0.05); /* No glow, just soft bg */
+  --accent-strong:  #f4f4f5; /* Zinc 100 */
 
-  /* Risk Colours */
-  --risk-low:       #22c55e;
-  --risk-low-soft:  rgba(34, 197, 94, 0.12);
+  /* Risk Colours (Slightly muted for professional look) */
+  --risk-low:       #10b981;
+  --risk-low-soft:  rgba(16, 185, 129, 0.15);
   --risk-med:       #f59e0b;
-  --risk-med-soft:  rgba(245, 158, 11, 0.12);
+  --risk-med-soft:  rgba(245, 158, 11, 0.15);
   --risk-high:      #ef4444;
-  --risk-high-soft: rgba(239, 68, 68, 0.12);
+  --risk-high-soft: rgba(239, 68, 68, 0.15);
 
   /* Text */
-  --text-main:      #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
+  --text-main:      #f4f4f5; /* Zinc 100 */
+  --text-secondary: #a1a1aa; /* Zinc 400 */
+  --text-muted:     #71717a; /* Zinc 500 */
 
   /* Sidebar */
   --sidebar-w:      240px;
   --sidebar-w-coll: 68px;
 
   /* Misc */
-  --radius-sm:  8px;
-  --radius-md:  12px;
-  --radius-lg:  18px;
-  --radius-xl:  24px;
-  --shadow-sm:  0 2px 8px rgba(0,0,0,0.4);
-  --shadow-md:  0 8px 32px rgba(0,0,0,0.55);
-  --shadow-lg:  0 20px 60px rgba(0,0,0,0.7);
-  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  --radius-sm:  6px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md:  0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg:  0 12px 32px rgba(0,0,0,0.6);
+  --transition: 0.15s ease-out;
 }
 
-/* â”€â”€ Reset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Reset ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
 body {
-  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  background:
-    radial-gradient(1200px 600px at 100% -10%, rgba(245, 158, 11, 0.11), transparent 60%),
-    radial-gradient(900px 500px at 0% 110%, rgba(45, 212, 191, 0.12), transparent 58%),
-    var(--bg-body);
+  background: var(--bg-body);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 a { color: inherit; text-decoration: none; }
 button, input, select { font-family: inherit; }
 
-/* â”€â”€ Animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Animations ────────────────────────────────────────── */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-12px); }
+  from { opacity: 0; transform: translateX(-8px); }
   to   { opacity: 1; transform: translateX(0); }
 }
+/* Replaced pulse-glow with a subtle structural animation, or just nothing */
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
-  50%       { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
 }
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
@@ -90,7 +89,7 @@ button, input, select { font-family: inherit; }
   from { width: 0; }
 }
 @keyframes count-up {
-  from { opacity: 0; transform: scale(0.85); }
+  from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
 }
 @keyframes spin {
@@ -98,7 +97,7 @@ button, input, select { font-family: inherit; }
   to { transform: rotate(360deg); }
 }
 
-/* â”€â”€ App Shell â€” Sidebar + Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── App Shell — Sidebar + Content ─────────────────────── */
 .app-shell {
   display: flex;
   min-height: 100vh;
@@ -106,19 +105,12 @@ button, input, select { font-family: inherit; }
   isolation: isolate;
 }
 
+/* Removed background gradient grid for a cleaner solid look */
 .app-shell::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image: linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(circle at center, black 35%, transparent 95%);
-  z-index: -1;
+  display: none;
 }
 
-/* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Sidebar ───────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
@@ -144,11 +136,11 @@ button, input, select { font-family: inherit; }
 }
 
 .sidebar-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f97316 0%, #22c55e 45%, #0ea5e9 100%);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.15), var(--shadow-sm);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f4f4f5; /* Zinc 100 */
+  color: #09090b; /* Zinc 950 */
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -239,9 +231,9 @@ button, input, select { font-family: inherit; }
   border-color: var(--border);
 }
 .nav-link-active {
-  color: #bae6fd;
-  background: var(--accent-soft);
-  border-color: var(--border-accent);
+  color: #ffffff;
+  background: var(--bg-surface-2);
+  border-color: var(--border);
 }
 .nav-link-active::before {
   content: '';
@@ -277,7 +269,6 @@ button, input, select { font-family: inherit; }
   border-radius: 50%;
   background: var(--risk-low);
   flex-shrink: 0;
-  animation: pulse-glow 2.4s ease-in-out infinite;
 }
 .status-label {
   font-size: 11px;
@@ -299,12 +290,10 @@ button, input, select { font-family: inherit; }
 }
 .app-content.sidebar-collapsed { margin-left: var(--sidebar-w-coll); }
 
-/* Top bar */
 .topbar {
   min-height: 56px;
   border-bottom: 1px solid var(--border);
-  background: rgba(11, 18, 32, 0.84);
-  backdrop-filter: blur(16px);
+  background: var(--bg-sidebar);
   display: flex;
   align-items: center;
   padding: 10px 28px;
@@ -372,11 +361,11 @@ button, input, select { font-family: inherit; }
   gap: 16px;
 }
 .page-title {
-  font-family: 'Sora', 'IBM Plex Sans', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 600;
   letter-spacing: -0.02em;
-  color: #f1f5f9;
+  color: var(--text-main);
 }
 .page-subtitle {
   font-size: 13px;
@@ -401,10 +390,9 @@ button, input, select { font-family: inherit; }
   white-space: nowrap;
 }
 .pill-dot {
-  width: 7px; height: 7px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--risk-low);
-  animation: pulse-glow 2.4s ease-in-out infinite;
 }
 
 /* â”€â”€ KPI Grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -416,28 +404,17 @@ button, input, select { font-family: inherit; }
   z-index: 20;
 }
 
-/* â”€â”€ Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .card {
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
   padding: 20px;
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 .card:hover {
   border-color: var(--border-hover);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-.card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top right, rgba(56,189,248,0.07), transparent 55%);
-  pointer-events: none;
 }
 
 /* Card accent stripe */

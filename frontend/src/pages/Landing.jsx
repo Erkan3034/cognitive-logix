@@ -162,10 +162,7 @@ function Section({ children, className = "", ...props }) {
   );
 }
 
-/* ─── Floating Orb ────────────────────────────────────────── */
-function Orb({ style }) {
-  return <div className="landing-orb" style={style} />;
-}
+/* ─── Removed Orbs ────────────────────────────────────────── */
 
 /* ─── Navbar ──────────────────────────────────────────────── */
 export function Navbar({ scrolled }) {
@@ -211,9 +208,6 @@ export function Navbar({ scrolled }) {
 function Hero() {
   return (
     <section className="landing-hero">
-      <Orb style={{ top: "5%", left: "10%", width: 500, height: 500, background: "radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)" }} />
-      <Orb style={{ top: "30%", right: "5%", width: 400, height: 400, background: "radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)" }} />
-      <Orb style={{ bottom: "10%", left: "30%", width: 350, height: 350, background: "radial-gradient(circle, rgba(244,63,94,0.12) 0%, transparent 70%)" }} />
 
       <div className="landing-hero-content">
         <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible" className="landing-hero-badge">
@@ -453,7 +447,6 @@ function CTABanner() {
   return (
     <Section className="landing-cta-section">
       <motion.div variants={fadeUp} className="cta-banner">
-        <Orb style={{ top: "-20%", left: "20%", width: 300, height: 300, background: "radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%)" }} />
         <motion.h2 variants={fadeUp} custom={0} className="cta-title">
           Karar Motorunuzu Bugün Başlatın
         </motion.h2>
