@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, Cell, RadialBarChart, RadialBar,
 } from "recharts";
 import { getDrilldownSkus, postPredict } from "../lib/api.js";
+import DigitalTwinMap from "../components/DigitalTwinMap";
 
 /* ── Türkçe çeviriler ─────────────────────────────── */
 const FACTOR_TR = {
@@ -131,6 +132,25 @@ function RiskSummaryCard({ score, level }) {
   );
 }
 
+function FinancialImpactCard({ score, sales, quantity }) {
+  if (score == null || score < 0.35) return null; // Sadece orta ve yüksek riskte zarar hesapla
+  // Finansal hasar formülü: (Sipariş Değeri * Miktar) * %30 SLA Cezası * Risk İhtimali
+  const orderValue = sales * quantity;
+  const estimatedPenalty = (orderValue * 0.3 * score).toFixed(2);
+  
+  return (
+    <div style={{ padding: 16, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: 13, color: "#ef4444", fontWeight: 600, marginBottom: 4 }}>⚠️ Tahmini Finansal Hasar (SLA & Envanter)</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#ef4444" }}>${estimatedPenalty}</div>
+        </div>
+        <div style={{ fontSize: 32 }}>💸</div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Faktör grafiği ───────────────────────────────── */
 function FactorChart({ factors }) {
   if (!factors?.length) return null;
@@ -195,6 +215,7 @@ export default function Logistics() {
   const [loading, setLoading] = useState(false);
   const [skuLoading, setSkuLoading] = useState(false);
   const [skuItems, setSkuItems] = useState([]);
+  const [optimizedRoute, setOptimizedRoute] = useState(null); // Tutulan eski rota
   const [formData, setFormData] = useState({
     shipping_mode: "Standard Class", order_region: "Western Europe",
     days_scheduled: 4, days_real: 4, category: "Sporting Goods",
@@ -235,8 +256,29 @@ export default function Logistics() {
   function set(key, val) { setFormData(p => ({ ...p, [key]: val })); }
 
   async function handleSubmit(e) {
-    e.preventDefault(); setLoading(true);
+    e.preventDefault(); setLoading(true); setOptimizedRoute(null);
     try { setResult(await postPredict({ features: formData })); }
+    catch (err) { setResult({ error: err.message }); }
+    finally { setLoading(false); }
+  }
+
+  async function handleAIOptimize() {
+    setLoading(true);
+    const originalFormData = { ...formData };
+    const originalScore = score;
+    
+    // AI Önerisi: Kargo hızını First Class yap ve sevkiyat süresini düşür
+    const newFormData = { ...formData, shipping_mode: "First Class", days_scheduled: 2, days_real: 2 };
+    try { 
+      const optimizedResult = await postPredict({ features: newFormData }); 
+      setFormData(newFormData);
+      setResult(optimizedResult);
+      setOptimizedRoute({
+        order_region: originalFormData.order_region,
+        shipping_mode: originalFormData.shipping_mode,
+        late_risk_pct: originalScore
+      });
+    }
     catch (err) { setResult({ error: err.message }); }
     finally { setLoading(false); }
   }
@@ -409,8 +451,23 @@ export default function Logistics() {
                 <RiskGauge score={score} />
               </div>
 
+              {/* Financial Impact */}
+              <FinancialImpactCard score={score} sales={formData.sales} quantity={formData.quantity} />
+
               {/* User-friendly summary */}
               <RiskSummaryCard score={score} level={level} />
+
+              {/* AI Optimize Button */}
+              {score > 0.5 && !optimizedRoute && (
+                <button 
+                  onClick={handleAIOptimize}
+                  disabled={loading}
+                  className="btn" 
+                  style={{ background: "linear-gradient(90deg, #6366f1, #8b5cf6)", border: "none", width: "100%", padding: "12px", fontSize: "14px", fontWeight: "700" }}
+                >
+                  ✨ AI Rota Optimizasyonu Uygula
+                </button>
+              )}
 
               {/* Factor chart */}
               {result.top_factors?.length > 0 && (
@@ -443,6 +500,29 @@ export default function Logistics() {
                   ))}
                 </div>
               )}
+
+              <div className="risk-result-box" style={{ padding: "0", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+                <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#94a3b8" }}>🌐 Sipariş Güzergah Simülasyonu</div>
+                  {optimizedRoute && <div style={{ fontSize: 11, color: "#10b981", fontWeight: "bold" }}>✨ AI Optimizasyonu Aktif</div>}
+                </div>
+                <DigitalTwinMap 
+                  zones={[
+                    ...(optimizedRoute ? [{
+                      order_region: optimizedRoute.order_region,
+                      shipping_mode: optimizedRoute.shipping_mode,
+                      late_risk_pct: optimizedRoute.late_risk_pct,
+                      sku: formData.category + " (Eski Rota)"
+                    }] : []),
+                    { 
+                      order_region: formData.order_region, 
+                      shipping_mode: formData.shipping_mode,
+                      late_risk_pct: score ?? 0, 
+                      sku: formData.category + (optimizedRoute ? " (Önerilen)" : "")
+                    }
+                  ]} 
+                />
+              </div>
             </div>
           )}
         </div>
