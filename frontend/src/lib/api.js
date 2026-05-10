@@ -5,7 +5,7 @@ const baseURL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export const api = axios.create({
   baseURL,
-  timeout: 30_000
+  timeout: 30_000,
 });
 
 api.interceptors.request.use(async (config) => {
@@ -108,7 +108,6 @@ export async function postIncidentAction(payload) {
   return data;
 }
 
-// ── API Key Management ──────────────────────
 export async function getApiKeys() {
   const { data } = await api.get("/api/v1/keys");
   return data;
@@ -124,7 +123,6 @@ export async function revokeApiKey(keyId) {
   return data;
 }
 
-// ── Billing Management ────────────────────────
 export async function getBillingStatus() {
   const { data } = await api.get("/api/v1/billing/status");
   return data;
@@ -140,12 +138,10 @@ export async function upgradePlan(payload) {
   return data;
 }
 
-// ── Interceptor for 429 Quota Exceeded ──────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 429) {
-      // Sadece /app/... sayfalarında çalışırken yönlendirme yap (Landing'de vs. yapma)
       if (window.location.pathname.startsWith("/app") && !window.location.pathname.includes("/app/billing")) {
         window.location.href = "/app/billing?error=quota_exceeded";
       }

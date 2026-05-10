@@ -14,6 +14,7 @@ PLAN_LIMITS = {
     "pro": 10000,
     "enterprise": 9999999,
 }
+BILLABLE_ENDPOINT_PREFIXES = ("/predict", "/forecast", "/fraud", "/metrics/simulate", "/api/v1/ingest")
 
 class OnboardRequest(BaseModel):
     company_name: str
@@ -105,8 +106,18 @@ def get_billing_status(request: Request):
     import datetime
     first_day_of_month = datetime.datetime.now(datetime.timezone.utc).replace(day=1, hour=0, minute=0, second=0).isoformat()
     
-    usage_resp = sb.table("usage_logs").select("id", count="exact").eq("tenant_id", tenant_id).gte("created_at", first_day_of_month).execute()
-    used_count = getattr(usage_resp, "count", 0) or 0
+    usage_resp = (
+        sb.table("usage_logs")
+        .select("endpoint")
+        .eq("tenant_id", tenant_id)
+        .gte("created_at", first_day_of_month)
+        .limit(10000)
+        .execute()
+    )
+    usage_rows = getattr(usage_resp, "data", None) or []
+    used_count = sum(
+        1 for row in usage_rows if str(row.get("endpoint", "")).startswith(BILLABLE_ENDPOINT_PREFIXES)
+    )
     
     return {
         "plan": current_plan,

@@ -1,52 +1,74 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getAuditLogs, getIncidentActions } from "../lib/api.js";
+import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 
-function formatDate(v) {
-  if (!v) return "—";
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
+const ACTION_TR = {
+  "incident.approved": "Karar onaylandı",
+  "incident.dismissed": "Karar reddedildi",
+  "incident.queued": "Karar sıraya alındı",
+  incident_action: "Karar kaydı",
+  create: "Oluşturuldu",
+  update: "Güncellendi",
+  delete: "Silindi",
+  approve: "Onaylandı",
+  revoke: "İptal edildi",
+  login: "Giriş yapıldı",
+  logout: "Çıkış yapıldı",
+  upload: "Veri yüklendi",
+};
+
+const STATUS_TR = {
+  approved: "Onaylandı",
+  dismissed: "Reddedildi",
+  rejected: "Reddedildi",
+  pending: "Bekliyor",
+  queued: "Sıraya alındı",
+  resolved: "Çözüldü",
+};
+
+const SEVERITY_TR = {
+  critical: "Kritik",
+  high: "Yüksek",
+  medium: "Orta",
+  low: "Düşük",
+};
+
+function formatDate(value) {
+  if (!value) return "Henüz yok";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Geçersiz tarih";
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
 }
 
-/* Teknik aksiyon/kaynak isimlerini Türkçeye çevir */
-const ACTION_TR = {
-  incident_action: "Karar Verildi", create: "Oluşturuldu", update: "Güncellendi",
-  delete: "Silindi", approve: "Onaylandı", revoke: "İptal Edildi",
-  login: "Giriş Yapıldı", logout: "Çıkış Yapıldı", upload: "Veri Yüklendi",
-};
-const STATUS_TR = {
-  approved: "Onaylandı", rejected: "Reddedildi", pending: "Bekliyor",
-  queued: "Sıraya Alındı", resolved: "Çözüldü",
-};
-const toTR = (map, val) => map[val?.toLowerCase?.()] || val || "—";
+function toTR(map, value, fallback = "Kayıt") {
+  const key = String(value || "").toLowerCase();
+  return map[key] || value || fallback;
+}
 
-const SEV_CFG = {
-  critical: { color: "#ef4444", badge: "🔴 Kritik" },
-  high:     { color: "#ef4444", badge: "🔴 Yüksek" },
-  medium:   { color: "#f59e0b", badge: "🟡 Orta" },
-  low:      { color: "#10b981", badge: "🟢 Düşük" },
-};
+function money(value) {
+  const amount = Number(value || 0);
+  if (!amount) return null;
+  return `$${amount.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}`;
+}
 
-function EventCard({ icon, title, meta, badge, badgeColor = "#6366f1", desc }) {
+function EventCard({ title, subtitle, meta, badge, severity = "neutral" }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "flex-start", gap: 12, padding: "11px 14px",
-      borderRadius: 10, background: "rgba(148,163,184,0.04)", border: "1px solid rgba(148,163,184,0.08)",
-      marginBottom: 6,
-    }}>
-      <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{icon}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>{title}</span>
-          {badge && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 12,
-              background: `${badgeColor}18`, color: badgeColor, border: `1px solid ${badgeColor}25` }}>
-              {badge}
-            </span>
-          )}
+    <article className="audit-event-card">
+      <div className={`audit-event-marker audit-${severity}`} />
+      <div className="audit-event-body">
+        <div className="audit-event-title-row">
+          <strong>{title}</strong>
+          {badge && <span className={`audit-badge audit-${severity}`}>{badge}</span>}
         </div>
-        {desc && <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.5 }}>{desc}</div>}
+        {subtitle && <p>{subtitle}</p>}
       </div>
-      <span style={{ fontSize: 10, color: "#64748b", flexShrink: 0, whiteSpace: "nowrap" }}>{meta}</span>
-    </div>
+      <time>{meta}</time>
+    </article>
   );
 }
 
@@ -55,130 +77,171 @@ export default function AuditLog() {
   const [incidentActions, setIncidentActions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showAll, setShowAll] = useState(false);
+  const [showAllDecisions, setShowAllDecisions] = useState(false);
+  const [showAllLogs, setShowAllLogs] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     Promise.all([getAuditLogs({ limit: 50 }), getIncidentActions({ limit: 50 })])
-      .then(([a, b]) => { if (mounted) { setAuditLogs(a?.items ?? []); setIncidentActions(b?.items ?? []); } })
-      .catch(e => { if (mounted) setError(e?.response?.data?.detail || "Kayıtlar yüklenemedi."); })
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
+      .then(([auditResponse, actionResponse]) => {
+        if (!mounted) return;
+        setAuditLogs(auditResponse?.items ?? []);
+        setIncidentActions(actionResponse?.items ?? []);
+      })
+      .catch((err) => {
+        if (mounted) setError(err?.response?.data?.detail || "Denetim kayıtları yüklenemedi.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const LIMIT = 8;
-  const actions = showAll ? incidentActions : incidentActions.slice(0, LIMIT);
-  const logs = showAll ? auditLogs : auditLogs.slice(0, LIMIT);
+  const stats = useMemo(() => {
+    const critical = incidentActions.filter((row) => ["critical", "high"].includes(row.metadata?.severity)).length;
+    const approvals = incidentActions.filter((row) => row.status === "approved").length;
+    return {
+      total: auditLogs.length + incidentActions.length,
+      decisions: incidentActions.length,
+      critical,
+      approvals,
+    };
+  }, [auditLogs, incidentActions]);
+
+  const decisionRows = showAllDecisions ? incidentActions : incidentActions.slice(0, 8);
+  const auditRows = showAllLogs ? auditLogs : auditLogs.slice(0, 8);
 
   return (
     <div className="page-layout">
-      <header className="page-header">
-        <span className="page-eyebrow">Şeffaflık & Uyumluluk</span>
-        <div className="page-title-row">
-          <div>
-            <h1 className="page-title">Denetim Kaydı</h1>
-            <p className="page-subtitle">
-              Platform üzerinde alınan kararlar ve gerçekleştirilen işlemler burada kayıt altına alınır.
-              Her aksiyon kim tarafından, ne zaman alındığını görebilirsiniz.
-            </p>
-          </div>
+      <PageIntro
+        eyebrow="Uyumluluk"
+        title="Denetim Kaydı"
+        aside={
           <div className="pill">
             <span className="pill-dot" />
-            {loading ? "Yükleniyor..." : `${auditLogs.length + incidentActions.length} kayıt`}
+            {loading ? <InlineSpinner label="Yükleniyor" /> : `${stats.total} kayıt`}
           </div>
-        </div>
-      </header>
+        }
+      >
+        Kullanıcı kararları, sistem aksiyonları ve olay yönetimi kayıtlarını tenant bazında izleyin.
+        Bu alan ekiplerin neden, ne zaman ve hangi etkiyle karar aldığını görünür kılar.
+      </PageIntro>
 
       {error && (
-        <div style={{ padding: "12px 16px", borderRadius: 10, marginBottom: 16,
-          background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)" }}>
-          <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>⚠️ {error}</p>
-        </div>
+        <StatusBanner type="error" title="Denetim kayıtları alınamadı">
+          {error}
+        </StatusBanner>
       )}
 
+      <section className="audit-kpi-grid">
+        <div className="usage-kpi">
+          <span>Toplam kayıt</span>
+          <strong>{loading ? "..." : stats.total}</strong>
+          <p>Karar ve işlem kayıtları</p>
+        </div>
+        <div className="usage-kpi usage-kpi-warning">
+          <span>Karar kaydı</span>
+          <strong>{loading ? "..." : stats.decisions}</strong>
+          <p>Dashboard üzerinden alınan kararlar</p>
+        </div>
+        <div className="usage-kpi usage-kpi-success">
+          <span>Onaylanan karar</span>
+          <strong>{loading ? "..." : stats.approvals}</strong>
+          <p>Aksiyon alınan olaylar</p>
+        </div>
+        <div className="usage-kpi usage-kpi-muted">
+          <span>Kritik/yüksek</span>
+          <strong>{loading ? "..." : stats.critical}</strong>
+          <p>Öncelikli denetim gerektiren kayıtlar</p>
+        </div>
+      </section>
+
       <section className="two-column">
-        {/* Alınan kararlar */}
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Alınan Kararlar</h2>
-              <p className="panel-subtitle">Dashboard üzerinden onaylanan veya reddedilen uyarı kararları</p>
+              <h2 className="panel-title">Alınan kararlar</h2>
+              <p className="panel-subtitle">Risk olayları için verilen operasyon kararları.</p>
             </div>
             <span className="panel-header-badge amber">{incidentActions.length} karar</span>
           </div>
 
-          {loading ? [1,2,3].map(k => <div key={k} className="skeleton" style={{ height: 52, borderRadius: 8, marginBottom: 6 }} />) : (
-            <>
-              {incidentActions.length === 0 && (
-                <div style={{ textAlign: "center", padding: "24px 0", color: "#64748b", fontSize: 13 }}>
-                  Henüz karar kaydı yok.
-                </div>
-              )}
-              {actions.map(row => {
-                const sev = row.metadata?.severity;
-                const cfg = SEV_CFG[sev] ?? {};
+          {loading ? (
+            <div className="usage-skeleton-list">
+              {[1, 2, 3, 4].map((item) => <div key={item} className="skeleton" />)}
+            </div>
+          ) : incidentActions.length === 0 ? (
+            <EmptyState title="Henüz karar kaydı yok">
+              İzleme listesinden bir aksiyon onaylandığında kayıt burada oluşur.
+            </EmptyState>
+          ) : (
+            <div className="audit-list">
+              {decisionRows.map((row) => {
+                const severity = row.metadata?.severity || "neutral";
+                const impact = money(row.metadata?.impact_usd);
                 return (
-                  <EventCard key={row.id}
-                    icon="⚡"
-                    title={row.metadata?.title || "Uyarı Kararı"}
-                    badge={cfg.badge}
-                    badgeColor={cfg.color}
-                    desc={toTR(STATUS_TR, row.status) + (row.metadata?.impact_usd > 0 ? ` · $${Number(row.metadata.impact_usd).toLocaleString("tr-TR")} finansal etki` : "")}
+                  <EventCard
+                    key={row.id}
+                    title={row.metadata?.title || "Operasyon kararı"}
+                    badge={SEVERITY_TR[severity] || toTR(STATUS_TR, row.status)}
+                    severity={["critical", "high"].includes(severity) ? "high" : severity}
+                    subtitle={[
+                      toTR(STATUS_TR, row.status, "Durum yok"),
+                      row.action,
+                      impact ? `${impact} finansal etki` : null,
+                    ].filter(Boolean).join(" · ")}
                     meta={formatDate(row.created_at)}
                   />
                 );
               })}
-              {incidentActions.length > LIMIT && (
-                <button onClick={() => setShowAll(p => !p)} style={{
-                  width: "100%", padding: "8px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  color: "#818cf8", background: "rgba(99,102,241,0.07)",
-                  border: "1px solid rgba(99,102,241,0.15)", cursor: "pointer", marginTop: 6,
-                }}>
-                  {showAll ? "▲ Daha az göster" : `▼ ${incidentActions.length - LIMIT} karar daha`}
+              {incidentActions.length > 8 && (
+                <button type="button" className="pro-btn-outline usage-show-more" onClick={() => setShowAllDecisions((value) => !value)}>
+                  {showAllDecisions ? "Daha az göster" : `${incidentActions.length - 8} karar daha göster`}
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
 
-        {/* İşlem geçmişi */}
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">İşlem Geçmişi</h2>
-              <p className="panel-subtitle">Veri yükleme, anahtar oluşturma gibi platform işlemleri</p>
+              <h2 className="panel-title">İşlem geçmişi</h2>
+              <p className="panel-subtitle">Veri yükleme, anahtar yönetimi ve sistem aksiyonları.</p>
             </div>
             <span className="panel-header-badge blue">{auditLogs.length} işlem</span>
           </div>
 
-          {loading ? [1,2,3].map(k => <div key={k} className="skeleton" style={{ height: 52, borderRadius: 8, marginBottom: 6 }} />) : (
-            <>
-              {auditLogs.length === 0 && (
-                <div style={{ textAlign: "center", padding: "24px 0", color: "#64748b", fontSize: 13 }}>
-                  Henüz işlem kaydı yok.
-                </div>
-              )}
-              {logs.map(row => (
-                <EventCard key={row.id}
-                  icon="📋"
-                  title={toTR(ACTION_TR, row.action)}
-                  badge={row.resource_type}
-                  badgeColor="#6366f1"
-                  desc={row.metadata?.title || row.metadata?.source || undefined}
+          {loading ? (
+            <div className="usage-skeleton-list">
+              {[1, 2, 3, 4].map((item) => <div key={item} className="skeleton" />)}
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <EmptyState title="Henüz işlem kaydı yok">
+              Platformdaki yönetim aksiyonları oluştukça burada listelenir.
+            </EmptyState>
+          ) : (
+            <div className="audit-list">
+              {auditRows.map((row) => (
+                <EventCard
+                  key={row.id}
+                  title={toTR(ACTION_TR, row.action, "İşlem kaydı")}
+                  badge={row.resource_type || "Sistem"}
+                  severity="neutral"
+                  subtitle={row.metadata?.title || row.metadata?.source || row.resource_id || "Detay kaydı yok"}
                   meta={formatDate(row.created_at)}
                 />
               ))}
-              {auditLogs.length > LIMIT && (
-                <button onClick={() => setShowAll(p => !p)} style={{
-                  width: "100%", padding: "8px", borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  color: "#818cf8", background: "rgba(99,102,241,0.07)",
-                  border: "1px solid rgba(99,102,241,0.15)", cursor: "pointer", marginTop: 6,
-                }}>
-                  {showAll ? "▲ Daha az göster" : `▼ ${auditLogs.length - LIMIT} işlem daha`}
+              {auditLogs.length > 8 && (
+                <button type="button" className="pro-btn-outline usage-show-more" onClick={() => setShowAllLogs((value) => !value)}>
+                  {showAllLogs ? "Daha az göster" : `${auditLogs.length - 8} işlem daha göster`}
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
       </section>

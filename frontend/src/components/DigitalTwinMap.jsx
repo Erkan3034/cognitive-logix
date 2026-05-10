@@ -36,8 +36,8 @@ const REGION_ROUTES = {
 // Removed getJitter to stop absolute coordinates from drifting at all
 
 const createVehicleIcon = (riskPct, type) => {
-  const isHighRisk = riskPct >= 0.6;
-  const isMedRisk = riskPct >= 0.35 && riskPct < 0.6;
+  const isHighRisk = riskPct >= 0.75;
+  const isMedRisk = riskPct >= 0.55 && riskPct < 0.75;
 
   let color = "#10b981"; // Green
   let rgb = "16, 185, 129"; // Green
@@ -50,9 +50,9 @@ const createVehicleIcon = (riskPct, type) => {
     rgb = "245, 158, 11";
   }
 
-  let iconEmoji = "🚚";
-  if (type === "Ship") iconEmoji = "🚢";
-  if (type === "Air") iconEmoji = "✈️";
+  let iconLabel = "K";
+  if (type === "Ship") iconLabel = "D";
+  if (type === "Air") iconLabel = "H";
 
   return L.divIcon({
     html: `
@@ -63,10 +63,12 @@ const createVehicleIcon = (riskPct, type) => {
         border-radius: 50%;
         width: 28px; height: 28px;
         display: flex; align-items: center; justify-content: center;
-        font-size: 14px;
+        font-size: 11px;
+        font-weight: 800;
+        color: #f8fafc;
         position: relative;
       ">
-        ${iconEmoji}
+        ${iconLabel}
         <div style="
           position: absolute; top: -4px; right: -4px;
           width: 8px; height: 8px; border-radius: 50%;
@@ -148,7 +150,7 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
           riskPct: z.late_risk_pct,
           region: z.order_region,
           type: vType,
-          detail: "Route Analysis",
+          detail: "Rota analizi",
           sku: z.sku || "Various"
         });
       }
@@ -165,7 +167,7 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
           id: `inc-${inc.id}`,
           start: route.start,
           end: route.end,
-          riskPct: inc.severity === 'critical' || inc.severity === 'high' ? 0.9 : 0.5,
+          riskPct: inc.severity === 'critical' ? 0.9 : inc.severity === 'high' ? 0.68 : 0.5,
           region: randomRegion,
           type: route.type,
           detail: inc.title,
@@ -187,10 +189,10 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
             onClick={() => setIsPlaying(!isPlaying)}
             style={{ background: isPlaying ? "rgba(239,68,68,0.2)" : "rgba(16,185,129,0.2)", color: isPlaying ? "#ef4444" : "#10b981", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
           >
-            {isPlaying ? "⏸ Duraklat" : "▶ Oynat"}
+            {isPlaying ? "Duraklat" : "Oynat"}
           </button>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, paddingRight: 20 }}>
-            <span style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" }}>Zaman Çizelgesi:</span>
+            <span style={{ fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" }}>Zaman çizelgesi:</span>
             <input
               type="range" min={0} max={100} value={timelinePct}
               onChange={e => { setTimelinePct(Number(e.target.value)); setIsPlaying(false); }}
@@ -204,7 +206,7 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
             onClick={() => setShowWeather(!showWeather)}
             style={{ background: showWeather ? "rgba(168,85,247,0.2)" : "transparent", color: showWeather ? "#c084fc" : "#94a3b8", border: `1px solid ${showWeather ? "rgba(168,85,247,0.5)" : "rgba(255,255,255,0.2)"}`, padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: 6 }}
           >
-            ⛈️ {showWeather ? "Hava Durumu Açık" : "Hava Durumu Kapalı"}
+            {showWeather ? "Hava etkisi açık" : "Hava etkisi kapalı"}
           </button>
         </div>
       </div>
@@ -233,7 +235,7 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
           ))}
 
           {vehicles.map((v) => {
-            const pathColor = v.riskPct >= 0.6 ? "#ef4444" : v.riskPct >= 0.35 ? "#f59e0b" : "#10b981";
+            const pathColor = v.riskPct >= 0.75 ? "#ef4444" : v.riskPct >= 0.55 ? "#f59e0b" : "#10b981";
             const currentLat = v.start[0] + (v.end[0] - v.start[0]) * (timelinePct / 100);
             const currentLng = v.start[1] + (v.end[1] - v.start[1]) * (timelinePct / 100);
             return (
@@ -258,16 +260,16 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
                 >
                   <Popup className="digital-twin-popup">
                     <div style={{ padding: "4px 8px", background: "#18181b", color: "#f4f4f5", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", minWidth: "180px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: "600", color: "#a1a1aa", textTransform: "uppercase" }}>{v.region} Route</div>
-                      <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>{v.type === "Ship" ? "Vessel" : "Transport"} • {v.sku}</div>
+                      <div style={{ fontSize: "10px", fontWeight: "600", color: "#a1a1aa", textTransform: "uppercase" }}>{v.region} rotası</div>
+                      <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>{v.type === "Ship" ? "Deniz taşıması" : "Kara/hava taşıması"} / {v.sku}</div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
-                        <span style={{ color: "#a1a1aa" }}>Risk Score:</span>
+                        <span style={{ color: "#a1a1aa" }}>Risk skoru:</span>
                         <span style={{ fontWeight: "700", color: pathColor }}>
                           {(v.riskPct * 100).toFixed(1)}%
                         </span>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px" }}>
-                        <span style={{ color: "#a1a1aa" }}>Status:</span>
+                        <span style={{ color: "#a1a1aa" }}>Durum:</span>
                         <span style={{ fontWeight: "500", color: "#e4e4e7" }}>{v.detail}</span>
                       </div>
                     </div>

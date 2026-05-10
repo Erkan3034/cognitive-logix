@@ -6,6 +6,7 @@ import { AuthProvider } from "./lib/AuthContext.jsx";
 import "./tailwind.css";
 import "./styles.css";
 import "./ops.css";
+import "./product-ui.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

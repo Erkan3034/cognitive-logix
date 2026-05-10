@@ -1,9 +1,70 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createApiKey, getApiKeys, revokeApiKey } from "../lib/api.js";
+import { EmptyState, FieldHint, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 
-function formatDate(v) {
-  if (!v) return "—";
-  return new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(v));
+const SCOPE_OPTIONS = [
+  {
+    id: "predict",
+    label: "Lojistik risk analizi",
+    description: "Teslimat gecikmesi, rota riski ve operasyonel karar motoru.",
+    endpoint: "/predict",
+  },
+  {
+    id: "forecast",
+    label: "Talep tahmini",
+    description: "SKU bazlı tahmin, güven aralığı ve stok kararları.",
+    endpoint: "/forecast",
+  },
+  {
+    id: "fraud",
+    label: "Finansal risk analizi",
+    description: "Sipariş, ödeme ve müşteri risk sinyallerini değerlendirir.",
+    endpoint: "/fraud",
+  },
+  {
+    id: "ingest",
+    label: "Veri gönderimi",
+    description: "CSV ön izleme, kolon eşleme ve veri içe aktarma akışları.",
+    endpoint: "/api/v1/ingest",
+  },
+  {
+    id: "metrics",
+    label: "Metrik okuma",
+    description: "Dashboard ve model içgörülerini programatik olarak okur.",
+    endpoint: "/metrics",
+  },
+];
+
+const DEFAULT_SCOPES = ["predict", "forecast", "fraud", "ingest"];
+
+function formatDate(value) {
+  if (!value) return "Henüz yok";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Geçersiz tarih";
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+function normalizeScopes(scopes) {
+  if (Array.isArray(scopes)) return scopes;
+  if (typeof scopes === "string") {
+    try {
+      const parsed = JSON.parse(scopes);
+      return Array.isArray(parsed) ? parsed : scopes.split(",").map((item) => item.trim()).filter(Boolean);
+    } catch {
+      return scopes.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function scopeLabel(scope) {
+  return SCOPE_OPTIONS.find((option) => option.id === scope)?.label ?? scope;
 }
 
 export default function ApiKeys() {
@@ -11,158 +72,276 @@ export default function ApiKeys() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [newLabel, setNewLabel] = useState("");
+  const [selectedScopes, setSelectedScopes] = useState(DEFAULT_SCOPES);
   const [creating, setCreating] = useState(false);
   const [newKey, setNewKey] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [revokeCandidate, setRevokeCandidate] = useState(null);
+  const [revokingId, setRevokingId] = useState(null);
 
-  const fetchKeys = useCallback(() => {
-    setLoading(true); setError(null);
-    getApiKeys().then(d => setKeys(d?.items ?? [])).catch(e => setError(e?.response?.data?.detail || "Anahtar listesi yüklenemedi.")).finally(() => setLoading(false));
+  const fetchKeys = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getApiKeys();
+      setKeys(data?.items ?? []);
+    } catch (err) {
+      setError(err?.response?.data?.detail || "API anahtarları yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { fetchKeys(); }, [fetchKeys]);
+  useEffect(() => {
+    fetchKeys();
+  }, [fetchKeys]);
+
+  const activeCount = useMemo(() => keys.filter((key) => key.is_active).length, [keys]);
+
+  const toggleScope = (scope) => {
+    setSelectedScopes((current) =>
+      current.includes(scope)
+        ? current.filter((item) => item !== scope)
+        : [...current, scope]
+    );
+  };
 
   const handleCreate = async () => {
-    if (!newLabel.trim()) return;
-    setCreating(true); setNewKey(null);
-    try { const r = await createApiKey({ label: newLabel.trim() }); setNewKey(r.raw_key); setNewLabel(""); fetchKeys(); }
-    catch (e) { setError(e?.response?.data?.detail || "Anahtar oluşturulamadı."); }
-    finally { setCreating(false); }
+    const label = newLabel.trim();
+    if (!label) {
+      setError("Anahtar adı boş bırakılamaz.");
+      return;
+    }
+    if (selectedScopes.length === 0) {
+      setError("En az bir yetki kapsamı seçmelisiniz.");
+      return;
+    }
+
+    setCreating(true);
+    setError(null);
+    setNewKey(null);
+    try {
+      const response = await createApiKey({ label, scopes: selectedScopes });
+      setNewKey(response?.raw_key ?? response?.key ?? null);
+      setNewLabel("");
+      setSelectedScopes(DEFAULT_SCOPES);
+      await fetchKeys();
+    } catch (err) {
+      setError(err?.response?.data?.detail || "API anahtarı oluşturulamadı.");
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const handleRevoke = async (id) => {
-    if (!window.confirm("Bu bağlantı anahtarı kalıcı olarak devre dışı bırakılacak. Onaylıyor musunuz?")) return;
-    try { await revokeApiKey(id); fetchKeys(); } catch (e) { setError(e?.response?.data?.detail || "Anahtar iptal edilemedi."); }
+  const confirmRevoke = async () => {
+    if (!revokeCandidate) return;
+    setRevokingId(revokeCandidate.id);
+    setError(null);
+    try {
+      await revokeApiKey(revokeCandidate.id);
+      setRevokeCandidate(null);
+      await fetchKeys();
+    } catch (err) {
+      setError(err?.response?.data?.detail || "API anahtarı devre dışı bırakılamadı.");
+    } finally {
+      setRevokingId(null);
+    }
   };
 
-  const handleCopy = (text) => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); };
-
-  const activeCount = keys.filter(k => k.is_active).length;
+  const handleCopy = async (text) => {
+    if (!text) return;
+    await navigator.clipboard?.writeText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
 
   return (
     <div className="page-layout">
-      <header className="page-header">
-        <span className="page-eyebrow">Dış Bağlantılar</span>
-        <div className="page-title-row">
-          <div>
-            <h1 className="page-title">Bağlantı Anahtarları</h1>
-            <p className="page-subtitle">
-              ERP, muhasebe veya diğer sistemlerinizi platforma bağlamak için anahtar oluşturun.
-              Her anahtar sadece oluşturulduğunda bir kez gösterilir — güvenli bir yere kaydedin.
-            </p>
-          </div>
+      <PageIntro
+        eyebrow="Güvenli entegrasyon"
+        title="API Anahtarları"
+        aside={
           <div className="pill">
             <span className="pill-dot" />
-            {loading ? "Yükleniyor..." : `${activeCount} aktif bağlantı`}
+            {loading ? <InlineSpinner label="Yükleniyor" /> : `${activeCount} aktif anahtar`}
           </div>
-        </div>
-      </header>
+        }
+      >
+        ERP, depo yönetimi, e-ticaret ve finans sistemlerine sadece ihtiyaç duydukları yetkileri verin.
+        Her anahtar kapsam kontrollüdür ve düz metin anahtar yalnızca oluşturulduğu anda gösterilir.
+      </PageIntro>
 
       {error && (
-        <div style={{ padding: "12px 16px", borderRadius: 10, marginBottom: 16, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)" }}>
-          <p style={{ color: "#ef4444", fontSize: 13, margin: 0 }}>⚠️ {error}</p>
-        </div>
+        <StatusBanner type="error" title="İşlem tamamlanamadı">
+          {error}
+        </StatusBanner>
       )}
 
-      {/* Yeni anahtar */}
-      <section className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-header">
-          <div className="panel-title-block">
-            <h2 className="panel-title">Yeni Bağlantı Anahtarı Oluştur</h2>
-            <p className="panel-subtitle">Bu anahtarı dış sisteminizde kullanarak platforma veri gönderebilirsiniz.</p>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <input type="text" value={newLabel} onChange={e => setNewLabel(e.target.value)}
-            placeholder="örn: ERP Entegrasyonu, Muhasebe Sistemi"
-            onKeyDown={e => e.key === "Enter" && handleCreate()}
-            className="input" style={{ flex: 1 }} />
-          <button onClick={handleCreate} disabled={creating || !newLabel.trim()} className="btn"
-            style={{ whiteSpace: "nowrap", opacity: (!newLabel.trim() || creating) ? 0.5 : 1 }}>
-            {creating ? "⟳ Oluşturuluyor..." : "🔑 Anahtar Oluştur"}
-          </button>
-        </div>
+      {newKey && (
+        <StatusBanner
+          type="success"
+          title="Anahtar oluşturuldu"
+          action={
+            <button className="pro-btn-outline" type="button" onClick={() => handleCopy(newKey)}>
+              {copied ? "Kopyalandı" : "Kopyala"}
+            </button>
+          }
+        >
+          <span className="api-key-secret">{newKey}</span>
+          <FieldHint tone="warning">
+            Bu değer güvenlik nedeniyle bir daha gösterilmeyecek. Dış sisteminizde saklamadan sayfadan ayrılmayın.
+          </FieldHint>
+        </StatusBanner>
+      )}
 
-        {newKey && (
-          <div style={{ marginTop: 16, padding: "16px", borderRadius: 12, background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.25)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 18 }}>✅</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#10b981" }}>Anahtar Başarıyla Oluşturuldu!</span>
-            </div>
-            <p style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>
-              ⚠️ Bu anahtarı şimdi kopyalayın. Sayfayı yeniledikten sonra bir daha göremezsiniz.
-            </p>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", background: "rgba(0,0,0,0.3)", padding: "10px 14px", borderRadius: 8 }}>
-              <code style={{ flex: 1, fontSize: 12, color: "#e2e8f0", wordBreak: "break-all", fontFamily: "monospace" }}>{newKey}</code>
-              <button onClick={() => handleCopy(newKey)} style={{
-                padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
-                background: copied ? "rgba(16,185,129,0.15)" : "rgba(99,102,241,0.15)",
-                color: copied ? "#10b981" : "#818cf8",
-                border: `1px solid ${copied ? "rgba(16,185,129,0.3)" : "rgba(99,102,241,0.3)"}`,
-                whiteSpace: "nowrap",
-              }}>
-                {copied ? "✓ Kopyalandı!" : "Kopyala"}
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Anahtarlar listesi */}
       <section className="panel">
         <div className="panel-header">
           <div className="panel-title-block">
-            <h2 className="panel-title">Mevcut Bağlantı Anahtarları</h2>
-            <p className="panel-subtitle">Aktif ve devre dışı tüm anahtarlarınız</p>
+            <h2 className="panel-title">Yeni anahtar oluştur</h2>
+            <p className="panel-subtitle">
+              Anahtarı hangi servislerin kullanacağını seçin. Fazla yetki vermek yerine en dar kapsamla başlayın.
+            </p>
           </div>
-          <span className="panel-header-badge blue">{keys.length} anahtar</span>
+        </div>
+
+        <div className="api-key-create-grid">
+          <label className="field">
+            <span className="field-label">Anahtar adı</span>
+            <input
+              type="text"
+              value={newLabel}
+              onChange={(event) => setNewLabel(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && handleCreate()}
+              className="input"
+              placeholder="Örn. ERP canlı entegrasyon"
+              maxLength={100}
+            />
+            <span className="field-helper">Sistemde kimin neyi kullandığını ayırmak için anlaşılır bir ad kullanın.</span>
+          </label>
+
+          <div className="api-scope-grid" aria-label="Yetki kapsamları">
+            {SCOPE_OPTIONS.map((option) => {
+              const checked = selectedScopes.includes(option.id);
+              return (
+                <label key={option.id} className={`api-scope-card ${checked ? "selected" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleScope(option.id)}
+                  />
+                  <span className="api-scope-card-body">
+                    <span className="api-scope-card-title">{option.label}</span>
+                    <span className="api-scope-card-desc">{option.description}</span>
+                    <code>{option.endpoint}</code>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="data-actions end">
+          <button
+            type="button"
+            className="btn"
+            disabled={creating || !newLabel.trim() || selectedScopes.length === 0}
+            onClick={handleCreate}
+          >
+            {creating ? <InlineSpinner label="Oluşturuluyor" /> : "Anahtar oluştur"}
+          </button>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div className="panel-title-block">
+            <h2 className="panel-title">Mevcut anahtarlar</h2>
+            <p className="panel-subtitle">
+              Aktif anahtarları izleyin, kapsamlarını doğrulayın ve artık kullanılmayan bağlantıları kapatın.
+            </p>
+          </div>
+          <span className="panel-header-badge blue">{keys.length} kayıt</span>
         </div>
 
         {loading ? (
-          <div style={{ display: "grid", gap: 8 }}>
-            {[1,2].map(k => <div key={k} className="skeleton" style={{ height: 64, borderRadius: 10 }} />)}
+          <div className="api-key-list">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="skeleton api-key-skeleton" />
+            ))}
           </div>
         ) : keys.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "32px 0" }}>
-            <div style={{ fontSize: 40, marginBottom: 10 }}>🔑</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 }}>Henüz bağlantı anahtarı yok</div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>Yukarıdan yeni bir anahtar oluşturun.</div>
-          </div>
+          <EmptyState
+            title="Henüz API anahtarı yok"
+            action={
+              <button type="button" className="pro-btn-outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+                Yeni anahtar alanına git
+              </button>
+            }
+          >
+            İlk canlı entegrasyonunuzu açmadan önce kullanılacak modülleri seçerek bir anahtar oluşturun.
+          </EmptyState>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {keys.map(k => (
-              <div key={k.id} style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "12px 16px",
-                borderRadius: 10, opacity: k.is_active ? 1 : 0.5,
-                background: k.is_active ? "rgba(99,102,241,0.05)" : "rgba(148,163,184,0.04)",
-                border: `1px solid ${k.is_active ? "rgba(99,102,241,0.2)" : "rgba(148,163,184,0.1)"}`,
-              }}>
-                <span style={{ fontSize: 20 }}>🔑</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{k.label}</span>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: "1px 8px", borderRadius: 12,
-                      background: k.is_active ? "rgba(16,185,129,0.1)" : "rgba(148,163,184,0.1)",
-                      color: k.is_active ? "#10b981" : "#64748b",
-                      border: `1px solid ${k.is_active ? "rgba(16,185,129,0.2)" : "rgba(148,163,184,0.15)"}`,
-                    }}>{k.is_active ? "Aktif" : "Devre Dışı"}</span>
+          <div className="api-key-list">
+            {keys.map((key) => {
+              const scopes = normalizeScopes(key.scopes);
+              const isConfirming = revokeCandidate?.id === key.id;
+              return (
+                <article key={key.id} className={`api-key-card ${key.is_active ? "" : "muted"}`}>
+                  <div className="api-key-card-main">
+                    <div>
+                      <div className="api-key-card-title-row">
+                        <h3>{key.label}</h3>
+                        <span className={`api-key-status ${key.is_active ? "active" : "inactive"}`}>
+                          {key.is_active ? "Aktif" : "Devre dışı"}
+                        </span>
+                      </div>
+                      <div className="api-key-meta">
+                        <span>Oluşturulma: {formatDate(key.created_at)}</span>
+                        <span>Son kullanım: {formatDate(key.last_used_at)}</span>
+                      </div>
+                    </div>
+                    <code className="api-key-prefix">{key.key_prefix || "clx"}...</code>
                   </div>
-                  <div style={{ fontSize: 11, color: "#64748b" }}>
-                    Oluşturulma: {formatDate(k.created_at)}
-                    {k.last_used_at && ` · Son kullanım: ${formatDate(k.last_used_at)}`}
+
+                  <div className="api-key-scope-list">
+                    {scopes.length > 0 ? (
+                      scopes.map((scope) => (
+                        <span key={scope} className="data-chip">
+                          {scopeLabel(scope)}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="data-chip warning">Kapsam bilgisi yok</span>
+                    )}
                   </div>
-                </div>
-                <code style={{ fontSize: 11, color: "#64748b", fontFamily: "monospace", flexShrink: 0 }}>{k.key_prefix}…</code>
-                {k.is_active && (
-                  <button onClick={() => handleRevoke(k.id)} style={{
-                    padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 600,
-                    background: "rgba(239,68,68,0.08)", color: "#ef4444",
-                    border: "1px solid rgba(239,68,68,0.2)", cursor: "pointer", flexShrink: 0,
-                  }}>İptal Et</button>
-                )}
-              </div>
-            ))}
+
+                  {key.is_active && (
+                    <div className="api-key-actions">
+                      {isConfirming ? (
+                        <>
+                          <span className="api-key-confirm-text">Bu anahtar kalıcı olarak kapatılacak.</span>
+                          <button type="button" className="pro-btn-ghost" onClick={() => setRevokeCandidate(null)}>
+                            Vazgeç
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger"
+                            disabled={revokingId === key.id}
+                            onClick={confirmRevoke}
+                          >
+                            {revokingId === key.id ? <InlineSpinner label="Kapatılıyor" /> : "Devre dışı bırak"}
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" className="pro-btn-outline" onClick={() => setRevokeCandidate(key)}>
+                          Devre dışı bırak
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

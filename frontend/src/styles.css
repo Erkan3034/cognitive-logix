@@ -1,4 +1,4 @@
-/* ================================================
+﻿/* ================================================
    COGNITIVE LOGIX — Design System v3 (Enterprise Dark)
    ================================================ */
 
@@ -752,7 +752,7 @@ select {
   color: var(--risk-high);
 }
 
-/* â”€â”€ Alert Feed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
 .alert-feed {
   display: flex;
   flex-direction: column;
@@ -812,7 +812,6 @@ select {
   line-height: 1.5;
 }
 
-/* â”€â”€ Chip Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -853,7 +852,6 @@ select {
   background: var(--risk-low-soft);
 }
 
-/* â”€â”€ Guidance Blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .guide-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -908,7 +906,6 @@ select {
   color: var(--text-main);
 }
 
-/* â”€â”€ Control Tower Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .ct-top-actions {
   display: inline-flex;
   align-items: center;
@@ -1255,7 +1252,6 @@ select {
   background: rgba(71, 85, 105, 0.62);
 }
 
-/* â”€â”€ Forms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -1309,7 +1305,6 @@ select {
   background: var(--bg-body);
 }
 
-/* â”€â”€ Buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -1353,7 +1348,6 @@ select {
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
 }
 
-/* â”€â”€ Risk Gauge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .risk-result-box {
   display: flex;
   flex-direction: column;
@@ -1452,7 +1446,6 @@ select {
   margin-top: -8px;
 }
 
-/* â”€â”€ Empty State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -1488,7 +1481,6 @@ select {
   line-height: 1.5;
 }
 
-/* â”€â”€ Result Code Block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .result-details {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1538,13 +1530,12 @@ select {
   color: #f9a8d4;
 }
 
-/* â”€â”€ Chart wrapper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .chart-wrapper {
   padding: 8px 0;
   border-radius: var(--radius-md);
 }
 
-/* â”€â”€ Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â”€â”€ Badges  */
 .badge-positive {
   color: #86efac;
   font-weight: 500;
@@ -1559,14 +1550,12 @@ select {
   font-weight: 500;
 }
 
-/* â”€â”€ Divider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .divider {
   height: 1px;
   background: var(--border);
   margin: 8px 0;
 }
 
-/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 900px) {
   .sidebar {
     width: var(--sidebar-w-coll);

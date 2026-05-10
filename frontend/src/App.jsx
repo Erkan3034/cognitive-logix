@@ -111,46 +111,46 @@ const IconBrain = () => (
 );
 
 const NAV_ITEMS = [
-  { to: "/app", label: "Genel Bakis", Icon: IconGrid, end: true },
+  { to: "/app", label: "Genel Bakış", Icon: IconGrid, end: true },
   { to: "/app/logistics", label: "Lojistik", Icon: IconTruck },
   { to: "/app/demand", label: "Talep Tahmini", Icon: IconTrendingUp },
-  { to: "/app/fraud", label: "Fraud ve Risk", Icon: IconShield },
+  { to: "/app/fraud", label: "Finansal Risk", Icon: IconShield },
   { to: "/app/data", label: "Veri Merkezi", Icon: IconDatabase },
-  { to: "/app/usage", label: "Kullanim", Icon: IconList },
-  { to: "/app/audit", label: "Audit Log", Icon: IconAudit },
-  { to: "/app/model-health", label: "Model Health", Icon: IconPulse },
-  { to: "/app/api-keys", label: "API Keys", Icon: IconKey },
+  { to: "/app/usage", label: "Kullanım", Icon: IconList },
+  { to: "/app/audit", label: "Denetim Kaydı", Icon: IconAudit },
+  { to: "/app/model-health", label: "Model Sağlığı", Icon: IconPulse },
+  { to: "/app/api-keys", label: "API Anahtarları", Icon: IconKey },
   { to: "/app/billing", label: "Abonelik", Icon: IconCreditCard },
 ];
 
 const PAGE_TITLES = {
-  "/app": "Genel Bakis",
+  "/app": "Genel Bakış",
   "/app/logistics": "Lojistik",
   "/app/demand": "Talep Tahmini",
-  "/app/fraud": "Fraud ve Risk",
+  "/app/fraud": "Finansal Risk",
   "/app/data": "Veri Merkezi",
-  "/app/usage": "Kullanim",
-  "/app/audit": "Audit Log",
-  "/app/model-health": "Model Health",
-  "/app/api-keys": "API Key Yonetimi",
+  "/app/usage": "Kullanım",
+  "/app/audit": "Denetim Kaydı",
+  "/app/model-health": "Model Sağlığı",
+  "/app/api-keys": "API Anahtarı Yönetimi",
   "/app/billing": "Abonelik ve Faturalama",
 };
 
 const PAGE_DESCRIPTIONS = {
-  "/app": "Operasyonel durum, kritik riskler ve finansal maruziyet ozeti.",
-  "/app/logistics": "Siparis bazinda gecikme olasiligina gore onleyici karar destegi.",
-  "/app/demand": "Talep egrileriyle envanter ve kapasite planlama destegi.",
-  "/app/fraud": "Anomali sinyalleriyle islem dogrulama ve zarar onleme destegi.",
-  "/app/data": "Sisteme veri besleme ve AI kolon eslestirme.",
-  "/app/usage": "Tenant bazli API kullanimi, kota ve faturalama sinyalleri.",
-  "/app/audit": "Kullanici aksiyonlari ve incident karar izleri.",
-  "/app/model-health": "Model surumleri, validasyon metrikleri ve drift izleme.",
-  "/app/api-keys": "Dis sistemler icin API key uretimi, yonetimi ve kullanim ornekleri.",
-  "/app/billing": "Kullanim kotanizi takip edin ve planinizi yonetin.",
+  "/app": "Operasyonel durum, kritik riskler ve finansal maruziyet özeti.",
+  "/app/logistics": "Sipariş bazında gecikme olasılığına göre önleyici karar desteği.",
+  "/app/demand": "Talep eğrileriyle envanter ve kapasite planlama desteği.",
+  "/app/fraud": "Anomali sinyalleriyle işlem doğrulama ve zarar önleme desteği.",
+  "/app/data": "Sisteme veri besleme ve kolon eşleştirme.",
+  "/app/usage": "Tenant bazlı API kullanımı, kota ve faturalama sinyalleri.",
+  "/app/audit": "Kullanıcı aksiyonları ve karar izleri.",
+  "/app/model-health": "Model sürümleri, validasyon metrikleri ve drift izleme.",
+  "/app/api-keys": "Dış sistemler için API anahtarı üretimi ve yönetimi.",
+  "/app/billing": "Kullanım kotanızı takip edin ve planınızı yönetin.",
 };
 
 function RouteLoader() {
-  return <div className="route-loader">Modul yukleniyor...</div>;
+  return <div className="route-loader">Modül yükleniyor...</div>;
 }
 
 function Sidebar({ collapsed, onToggle }) {
@@ -171,15 +171,15 @@ function Sidebar({ collapsed, onToggle }) {
         <div className="sidebar-logo"><IconBrain /></div>
         <div className="sidebar-brand">
           <span className="sidebar-brand-name">Cognitive Logix</span>
-          <span className="sidebar-brand-sub">Supply Chain AI</span>
+          <span className="sidebar-brand-sub">Tedarik Zinciri Zekası</span>
         </div>
-        <button className="sidebar-toggle" onClick={onToggle} title={collapsed ? "Genislet" : "Daralt"}>
+        <button className="sidebar-toggle" onClick={onToggle} title={collapsed ? "Genişlet" : "Daralt"}>
           {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
         </button>
       </div>
 
       <nav className="sidebar-nav">
-        <span className="nav-section-label">Moduller</span>
+        <span className="nav-section-label">Modüller</span>
         {NAV_ITEMS.map(({ to, label, Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`}>
             <span className="nav-icon"><Icon /></span>
@@ -212,7 +212,7 @@ function Sidebar({ collapsed, onToggle }) {
 function TopBar() {
   const location = useLocation();
   const title = PAGE_TITLES[location.pathname] ?? "Sayfa";
-  const description = PAGE_DESCRIPTIONS[location.pathname] ?? "Modul ozeti";
+  const description = PAGE_DESCRIPTIONS[location.pathname] ?? "Modül özeti";
 
   return (
     <div className="topbar">
@@ -223,7 +223,7 @@ function TopBar() {
       <span className="topbar-spacer" />
       <span className="topbar-live-badge">
         <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--risk-low)", display: "inline-block" }} />
-        Sistem Cevrimici
+        Sistem Çevrimiçi
       </span>
     </div>
   );

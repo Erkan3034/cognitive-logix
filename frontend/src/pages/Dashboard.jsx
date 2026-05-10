@@ -1,565 +1,411 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import {
-  AreaChart, Area, XAxis, YAxis,
-  Tooltip, ResponsiveContainer,
-} from "recharts";
-import {
-  getIncidents, getOverviewMetrics, getRiskMap,
-  getXaiExplanations, postIncidentAction, postWhatIfScenario,
+  getIncidents,
+  getOverviewMetrics,
+  getRiskMap,
+  getXaiExplanations,
+  postIncidentAction,
+  postWhatIfScenario,
 } from "../lib/api.js";
-import DigitalTwinMap from "../components/DigitalTwinMap";
+import DigitalTwinMap from "../components/DigitalTwinMap.jsx";
+import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 
-/* ── Formatters ────────────────────────────────────────── */
-const fmtPct = (v) => v == null ? null : `${(v * 100).toFixed(1)}%`;
-const fmtMoney = (v) => {
-  if (v == null) return null;
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
-  return `$${v.toFixed(0)}`;
-};
-const riskCls = (s) => s >= 0.7 ? "risk-high" : s >= 0.4 ? "risk-med" : "risk-low";
-const sevCls = (s) => (s === "critical" || s === "high") ? "red" : s === "medium" ? "amber" : "green";
-
-/* ── TR Çeviri katmanı ─────────────────────────────────── */
-const TR_TITLE = {
-  "Negative-profit order exposure": "Zarar Eden Sipariş Riski",
-  "Suspected fraud exposure cluster": "Şüpheli Dolandırıcılık Kümesi",
-  "High delay risk cluster": "Yüksek Gecikme Risk Grubu",
-  "Demand spike detected": "Ani Talep Artışı",
-  "Inventory shortfall risk": "Stok Yetersizlik Riski",
-  "Late shipment cluster": "Geciken Sevkiyat Grubu",
-  "Revenue at risk": "Risk Altındaki Gelir",
-  "Anomaly cluster detected": "Anomali Kümesi",
-  "High late-delivery risk": "Yüksek Gecikme Riski",
-  "Fishing segment delay risk": "Balıkçılık Segmenti Gecikme",
-  "First Class lane delay risk": "Birinci Sınıf Gecikme Riski",
-  "Standard Class delay risk": "Standart Sınıf Gecikme Riski",
-  "Same Day delivery risk": "Aynı Gün Teslimat Riski",
-  "Second Class delay risk": "İkinci Sınıf Gecikme Riski",
-};
-const TR_DESC = {
-  "loss-making orders": "zararlı sipariş",
-  "at risk": "risk altında",
-  "gross exposure": "toplam maruz kalınan tutar",
-  "require manual review": "manuel inceleme gerektiriyor",
-  "approval": "onay",
-  "suspected-fraud orders": "şüpheli sipariş",
-  "before approval": "onay öncesinde",
-  "hold fulfillment": "teslimatı askıya alın",
-  "high-value": "yüksek tutarlı",
-  "review discounts, shipping cost, and refund policy thresholds": "iskonto, kargo maliyeti ve iade eşiklerini gözden geçirin",
-};
-function trTitle(t) {
-  if (TR_TITLE[t]) return TR_TITLE[t];
-  // Fallback: if the title looks like "Region / ShippingMode ... risk", shorten it
-  if (t && t.length > 30) return t.substring(0, 28) + '…';
-  return t;
-}
-function trDesc(d) {
-  if (!d) return d;
-  let s = d;
-  Object.entries(TR_DESC).forEach(([en, tr]) => { s = s.replaceAll(en, tr); });
-  // Genel sayısal kalıplar: "337094 loss-making orders represent $6,781,579 revenue at risk."
-  s = s.replace(/(\d[\d,]+)\s+loss-making orders? represent (\$[\d,]+) revenue at risk\.?/gi,
-    '$1 zararlı sipariş, $2 geliri risk altında tutuyor.');
-  s = s.replace(/(\d[\d,]+)\s+suspected-fraud orders? carry (\$[\d,]+) gross exposure\.?/gi,
-    '$1 şüpheli sipariş, $2 tutarında risk taşıyor.');
-  s = s.replace(/Hold fulfillment for high-value suspected-fraud orders and route them to review\./gi,
-    'Yüksek tutarlı şüpheli siparişleri askıya alın ve inceleme kuyruğuna gönderin.');
-  s = s.replace(/Review discounts?, shipping cost,? and refund policy thresholds?\./gi,
-    'İskonto oranları, kargo maliyeti ve iade eşiklerini gözden geçirin.');
-  return s;
-}
-function trAction(a) {
-  if (!a) return 'Onayla';
-  const map = {
-    'approve': 'Onayla', 'review': 'İncele', 'hold': 'Askıya Al',
-    'escalate': 'İlet', 'investigate': 'Araştır',
-    'flag': 'İşaretle', 'resolve': 'Çözüldü',
-    'inspect': 'İncele', 'upgrade': 'Yükselt', 'notify': 'Bildir',
-  };
-  const low = a.toLowerCase();
-  for (const [en, tr] of Object.entries(map)) { if (low.includes(en)) return tr; }
-  // If still no match, return first 10 chars
-  return a.length > 10 ? a.substring(0, 8) + '…' : a;
+function fmtPct(value) {
+  if (value == null) return "-";
+  return `${(value * 100).toFixed(1)}%`;
 }
 
-/* ── Sparkline mock data ─────────────────────────────── */
-const makeSpark = (end, len = 10, vol = 0.06) =>
-  Array.from({ length: len }, (_, i) => ({
-    i,
-    v: Math.max(0, end * (1 + (Math.random() - 0.5) * vol * (len - i) / len)),
-  }));
-
-/* ── KPI Card ────────────────────────────────────────── */
-function KpiCard({ title, value, accent, formatter, xaiText, spark, icon, sub }) {
-  const [showXai, setShowXai] = useState(false);
-  const formatted = formatter(value);
-  const colorMap = { green: "#10b981", red: "#ef4444", amber: "#f59e0b", blue: "#6366f1" };
-  const color = colorMap[accent] || "#6366f1";
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="kpi-card-v2"
-      style={{ "--kpi-color": color }}
-    >
-      <div className="kpi-v2-top">
-        <div className="kpi-v2-icon">{icon}</div>
-        <button className="kpi-v2-info" onClick={() => setShowXai(p => !p)} title="AI açıklaması">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 13, height: 13 }}>
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-        </button>
-      </div>
-      <div className="kpi-v2-value">{formatted ?? "—"}</div>
-      <div className="kpi-v2-label">{title}</div>
-      {sub && <div className="kpi-v2-sub">{sub}</div>}
-
-      <div className="kpi-v2-spark">
-        <ResponsiveContainer width="100%" height={44}>
-          <AreaChart data={spark} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id={`sg-${accent}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5}
-              fill={`url(#sg-${accent})`} dot={false} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      <AnimatePresence>
-        {showXai && (
-          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }} className="kpi-v2-xai">
-            <span className="kpi-v2-xai-label">🤖 Açıklanabilir AI</span>
-            <p>{xaiText}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.article>
-  );
+function fmtMoney(value) {
+  if (value == null) return "-";
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(0)}`;
 }
 
-/* ── Risk Matrix (Pro Table) ──────────────────────────── */
-function RiskBarChart({ zones, onDrill }) {
-  const data = zones.map(z => ({
-    name: z.order_region?.replace("Western ", "B. ").replace("Pacific Asia", "Asya-Pasifik")
-      .replace("US / Puerto Rico", "ABD/P.R.").replace("LATAM", "LATAM") ?? z.id,
-    risk: parseFloat((z.late_risk_pct * 100).toFixed(1)),
-    raw: z,
-  }));
-
-  const riskTag = (r) => {
-    if (r >= 60) return { label: "Kritik", cls: "pro-tag-red" };
-    if (r >= 35) return { label: "Orta", cls: "pro-tag-amber" };
-    return { label: "Düşük", cls: "pro-tag-green" };
-  };
-
-  return (
-    <div className="pro-table">
-      <div className="pro-table-head">
-        <span className="pro-th" style={{ flex: 2 }}>Bölge</span>
-        <span className="pro-th" style={{ flex: 3 }}>Risk</span>
-        <span className="pro-th" style={{ flex: 1, textAlign: "right" }}>Seviye</span>
-        <span className="pro-th" style={{ width: 60 }}></span>
-      </div>
-      {data.map((entry, i) => {
-        const color = entry.risk >= 60 ? "#ef4444" : entry.risk >= 35 ? "#f59e0b" : "#10b981";
-        const tag = riskTag(entry.risk);
-        return (
-          <div key={i} className="pro-table-row" onClick={() => onDrill(entry.raw)}>
-            <span className="pro-td pro-td-name" style={{ flex: 2 }}>{entry.name}</span>
-            <span className="pro-td" style={{ flex: 3, display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="pro-mini-track">
-                <span className="pro-mini-fill" style={{ width: `${entry.risk}%`, background: color }} />
-              </span>
-              <span className="pro-td-pct" style={{ color }}>{entry.risk}%</span>
-            </span>
-            <span className="pro-td" style={{ flex: 1, textAlign: "right" }}>
-              <span className={`pro-tag ${tag.cls}`}>{tag.label}</span>
-            </span>
-            <span className="pro-td pro-td-action" style={{ width: 60, textAlign: "right" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
+function severityTone(severity) {
+  if (severity === "critical") return "red";
+  if (severity === "high" || severity === "medium") return "amber";
+  return "green";
 }
 
-/* ── How It Works (Onboarding) ───────────────────────── */
-function HowItWorks() {
-  const steps = [
-    { icon: "📦", title: "Veri Yükle", desc: "CSV veya ERP bağlantısıyla operasyonel verinizi sisteme aktarın." },
-    { icon: "🤖", title: "AI Analiz Eder", desc: "XGBoost, LightGBM ve Isolation Forest modelleri her siparişi saniyeler içinde puanlar." },
-    { icon: "⚡", title: "Karar Al", desc: "Risk skoru ve AI önerisiyle hızlı, doğru operasyonel karar verin." },
-  ];
-  return (
-    <section className="panel" style={{ marginBottom: 20 }}>
-      <div className="panel-header">
-        <div className="panel-title-block">
-          <h2 className="panel-title">Sistem Nasıl Çalışır?</h2>
-          <p className="panel-subtitle">İlk kez kullananlar için 3 adımlı özet</p>
-        </div>
-        <span className="panel-header-badge blue">Başlangıç Rehberi</span>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        {steps.map((s, i) => (
-          <div key={i} style={{
-            background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)",
-            borderRadius: 12, padding: "16px 18px", display: "flex", gap: 12, alignItems: "flex-start",
-          }}>
-            <div style={{ fontSize: 26, lineHeight: 1 }}>{s.icon}</div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", marginBottom: 4 }}>
-                <span style={{ color: "#6366f1", marginRight: 6 }}>{i + 1}.</span>{s.title}
-              </div>
-              <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>{s.desc}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+function riskTone(score) {
+  if (score >= 0.75) return { label: "Kritik", color: "var(--risk-high)", badge: "red" };
+  if (score >= 0.55) return { label: "Yüksek", color: "var(--risk-med)", badge: "amber" };
+  return { label: "Normal", color: "var(--risk-low)", badge: "green" };
 }
-
-/* ── Scenario Drawer ─────────────────────────────────── */
-function ScenarioDrawer({ open, onClose, scenario, onChange, onApply, onReset, loading }) {
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.button aria-label="Kapat" className="ct-drawer-overlay"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.aside initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 240, damping: 28 }}
-            className="ct-drawer" role="dialog">
-            <div className="ct-drawer-head">
-              <div>
-                <p className="ct-drawer-eyebrow">Simülasyon</p>
-                <h2 className="ct-drawer-title">Senaryo Simülatörü</h2>
-                <p className="ct-drawer-subtitle">Girdileri değiştirip KPI etkisini anında görün.</p>
-              </div>
-              <button type="button" onClick={onClose} className="ct-drawer-close">Kapat</button>
-            </div>
-            <div className="ct-drawer-fields">
-              <label className="ct-drawer-field">
-                <span className="ct-drawer-field-label">Liman Kapanması</span>
-                <select value={scenario.portClosed ? "yes" : "no"}
-                  onChange={(e) => onChange({ portClosed: e.target.value === "yes" })} className="ct-drawer-select">
-                  <option value="no">Hayır</option>
-                  <option value="yes">Evet — Büyük liman kapandı</option>
-                </select>
-              </label>
-              <label className="ct-drawer-field">
-                <span className="ct-drawer-field-label">Talep Artışı: %{scenario.demandSurge}</span>
-                <input type="range" min={0} max={30} step={1} value={scenario.demandSurge}
-                  onChange={(e) => onChange({ demandSurge: Number(e.target.value) })} className="ct-drawer-range" />
-              </label>
-              <label className="ct-drawer-field">
-                <span className="ct-drawer-field-label">Tedarikçi Grevi</span>
-                <select value={scenario.strike} onChange={(e) => onChange({ strike: e.target.value })} className="ct-drawer-select">
-                  <option value="none">Yok</option>
-                  <option value="local">Bölgesel Grev</option>
-                  <option value="global">Küresel Grev</option>
-                </select>
-              </label>
-            </div>
-            <div className="ct-drawer-actions">
-              <button type="button" onClick={onApply} className="ct-drawer-btn ct-drawer-btn-primary" disabled={loading}>
-                {loading ? "Simülasyon çalışıyor..." : "Simülasyonu Başlat"}
-              </button>
-              <button type="button" onClick={onReset} className="ct-drawer-btn ct-drawer-btn-secondary" disabled={loading}>
-                Sıfırla
-              </button>
-            </div>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
-const FALLBACK_XAI = {
-  on_time_delivery_pct: "Rota güvenilirliği, transit süreleri ve istisna kayıtları değerlendirilerek hesaplandı.",
-  late_delivery_risk_pct: "Taşıyıcı performansı, liman yoğunluğu ve geçmiş transit verilerine göre ölçüldü.",
-  demand_risk_pct: "Kategori bazlı günlük oynaklık ve bölgesel sipariş trendi birleştirilerek üretildi.",
-  financial_exposure_usd: "Negatif kâr bayrağı, sipariş tutarı ve anomali sinyallerinden tahmin edildi.",
-};
 
 const KPI_META = [
-  { key: "on_time_delivery_pct", title: "Zamanında Teslimat", accent: "green", formatter: fmtPct, icon: "✅", sub: "Hedefe göre ± karşılaştırma" },
-  { key: "late_delivery_risk_pct", title: "Gecikme Riski", accent: "red", formatter: fmtPct, icon: "⚠️", sub: "Yüksek risk siparişleri" },
-  { key: "demand_risk_pct", title: "Talep Riski", accent: "amber", formatter: fmtPct, icon: "📊", sub: "Stok yetersizlik ihtimali" },
-  { key: "financial_exposure_usd", title: "Finansal Maruziyet", accent: "red", formatter: fmtMoney, icon: "💸", sub: "Zarar eden sipariş toplamı" },
+  {
+    key: "on_time_delivery_pct",
+    title: "Zamanında Teslimat",
+    caption: "Operasyon sağlığı",
+    formatter: fmtPct,
+    accent: "green",
+  },
+  {
+    key: "late_delivery_risk_pct",
+    title: "Gecikme Riski",
+    caption: "Öncelikli sevkiyat takibi",
+    formatter: fmtPct,
+    accent: "red",
+  },
+  {
+    key: "demand_risk_pct",
+    title: "Talep Riski",
+    caption: "Stok ve kapasite baskısı",
+    formatter: fmtPct,
+    accent: "amber",
+  },
+  {
+    key: "financial_exposure_usd",
+    title: "Finansal Maruziyet",
+    caption: "Risk altındaki gelir",
+    formatter: fmtMoney,
+    accent: "red",
+  },
 ];
+
+const FALLBACK_EXPLANATIONS = {
+  on_time_delivery_pct: "Zamanında teslimat oranı, geçmiş sevkiyat performansı ve gecikme kayıtları üzerinden hesaplanır.",
+  late_delivery_risk_pct: "Gecikme riski; rota, kargo modu, bölge ve geçmiş teslimat kalıplarının birleşik sinyalidir.",
+  demand_risk_pct: "Talep riski, kategori ve bölge bazlı oynaklık ile sipariş trendlerinden türetilir.",
+  financial_exposure_usd: "Finansal maruziyet, zarar eden veya anomali taşıyan siparişlerin toplam etkisini gösterir.",
+};
+
+const TITLE_TR = {
+  "Negative-profit order exposure": "Zarar Eden Sipariş Riski",
+  "Suspected fraud exposure cluster": "Şüpheli İşlem Kümesi",
+};
+
+function translateTitle(title) {
+  if (TITLE_TR[title]) return TITLE_TR[title];
+  return title
+    ?.replace("lane delay risk", "hat gecikme riski")
+    ?.replace("Standard Class", "Standart")
+    ?.replace("First Class", "Öncelikli")
+    ?.replace("Second Class", "İkinci Sınıf")
+    ?.replace("Same Day", "Aynı Gün") ?? "Risk olayı";
+}
+
+function translateAction(action) {
+  const text = (action || "").toLowerCase();
+  if (text.includes("hold")) return "Sevkiyatı durdur";
+  if (text.includes("review")) return "İncelemeye al";
+  if (text.includes("upgrade")) return "Servis seviyesini yükselt";
+  if (text.includes("notify")) return "Ekibi bilgilendir";
+  if (text.includes("inspect")) return "Detaya bak";
+  return "Onayla";
+}
+
+function KpiCard({ meta, value, explanation }) {
+  return (
+    <article className={`card kpi-accent-${meta.accent}`}>
+      <div className="ct-kpi-head">
+        <div>
+          <p className="card-title">{meta.title}</p>
+          <p className="card-value">{meta.formatter(value)}</p>
+          <p className="card-caption">{meta.caption}</p>
+        </div>
+      </div>
+      <p className="card-caption" style={{ marginTop: 12, lineHeight: 1.55 }}>{explanation}</p>
+    </article>
+  );
+}
+
+function ScenarioDrawer({ open, onClose, scenario, onChange, onApply, onReset, loading }) {
+  if (!open) return null;
+  return (
+    <>
+      <button aria-label="Senaryo panelini kapat" className="ct-drawer-overlay" onClick={onClose} />
+      <aside className="ct-drawer" role="dialog" aria-label="Senaryo simülasyonu">
+        <div className="ct-drawer-head">
+          <div>
+            <p className="ct-drawer-eyebrow">Senaryo</p>
+            <h2 className="ct-drawer-title">Operasyon Etkisini Simüle Et</h2>
+            <p className="ct-drawer-subtitle">Varsayımları değiştirin, KPI etkisini ayrı bir senaryo olarak görün.</p>
+          </div>
+          <button type="button" onClick={onClose} className="ct-drawer-close">Kapat</button>
+        </div>
+
+        <div className="ct-drawer-fields">
+          <label className="ct-drawer-field">
+            <span className="ct-drawer-field-label">Liman kapanması</span>
+            <select
+              value={scenario.portClosed ? "yes" : "no"}
+              onChange={(event) => onChange({ portClosed: event.target.value === "yes" })}
+              className="ct-drawer-select"
+            >
+              <option value="no">Yok</option>
+              <option value="yes">Büyük liman kapalı</option>
+            </select>
+          </label>
+          <label className="ct-drawer-field">
+            <span className="ct-drawer-field-label">Talep artışı: %{scenario.demandSurge}</span>
+            <input
+              type="range"
+              min={0}
+              max={30}
+              step={1}
+              value={scenario.demandSurge}
+              onChange={(event) => onChange({ demandSurge: Number(event.target.value) })}
+              className="ct-drawer-range"
+            />
+          </label>
+          <label className="ct-drawer-field">
+            <span className="ct-drawer-field-label">Tedarikçi grevi</span>
+            <select
+              value={scenario.strike}
+              onChange={(event) => onChange({ strike: event.target.value })}
+              className="ct-drawer-select"
+            >
+              <option value="none">Yok</option>
+              <option value="local">Bölgesel</option>
+              <option value="global">Küresel</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="ct-drawer-actions">
+          <button type="button" onClick={onApply} className="ct-drawer-btn ct-drawer-btn-primary" disabled={loading}>
+            {loading ? <InlineSpinner label="Simülasyon çalışıyor..." /> : "Simülasyonu çalıştır"}
+          </button>
+          <button type="button" onClick={onReset} className="ct-drawer-btn ct-drawer-btn-secondary" disabled={loading}>
+            Sıfırla
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState(null);
   const [simulatedMetrics, setSimulatedMetrics] = useState(null);
-  const [xaiMap, setXaiMap] = useState(FALLBACK_XAI);
-  const [loading, setLoading] = useState(true);
+  const [xaiMap, setXaiMap] = useState(FALLBACK_EXPLANATIONS);
   const [riskZones, setRiskZones] = useState([]);
   const [incidents, setIncidents] = useState([]);
-  const [scenarioLoading, setScenarioLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [scenarioOpen, setScenarioOpen] = useState(false);
+  const [scenarioLoading, setScenarioLoading] = useState(false);
   const [isSimulationApplied, setIsSimulationApplied] = useState(false);
-  const [decisions, setDecisions] = useState({});
   const [decisionLoading, setDecisionLoading] = useState({});
+  const [decisions, setDecisions] = useState({});
   const [scenario, setScenario] = useState({ portClosed: false, demandSurge: 0, strike: "none" });
-
-  // Drag & Drop State for KPI Cards
-  const [kpiOrder, setKpiOrder] = useState(() => {
-    try {
-      const saved = localStorage.getItem('kpiOrder');
-      if (saved) return JSON.parse(saved);
-    } catch (e) { }
-    return KPI_META.map(k => k.key);
-  });
-
-  const handleDragStart = (e, index) => {
-    e.dataTransfer.setData('dragIndex', index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDrop = (e, index) => {
-    e.preventDefault();
-    const dragIndex = Number(e.dataTransfer.getData('dragIndex'));
-    if (dragIndex === index || isNaN(dragIndex)) return;
-
-    const newOrder = [...kpiOrder];
-    const [draggedItem] = newOrder.splice(dragIndex, 1);
-    newOrder.splice(index, 0, draggedItem);
-
-    setKpiOrder(newOrder);
-    localStorage.setItem('kpiOrder', JSON.stringify(newOrder));
-  };
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+    setError("");
     Promise.all([
       getOverviewMetrics(),
       getXaiExplanations({ port_closed: false, demand_surge_pct: 0, supplier_strike: "none" }),
       getRiskMap({ limit: 8 }),
       getIncidents({ limit: 6 }),
     ])
-      .then(([ov, xai, rm, inc]) => {
+      .then(([overview, explanations, riskMap, incidentData]) => {
         if (!mounted) return;
-        setMetrics(ov);
-        setRiskZones(rm?.items ?? []);
-        setIncidents(inc?.items ?? []);
-        if (xai?.explanations) setXaiMap(p => ({ ...p, ...xai.explanations }));
+        setMetrics(overview);
+        setRiskZones(riskMap?.items ?? []);
+        setIncidents(incidentData?.items ?? []);
+        if (explanations?.explanations) {
+          setXaiMap((prev) => ({ ...prev, ...explanations.explanations }));
+        }
       })
-      .catch(() => { if (mounted) { setMetrics(null); setXaiMap(FALLBACK_XAI); } })
-      .finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err?.response?.data?.detail || "Kontrol kulesi verileri yüklenemedi.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const activeMetrics = useMemo(() =>
-    isSimulationApplied ? simulatedMetrics ?? metrics : metrics,
-    [isSimulationApplied, simulatedMetrics, metrics]
+  const activeMetrics = useMemo(
+    () => (isSimulationApplied ? simulatedMetrics ?? metrics : metrics),
+    [isSimulationApplied, metrics, simulatedMetrics],
   );
 
-  const mockSparks = useMemo(() => {
-    if (!metrics) return {};
-    return Object.fromEntries(KPI_META.map(k => [k.key, makeSpark(metrics[k.key] ?? 0.5)]));
-  }, [metrics]);
-
-  const onApprove = async (item) => {
-    setDecisionLoading(p => ({ ...p, [item.id]: true }));
+  async function approveIncident(item) {
+    setDecisionLoading((prev) => ({ ...prev, [item.id]: true }));
     try {
-      await postIncidentAction({ incident_id: item.id, action: item.recommended_action, status: "approved", metadata: { title: item.title, severity: item.severity, impact_usd: item.impact_usd, source: "control_tower" } });
-      setDecisions(p => ({ ...p, [item.id]: "approved" }));
-    } catch { setDecisions(p => ({ ...p, [item.id]: "failed" })); }
-    finally { setDecisionLoading(p => ({ ...p, [item.id]: false })); }
-  };
+      await postIncidentAction({
+        incident_id: item.id,
+        action: item.recommended_action,
+        status: "approved",
+        metadata: {
+          title: item.title,
+          severity: item.severity,
+          impact_usd: item.impact_usd,
+          source: "control_tower",
+        },
+      });
+      setDecisions((prev) => ({ ...prev, [item.id]: "approved" }));
+    } catch {
+      setDecisions((prev) => ({ ...prev, [item.id]: "failed" }));
+    } finally {
+      setDecisionLoading((prev) => ({ ...prev, [item.id]: false }));
+    }
+  }
 
-  const drillLogistics = (params) => navigate(`/app/logistics?${new URLSearchParams(params).toString()}`);
+  function drillLogistics(params) {
+    navigate(`/app/logistics?${new URLSearchParams(params).toString()}`);
+  }
 
-  /* ── Render ──────────────────────────────────── */
   return (
     <div className="page-layout">
-      {/* Header */}
-      <header className="page-header">
-        <span className="page-eyebrow">Yönetici Kokpiti</span>
-        <div className="page-title-row">
-          <div>
-            <h1 className="page-title">Kontrol Kulesi — Genel Görünüm</h1>
-            <p className="page-subtitle">
-              KPI, risk ve karar akışını tek ekranda yönetin. AI açıklamaları ve senaryo simülasyonuyla proaktif karar desteği.
-            </p>
-          </div>
+      <PageIntro
+        eyebrow="Yönetici kokpiti"
+        title="Kontrol Kulesi"
+        aside={
           <div className="ct-top-actions">
             <button type="button" onClick={() => setScenarioOpen(true)} className="ct-sim-open-btn">
-              🧪 Senaryo Simülasyonu
+              Senaryo simülasyonu
             </button>
-            {isSimulationApplied && (
-              <span style={{
-                fontSize: 11, color: "#f59e0b", fontWeight: 600, padding: "4px 10px",
-                background: "rgba(245,158,11,0.1)", borderRadius: 20, border: "1px solid rgba(245,158,11,0.3)"
-              }}>
-                ⚠ Simülasyon Aktif
-              </span>
-            )}
             <div className="pill">
               <span className="pill-dot" />
-              {loading ? "Yükleniyor..." : "Canlı Veri"}
+              {loading ? "Yükleniyor..." : "Canlı veri"}
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Onboarding */}
-      <HowItWorks />
-
-      {/* KPI Cards (Drag & Drop Widget Container) */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        {loading || !activeMetrics
-          ? [1, 2, 3, 4].map(k => (
-            <div key={k} className="kpi-card-v2" style={{ "--kpi-color": "#6366f1" }}>
-              <div className="skeleton" style={{ height: 80, borderRadius: 8 }} />
-            </div>
-          ))
-          : kpiOrder.map((key, index) => {
-            const kpi = KPI_META.find(k => k.key === key);
-            if (!kpi) return null;
-            return (
-              <div
-                key={kpi.key}
-                draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDrop={(e) => handleDrop(e, index)}
-                onDragOver={(e) => e.preventDefault()}
-                style={{ cursor: "grab", userSelect: "none" }}
-                title="Sürükleyerek yerini değiştirebilirsiniz"
-              >
-                <KpiCard
-                  title={kpi.title} value={activeMetrics[kpi.key]}
-                  accent={kpi.accent} formatter={kpi.formatter}
-                  xaiText={xaiMap[kpi.key] ?? FALLBACK_XAI[kpi.key]}
-                  spark={mockSparks[kpi.key] ?? []}
-                  icon={kpi.icon} sub={kpi.sub}
-                />
-              </div>
-            );
-          })
         }
+      >
+        Bugün aksiyon gerektiren riskleri, finansal etkiyi ve model sinyallerini tek yerde izleyin.
+      </PageIntro>
+
+      {error && <StatusBanner type="error" title="Veri alınamadı">{error}</StatusBanner>}
+      {isSimulationApplied && (
+        <StatusBanner type="warning" title="Senaryo görünümü açık">
+          KPI değerleri simülasyon sonucunu gösteriyor. Gerçek operasyon görünümüne dönmek için senaryoyu sıfırlayın.
+        </StatusBanner>
+      )}
+
+      <section className="kpi-grid">
+        {loading || !activeMetrics ? (
+          [1, 2, 3, 4].map((key) => <article key={key} className="card"><div className="skeleton skeleton-card" /></article>)
+        ) : (
+          KPI_META.map((meta) => (
+            <KpiCard
+              key={meta.key}
+              meta={meta}
+              value={activeMetrics[meta.key]}
+              explanation={xaiMap[meta.key] ?? FALLBACK_EXPLANATIONS[meta.key]}
+            />
+          ))
+        )}
       </section>
 
-      {/* Digital Twin Map Centerpiece */}
-      <section className="panel" style={{ padding: "0", overflow: "hidden", marginBottom: 20 }}>
-        <div className="panel-header" style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}>
+      <section className="panel" style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
+        <div className="panel-header" style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="panel-title-block">
-            <h2 className="panel-title">Digital Twin Haritası</h2>
-            <p className="panel-subtitle">AI skorlarıyla canlı sevkiyat takibi</p>
+            <h2 className="panel-title">Operasyon Haritası</h2>
+            <p className="panel-subtitle">Bölge ve rota bazında risk yoğunluğunu izleyin.</p>
           </div>
-          <span className="panel-header-badge blue">🌐 Global View</span>
+          <span className="panel-header-badge blue">Canlı görünüm</span>
         </div>
         <DigitalTwinMap zones={riskZones} incidents={incidents} />
       </section>
 
-      {/* Two Column */}
       <section className="two-column">
-        {/* Risk Bar Chart */}
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Bölgesel Gecikme Risk Haritası</h2>
-              <p className="panel-subtitle">Bir çubuğa tıklayarak Lojistik modülüne geçin.</p>
+              <h2 className="panel-title">Bölgesel Gecikme Riskleri</h2>
+              <p className="panel-subtitle">Bir satıra tıklayarak ilgili lojistik analizine geçin.</p>
             </div>
-            <span className="panel-header-badge red">Detaya Git →</span>
+            <span className="panel-header-badge amber">{riskZones.length} hat</span>
           </div>
-          {riskZones.length > 0 ? (
-            <RiskBarChart zones={riskZones} onDrill={(z) => drillLogistics({
-              order_region: z.order_region, shipping_mode: z.shipping_mode,
-              category: z.category_name, sku: z.sku,
-            })} />
+          {riskZones.length === 0 && !loading ? (
+            <EmptyState title="Risk verisi bulunamadı">
+              Veri Merkezi üzerinden sipariş veya sevkiyat verisi yükleyerek risk haritasını güncelleyin.
+            </EmptyState>
           ) : (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              {loading ? <span className="chip">Yükleniyor...</span> : <span className="chip">Veri bekleniyor</span>}
+            <div className="pro-table">
+              <div className="pro-table-head">
+                <span className="pro-th" style={{ flex: 2 }}>Bölge</span>
+                <span className="pro-th" style={{ flex: 2 }}>Kargo modu</span>
+                <span className="pro-th" style={{ flex: 2 }}>Risk</span>
+                <span className="pro-th" style={{ width: 72 }} />
+              </div>
+              {riskZones.map((zone) => {
+                const tone = riskTone(zone.late_risk_pct);
+                return (
+                  <button
+                    key={zone.id}
+                    type="button"
+                    className="pro-table-row pro-table-button"
+                    onClick={() => drillLogistics({
+                      order_region: zone.order_region,
+                      shipping_mode: zone.shipping_mode,
+                      category: zone.category_name,
+                      sku: zone.sku,
+                    })}
+                  >
+                    <span className="pro-td pro-td-name" style={{ flex: 2 }}>{zone.order_region}</span>
+                    <span className="pro-td" style={{ flex: 2 }}>{zone.shipping_mode}</span>
+                    <span className="pro-td" style={{ flex: 2, display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className="pro-mini-track">
+                        <span className="pro-mini-fill" style={{ width: `${zone.late_risk_pct * 100}%`, background: tone.color }} />
+                      </span>
+                      <strong style={{ color: tone.color }}>{fmtPct(zone.late_risk_pct)}</strong>
+                      <span className={`pro-tag pro-tag-${tone.badge}`}>{tone.label}</span>
+                    </span>
+                    <span className="pro-td pro-td-action" style={{ width: 72 }}>İncele</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* İzleme Listesi */}
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Bugünün İzleme Listesi</h2>
-              <p className="panel-subtitle">AI tarafından tespit edilen kritik durumlar</p>
+              <h2 className="panel-title">Bugünün Aksiyonları</h2>
+              <p className="panel-subtitle">Onaylanan kararlar denetim kaydına yazılır.</p>
             </div>
-            <span className="panel-header-badge amber">
-              {incidents.length > 0 ? `${incidents.length} Bekleyen` : '0 Karar'}
-            </span>
+            <span className="panel-header-badge amber">{incidents.length} bekleyen</span>
           </div>
 
-          {loading && (
-            <div style={{ display: 'grid', gap: 6 }}>
-              {[1, 2, 3].map(k => <div key={k} className="skeleton" style={{ height: 40, borderRadius: 6 }} />)}
-            </div>
-          )}
-
-          {!loading && incidents.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '28px 0', color: '#64748b', fontSize: 12 }}>
-              Bugün bekleyen karar yok.
-            </div>
-          )}
-
-          {incidents.length > 0 && (
+          {incidents.length === 0 && !loading ? (
+            <EmptyState title="Bekleyen aksiyon yok">
+              Kritik bir olay oluştuğunda burada etki, önerilen aksiyon ve inceleme bağlantısı görünür.
+            </EmptyState>
+          ) : (
             <div className="pro-table">
               <div className="pro-table-head">
-                <span className="pro-th" style={{ width: 20 }}></span>
                 <span className="pro-th" style={{ flex: 2 }}>Olay</span>
-                <span className="pro-th" style={{ width: 70, textAlign: "right" }}>Etki</span>
-                <span className="pro-th" style={{ width: 130, textAlign: "right" }}>Aksiyonlar</span>
+                <span className="pro-th" style={{ width: 90 }}>Etki</span>
+                <span className="pro-th" style={{ width: 150, textAlign: "right" }}>Aksiyon</span>
               </div>
-              {incidents.map(item => {
-                const approved = decisions[item.id] === 'approved';
-                const failed = decisions[item.id] === 'failed';
+              {incidents.map((item) => {
+                const approved = decisions[item.id] === "approved";
+                const failed = decisions[item.id] === "failed";
                 const saving = decisionLoading[item.id];
-                const sevConfig = {
-                  critical: { color: '#ef4444', glow: 'rgba(239,68,68,0.6)' },
-                  high: { color: '#ef4444', glow: 'rgba(239,68,68,0.6)' },
-                  medium: { color: '#f59e0b', glow: 'rgba(245,158,11,0.6)' },
-                  low: { color: '#10b981', glow: 'rgba(16,185,129,0.6)' },
-                };
-                const cfg = sevConfig[item.severity] ?? sevConfig.low;
-
                 return (
                   <div key={item.id} className="pro-table-row">
-                    <span className="pro-td" style={{ width: 20, flexShrink: 0 }}>
-                      <span className="glowing-dot" style={{ backgroundColor: cfg.color, boxShadow: `0 0 6px ${cfg.glow}` }} />
+                    <span className="pro-td pro-td-name" style={{ flex: 2 }}>
+                      <span className={`ct-dot ${severityTone(item.severity)}`} style={{ marginRight: 8 }} />
+                      {translateTitle(item.title)}
                     </span>
-                    <span className="pro-td pro-td-name" style={{ flex: 2, minWidth: 0 }}>
-                      {trTitle(item.title)}
+                    <span className="pro-td" style={{ width: 90, color: item.impact_usd > 0 ? "var(--risk-high)" : "var(--text-muted)", fontWeight: 800 }}>
+                      {item.impact_usd > 0 ? fmtMoney(item.impact_usd) : "-"}
                     </span>
-                    <span className="pro-td" style={{ width: 70, flexShrink: 0, justifyContent: "flex-end" }}>
-                      {item.impact_usd > 0 ? (
-                        <span style={{ fontWeight: 700, color: '#ef4444', fontSize: 12 }}>{fmtMoney(item.impact_usd)}</span>
-                      ) : (
-                        <span style={{ color: '#475569', fontSize: 11 }}>—</span>
-                      )}
-                    </span>
-                    <span className="pro-td" style={{ width: 130, flexShrink: 0, display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      {approved ? (
-                        <span className="pro-tag pro-tag-green">✓</span>
-                      ) : (
-                        <button type="button" onClick={() => onApprove(item)} disabled={saving} className="pro-btn-ghost">
-                          {saving ? '⟳' : failed ? '↻' : trAction(item.recommended_action)}
-                        </button>
-                      )}
+                    <span className="pro-td" style={{ width: 150, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="pro-btn-ghost"
+                        onClick={() => approveIncident(item)}
+                        disabled={approved || saving}
+                      >
+                        {saving ? "Kaydediliyor" : approved ? "Onaylandı" : failed ? "Tekrar dene" : translateAction(item.recommended_action)}
+                      </button>
                       {Object.keys(item.drilldown_params ?? {}).length > 0 && (
-                        <button type="button" onClick={() => drillLogistics(item.drilldown_params)} className="pro-btn-outline">
+                        <button type="button" className="pro-btn-outline" onClick={() => drillLogistics(item.drilldown_params)}>
                           İncele
                         </button>
                       )}
@@ -572,26 +418,44 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <ScenarioDrawer open={scenarioOpen} scenario={scenario} loading={scenarioLoading}
+      <ScenarioDrawer
+        open={scenarioOpen}
+        scenario={scenario}
+        loading={scenarioLoading}
         onClose={() => setScenarioOpen(false)}
-        onChange={(patch) => setScenario(p => ({ ...p, ...patch }))}
+        onChange={(patch) => setScenario((prev) => ({ ...prev, ...patch }))}
         onApply={async () => {
           setScenarioLoading(true);
           try {
-            const res = await postWhatIfScenario({ port_closed: scenario.portClosed, demand_surge_pct: scenario.demandSurge, supplier_strike: scenario.strike });
-            if (res?.metrics) { setSimulatedMetrics(res.metrics); setIsSimulationApplied(true); }
-            if (res?.explanations) setXaiMap(p => ({ ...p, ...res.explanations }));
+            const result = await postWhatIfScenario({
+              port_closed: scenario.portClosed,
+              demand_surge_pct: scenario.demandSurge,
+              supplier_strike: scenario.strike,
+            });
+            if (result?.metrics) {
+              setSimulatedMetrics(result.metrics);
+              setIsSimulationApplied(true);
+            }
+            if (result?.explanations) {
+              setXaiMap((prev) => ({ ...prev, ...result.explanations }));
+            }
             setScenarioOpen(false);
-          } catch { setIsSimulationApplied(false); }
-          finally { setScenarioLoading(false); }
+          } finally {
+            setScenarioLoading(false);
+          }
         }}
         onReset={async () => {
           setScenario({ portClosed: false, demandSurge: 0, strike: "none" });
-          setIsSimulationApplied(false); setSimulatedMetrics(null);
-          try {
-            const xai = await getXaiExplanations({ port_closed: false, demand_surge_pct: 0, supplier_strike: "none" });
-            if (xai?.explanations) setXaiMap(p => ({ ...p, ...xai.explanations }));
-          } catch { setXaiMap(FALLBACK_XAI); }
+          setIsSimulationApplied(false);
+          setSimulatedMetrics(null);
+          const explanations = await getXaiExplanations({
+            port_closed: false,
+            demand_surge_pct: 0,
+            supplier_strike: "none",
+          });
+          if (explanations?.explanations) {
+            setXaiMap((prev) => ({ ...prev, ...explanations.explanations }));
+          }
         }}
       />
     </div>

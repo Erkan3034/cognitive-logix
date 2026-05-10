@@ -367,26 +367,49 @@ def simulate_metrics(req: WhatIfScenarioRequest) -> WhatIfScenarioResponse:
 @router.get("/risk-map", response_model=RiskMapResponse)
 def get_risk_map(limit: int = 12) -> RiskMapResponse:
     df = _load_analysis_df()
+    global_late_rate = float(df["Late_delivery_risk"].mean())
+    prior_weight = 120
     grouped = (
-        df.groupby(["Order Region", "Shipping Mode", "Category Name", "Product Card Id"], dropna=False)
+        df.groupby(["Order Region", "Category Name", "Product Card Id"], dropna=False)
         .agg(
-            late_risk_pct=("Late_delivery_risk", "mean"),
+            late_shipments=("Late_delivery_risk", "sum"),
             financial_exposure_usd=("Sales", "sum"),
             order_count=("Order Id", "nunique"),
+            dominant_shipping_mode=("Shipping Mode", lambda s: s.mode().iat[0] if not s.mode().empty else "Mixed"),
         )
         .reset_index()
-        .sort_values(["late_risk_pct", "financial_exposure_usd"], ascending=[False, False])
+    )
+    min_orders = max(80, int(df["Order Id"].nunique() * 0.0008))
+    grouped = grouped[grouped["order_count"] >= min_orders].copy()
+    if grouped.empty:
+        grouped = (
+            df.groupby(["Order Region", "Category Name", "Product Card Id"], dropna=False)
+            .agg(
+                late_shipments=("Late_delivery_risk", "sum"),
+                financial_exposure_usd=("Sales", "sum"),
+                order_count=("Order Id", "nunique"),
+                dominant_shipping_mode=("Shipping Mode", lambda s: s.mode().iat[0] if not s.mode().empty else "Mixed"),
+            )
+            .reset_index()
+        )
+    grouped["late_risk_pct"] = (
+        grouped["late_shipments"] + global_late_rate * prior_weight
+    ) / (grouped["order_count"] + prior_weight)
+    grouped["risk_exposure_score"] = grouped["late_risk_pct"] * np.log1p(grouped["financial_exposure_usd"])
+    grouped = (
+        grouped
+        .sort_values(["risk_exposure_score", "financial_exposure_usd"], ascending=[False, False])
         .head(max(1, min(limit, 50)))
     )
     items = []
     for idx, row in enumerate(grouped.itertuples(index=False), start=1):
-        product_id = getattr(row, "_3")
+        product_id = getattr(row, "_2")
         items.append(
             {
                 "id": f"risk-{idx}",
                 "order_region": str(getattr(row, "_0")),
-                "shipping_mode": str(getattr(row, "_1")),
-                "category_name": str(getattr(row, "_2")),
+                "shipping_mode": str(row.dominant_shipping_mode),
+                "category_name": str(getattr(row, "_1")),
                 "late_risk_pct": float(row.late_risk_pct),
                 "financial_exposure_usd": float(row.financial_exposure_usd),
                 "order_count": int(row.order_count),
