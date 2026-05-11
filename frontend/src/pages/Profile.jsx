@@ -5,7 +5,7 @@ import { getBillingStatus } from "../lib/api.js";
 import { supabase } from "../lib/supabaseClient.js";
 import { InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 
-const PLAN_LABELS = { free: "Başlangıç", pro: "Pro", enterprise: "Kurumsal" };
+const PLAN_LABELS = { free: "Başlangıç", pro: "Profesyonel", enterprise: "Kurumsal" };
 
 function formatDate(value) {
   if (!value) return "Henüz yok";
@@ -156,7 +156,7 @@ export default function Profile() {
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Güvenlik ve entegrasyon</h2>
-              <p className="panel-subtitle">Şifre sıfırlama ve API bağlantı yönetimi.</p>
+              <p className="panel-subtitle">Şifre sıfırlama ve dış bağlantı yönetimi.</p>
             </div>
           </div>
 
@@ -169,9 +169,9 @@ export default function Profile() {
           </div>
 
           <div className="profile-action-block">
-            <strong>API anahtarları</strong>
+            <strong>Bağlantı anahtarları</strong>
             <p>ERP, depo ve finans sistemleri için kapsam kontrollü anahtar oluşturun.</p>
-            <Link to="/app/api-keys" className="pro-btn-outline">API anahtarlarını aç</Link>
+            <Link to="/app/api-keys" className="pro-btn-outline">Bağlantı anahtarlarını aç</Link>
           </div>
         </div>
       </section>

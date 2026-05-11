@@ -101,14 +101,14 @@ export default function Algorithms() {
         id="catboost"
         badge="KARAR AĞAÇLARI"
         title="CatBoost & LightGBM"
-        desc="Lojistik teslimat sürelerini ve talep tahminlerini yaparken en güçlü gradient boosting algoritmalarını kullanıyoruz. Eksik veriler ve kategorik değişkenlerle doğrudan başa çıkabilen bu algoritmalar, devasa veri setlerinde bile milisaniyeler içinde yüksek isabetli tahminler üretir."
-        imageDesc={{ title: "Gradient Boosting", sub: "Gelişmiş karar ağacı mimarisi ile yüksek başarı." }}
+        desc="Lojistik teslimat sürelerini ve talep tahminlerini yaparken en güçlü gradyan artırma algoritmalarını kullanıyoruz. Eksik veriler ve kategorik değişkenlerle doğrudan başa çıkabilen bu algoritmalar, devasa veri setlerinde bile milisaniyeler içinde yüksek isabetli tahminler üretir."
+        imageDesc={{ title: "Gradyan artırma", sub: "Gelişmiş karar ağacı mimarisi ile yüksek başarı." }}
       />
 
       <AlgorithmSection 
         id="shap"
-        badge="EXPLAINABLE AI"
-        title="SHAP Explainability"
+        badge="AÇIKLANABİLİR ZEKA"
+        title="SHAP Açıklanabilirliği"
         desc="Yapay zeka sadece sonuç üretmez, nedenini de söyler. SHAP (SHapley Additive exPlanations) entegrasyonumuz sayesinde her bir tahminin altında yatan faktörleri (örneğin: hava durumu mu, rota mı gecikmeye sebep oldu?) tam olarak görebilirsiniz."
         imageDesc={{ title: "Şeffaf Kararlar", sub: "Her tahminin arkasındaki nedensellik bağı." }}
         reverse
@@ -118,15 +118,15 @@ export default function Algorithms() {
         id="isolation"
         badge="ANOMALİ TESPİTİ"
         title="Isolation Forest"
-        desc="Milyonlarca işlem arasından sahtekarlıkları (fraud) ve tedarik zinciri anomalilerini saniyeler içinde ayıklar. Standart kuralların dışına çıkan her veri noktasını izole ederek sıfır-gün risklerini bile önceden tespit eder."
-        imageDesc={{ title: "Anomali Avcısı", sub: "Beklenmeyen paternleri anında izole eder." }}
+        desc="Milyonlarca işlem arasından finansal usulsüzlükleri ve tedarik zinciri anomalilerini saniyeler içinde ayıklar. Standart kuralların dışına çıkan her veri noktasını izole ederek sıfır-gün risklerini bile önceden tespit eder."
+        imageDesc={{ title: "Anomali Avcısı", sub: "Beklenmeyen örüntüleri anında izole eder." }}
       />
 
       <AlgorithmSection 
         id="montecarlo"
         badge="SİMÜLASYON"
-        title="Monte Carlo Simülasyonu"
-        desc="Sadece tek bir tahmin değil, tüm olasılıkları hesaplıyoruz. Monte Carlo simülasyonları ile stok darboğazlarını, maliyet dalgalanmalarını ve risk senaryolarını %90 güven aralıklarıyla önünüze seriyoruz."
+        title="Olasılıksal Simülasyon"
+        desc="Sadece tek bir tahmin değil, tüm olasılıkları hesaplıyoruz. Olasılıksal simülasyonlarla stok darboğazlarını, maliyet dalgalanmalarını ve risk senaryolarını %90 güven aralıklarıyla önünüze seriyoruz."
         imageDesc={{ title: "Olasılık Dağılımı", sub: "10,000 farklı senaryonun eşzamanlı analizi." }}
         reverse
       />

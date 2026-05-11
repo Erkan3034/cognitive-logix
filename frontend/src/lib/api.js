@@ -108,6 +108,40 @@ export async function postIncidentAction(payload) {
   return data;
 }
 
+export async function getLiveConnections() {
+  const { data } = await api.get("/ops/live-connections");
+  return data;
+}
+
+export async function getDecisionImpact(params = {}) {
+  const { data } = await api.get("/ops/decision-impact", { params });
+  return data;
+}
+
+export async function postRouteIntelligence(payload) {
+  const { data } = await api.post("/ops/route-intelligence", payload);
+  return data;
+}
+
+export async function previewCsvFile(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post("/api/v1/ingest/csv-preview", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+export async function getIngestHistory(params = {}) {
+  const { data } = await api.get("/api/v1/ingest/history", { params });
+  return data;
+}
+
+export async function confirmMapping(payload) {
+  const { data } = await api.post("/api/v1/ingest/confirm-mapping", payload);
+  return data;
+}
+
 export async function getApiKeys() {
   const { data } = await api.get("/api/v1/keys");
   return data;

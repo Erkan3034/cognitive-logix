@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAuditLogs, getIncidentActions } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { translateAction, translateIncidentTitle } from "../components/OperationsUI.jsx";
 
 const ACTION_TR = {
   "incident.approved": "Karar onaylandı",
@@ -31,6 +32,14 @@ const SEVERITY_TR = {
   high: "Yüksek",
   medium: "Orta",
   low: "Düşük",
+};
+
+const RESOURCE_TR = {
+  incident: "Olay",
+  billing: "Abonelik",
+  api_key: "Bağlantı anahtarı",
+  ingest: "Veri aktarımı",
+  system: "Sistem",
 };
 
 function formatDate(value) {
@@ -127,7 +136,7 @@ export default function AuditLog() {
           </div>
         }
       >
-        Kullanıcı kararları, sistem aksiyonları ve olay yönetimi kayıtlarını tenant bazında izleyin.
+        Kullanıcı kararları, sistem aksiyonları ve olay yönetimi kayıtlarını müşteri alanı bazında izleyin.
         Bu alan ekiplerin neden, ne zaman ve hangi etkiyle karar aldığını görünür kılar.
       </PageIntro>
 
@@ -146,7 +155,7 @@ export default function AuditLog() {
         <div className="usage-kpi usage-kpi-warning">
           <span>Karar kaydı</span>
           <strong>{loading ? "..." : stats.decisions}</strong>
-          <p>Dashboard üzerinden alınan kararlar</p>
+          <p>Kontrol ekranı üzerinden alınan kararlar</p>
         </div>
         <div className="usage-kpi usage-kpi-success">
           <span>Onaylanan karar</span>
@@ -186,12 +195,12 @@ export default function AuditLog() {
                 return (
                   <EventCard
                     key={row.id}
-                    title={row.metadata?.title || "Operasyon kararı"}
+                    title={translateIncidentTitle(row.metadata?.title || "Operasyon kararı")}
                     badge={SEVERITY_TR[severity] || toTR(STATUS_TR, row.status)}
                     severity={["critical", "high"].includes(severity) ? "high" : severity}
                     subtitle={[
                       toTR(STATUS_TR, row.status, "Durum yok"),
-                      row.action,
+                      translateAction(row.action),
                       impact ? `${impact} finansal etki` : null,
                     ].filter(Boolean).join(" · ")}
                     meta={formatDate(row.created_at)}
@@ -230,9 +239,9 @@ export default function AuditLog() {
                 <EventCard
                   key={row.id}
                   title={toTR(ACTION_TR, row.action, "İşlem kaydı")}
-                  badge={row.resource_type || "Sistem"}
+                  badge={RESOURCE_TR[row.resource_type] || row.resource_type || "Sistem"}
                   severity="neutral"
-                  subtitle={row.metadata?.title || row.metadata?.source || row.resource_id || "Detay kaydı yok"}
+                  subtitle={row.metadata?.title ? translateIncidentTitle(row.metadata.title) : row.metadata?.source || row.resource_id || "Detay kaydı yok"}
                   meta={formatDate(row.created_at)}
                 />
               ))}

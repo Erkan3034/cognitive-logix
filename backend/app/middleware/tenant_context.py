@@ -25,7 +25,15 @@ TRACKED_PREFIXES = (
     "/api/v1/billing",
 )
 
-BILLABLE_PREFIXES = ("/predict", "/forecast", "/fraud", "/metrics/simulate", "/api/v1/ingest")
+BILLABLE_PREFIXES = (
+    "/predict",
+    "/forecast",
+    "/fraud",
+    "/metrics/simulate",
+    "/api/v1/ingest/csv-preview",
+    "/api/v1/ingest/confirm-mapping",
+    "/api/v1/ingest/webhook",
+)
 
 API_KEY_SCOPE_BY_PREFIX = (
     ("/predict", "predict"),

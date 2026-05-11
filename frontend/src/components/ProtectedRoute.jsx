@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../lib/AuthContext";
-import { onboardBilling } from "../lib/api";
-import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../lib/AuthContext.jsx";
+import { onboardBilling } from "../lib/api.js";
+import { supabase } from "../lib/supabaseClient.js";
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -18,14 +18,14 @@ export default function ProtectedRoute({ children }) {
       setOnboarding(true);
       
       onboardBilling({
-        company_name: (user.user_metadata?.full_name || "Kullanici") + " A.S.",
+        company_name: (user.user_metadata?.full_name || "Kullanıcı") + " A.Ş.",
         user_id: user.id
       })
       .then(() => {
         return supabase.auth.refreshSession();
       })
       .catch((err) => {
-        console.error("Onboarding hatasi:", err.response?.data?.detail || err.message || err);
+        console.error("Onboarding hatası:", err.response?.data?.detail || err.message || err);
       })
       .finally(() => {
         setOnboarding(false);
@@ -52,7 +52,7 @@ export default function ProtectedRoute({ children }) {
           animation: "spin 0.8s linear infinite"
         }} />
         <span style={{ color: "#64748b", fontSize: 14 }}>
-          {onboarding ? "Hesabiniz hazirlaniyor..." : "Oturum kontrol ediliyor..."}
+          {onboarding ? "Hesabınız hazırlanıyor..." : "Oturum kontrol ediliyor..."}
         </span>
       </div>
     );

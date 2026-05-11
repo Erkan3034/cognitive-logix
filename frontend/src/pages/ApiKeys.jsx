@@ -12,7 +12,7 @@ const SCOPE_OPTIONS = [
   {
     id: "forecast",
     label: "Talep tahmini",
-    description: "SKU bazlı tahmin, güven aralığı ve stok kararları.",
+    description: "Ürün kodu bazlı tahmin, güven aralığı ve stok kararları.",
     endpoint: "/forecast",
   },
   {
@@ -24,13 +24,13 @@ const SCOPE_OPTIONS = [
   {
     id: "ingest",
     label: "Veri gönderimi",
-    description: "CSV ön izleme, kolon eşleme ve veri içe aktarma akışları.",
+    description: "Dosya ön izleme, kolon eşleme ve veri içe aktarma akışları.",
     endpoint: "/api/v1/ingest",
   },
   {
     id: "metrics",
     label: "Metrik okuma",
-    description: "Dashboard ve model içgörülerini programatik olarak okur.",
+    description: "Kontrol ekranı ve model içgörülerini sistem üzerinden okur.",
     endpoint: "/metrics",
   },
 ];
@@ -86,7 +86,7 @@ export default function ApiKeys() {
       const data = await getApiKeys();
       setKeys(data?.items ?? []);
     } catch (err) {
-      setError(err?.response?.data?.detail || "API anahtarları yüklenemedi.");
+      setError(err?.response?.data?.detail || "Bağlantı anahtarları yüklenemedi.");
     } finally {
       setLoading(false);
     }
@@ -127,7 +127,7 @@ export default function ApiKeys() {
       setSelectedScopes(DEFAULT_SCOPES);
       await fetchKeys();
     } catch (err) {
-      setError(err?.response?.data?.detail || "API anahtarı oluşturulamadı.");
+      setError(err?.response?.data?.detail || "Bağlantı anahtarı oluşturulamadı.");
     } finally {
       setCreating(false);
     }
@@ -142,7 +142,7 @@ export default function ApiKeys() {
       setRevokeCandidate(null);
       await fetchKeys();
     } catch (err) {
-      setError(err?.response?.data?.detail || "API anahtarı devre dışı bırakılamadı.");
+      setError(err?.response?.data?.detail || "Bağlantı anahtarı devre dışı bırakılamadı.");
     } finally {
       setRevokingId(null);
     }
@@ -159,7 +159,7 @@ export default function ApiKeys() {
     <div className="page-layout">
       <PageIntro
         eyebrow="Güvenli entegrasyon"
-        title="API Anahtarları"
+        title="Bağlantı Anahtarları"
         aside={
           <div className="pill">
             <span className="pill-dot" />
@@ -271,7 +271,7 @@ export default function ApiKeys() {
           </div>
         ) : keys.length === 0 ? (
           <EmptyState
-            title="Henüz API anahtarı yok"
+            title="Henüz bağlantı anahtarı yok"
             action={
               <button type="button" className="pro-btn-outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                 Yeni anahtar alanına git

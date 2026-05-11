@@ -16,7 +16,7 @@ const DOC_CONTENTS = {
           Amacımız, olası bir gecikmeyi henüz araç yola çıkmadan %90 doğrulukla tahmin etmektir.
         </p>
         
-        <h2>Girdiler (Features)</h2>
+        <h2>Girdiler</h2>
         <ul>
           <li><strong>Mesafe ve Rota:</strong> Çıkış noktası ile hedef arasındaki coğrafi uzaklık.</li>
           <li><strong>Hava Durumu:</strong> Rota üzerindeki anlık ve tahmini meteorolojik olaylar.</li>
@@ -37,15 +37,15 @@ const DOC_CONTENTS = {
 
         <h2>Aksiyon Önerisi</h2>
         <p>
-          Dashboard'da kırmızı yanan siparişler için anında <em>"Alternatif Kurye Ata"</em> veya 
+          Kontrol ekranında kırmızı yanan siparişler için anında <em>"Alternatif Kurye Ata"</em> veya 
           <em> "Müşteriye Gecikme Bildirimi Gönder"</em> aksiyonlarını alabilirsiniz.
         </p>
       </>
     )
   },
   demand: {
-    title: "Talep Tahmini (Demand Forecasting)",
-    subtitle: "LightGBM ve Quantile Regression ile Stok Planlama",
+    title: "Talep Tahmini",
+    subtitle: "LightGBM ve kantil regresyon ile stok planlama",
     content: (
       <>
         <h2>Modelin Amacı</h2>
@@ -53,10 +53,10 @@ const DOC_CONTENTS = {
           Geçmiş satış verileri, sezonsallık ve ekonomik göstergeleri kullanarak gelecekteki ürün talebini nokta atışı tahmin etmek.
         </p>
         
-        <h2>Güven Aralıkları (Quantile) Neden Önemli?</h2>
+        <h2>Güven Aralıkları Neden Önemli?</h2>
         <p>
           Geleneksel modeller tek bir sayı verir (örneğin: "Yarın 100 ürün satılacak"). Ancak bizim sistemimiz 
-          <strong> %10, %50 ve %90 Güven Aralıkları (Quantiles)</strong> sunar.
+          <strong> %10, %50 ve %90 güven aralıkları</strong> sunar.
         </p>
         <ul>
           <li><strong>P10 (Kötü Senaryo):</strong> Kesinlikle satılacak minimum miktar. Likidite planlaması için kullanılır.</li>
@@ -66,14 +66,14 @@ const DOC_CONTENTS = {
 
         <h2>Entegrasyon Adımları</h2>
         <p>
-          Stok yönetimi yazılımınız (ERP) ile API üzerinden bağlanarak, günlük <code>P50</code> tahminini ana sipariş 
-          miktarı olarak ayarlayabilir, <code>P90</code> tahminini ise güvenlik stoğu (safety stock) olarak belirleyebilirsiniz.
+          Stok yönetimi yazılımınız (ERP) ile canlı bağlantı üzerinden bağlanarak, günlük <code>P50</code> tahminini ana sipariş 
+          miktarı olarak ayarlayabilir, <code>P90</code> tahminini ise güvenlik stoğu olarak belirleyebilirsiniz.
         </p>
       </>
     )
   },
   fraud: {
-    title: "Sahtekarlık (Fraud) Tespiti",
+    title: "Finansal Usulsüzlük Tespiti",
     subtitle: "Isolation Forest ile Finansal Risk Analizi",
     content: (
       <>
@@ -90,17 +90,17 @@ const DOC_CONTENTS = {
           aniden gece yarısı 50,000 TL'lik sipariş vermesi saniyeler içinde anomali olarak işaretlenir.
         </p>
 
-        <h2>Dashboard'da Yorumlama</h2>
+        <h2>Kontrol Ekranında Yorumlama</h2>
         <div style={{ background: "rgba(148,163,184,0.05)", padding: 16, borderRadius: 8, margin: "16px 0", borderLeft: "4px solid #ef4444" }}>
           <strong>Anomali Skoru (0.0 ile 1.0 arası):</strong><br/>
           Skor ne kadar 1.0'a yakınsa, işlemin sahtekarlık olma ihtimali o kadar yüksektir. Skor 0.70'i aştığında sistem 
-          otomatik olarak siparişi <strong>"Manuel İnceleme" (Manual Review)</strong> durumuna alır.
+          otomatik olarak siparişi <strong>"Manuel İnceleme"</strong> durumuna alır.
         </div>
 
         <h2>Müdahale</h2>
         <p>
-          Audit Log ekranından şüpheli işlemin tüm detaylarını inceleyebilir ve işlemi onaylayabilir veya 
-          kara listeye (blacklist) alabilirsiniz.
+          Denetim Kaydı ekranından şüpheli işlemin tüm detaylarını inceleyebilir ve işlemi onaylayabilir veya 
+          kara listeye alabilirsiniz.
         </p>
       </>
     )

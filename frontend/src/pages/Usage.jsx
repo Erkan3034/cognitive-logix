@@ -22,7 +22,10 @@ const MODULE_MAP = [
   { match: /\/ops\/usage/i, label: "Kullanım Raporu", group: "Sistem" },
   { match: /\/ops\/audit/i, label: "Denetim Kaydı", group: "Sistem" },
   { match: /\/ops\/incident/i, label: "Karar Kayıtları", group: "Sistem" },
-  { match: /\/api\/v1\/keys/i, label: "API Anahtarları", group: "Sistem" },
+  { match: /\/ops\/live-connections/i, label: "Canlı Bağlantılar", group: "Operasyon" },
+  { match: /\/ops\/decision-impact/i, label: "Karar Etkisi", group: "Operasyon" },
+  { match: /\/ops\/route-intelligence/i, label: "Rota Zekası", group: "Operasyon" },
+  { match: /\/api\/v1\/keys/i, label: "Bağlantı Anahtarları", group: "Sistem" },
   { match: /\/api\/v1\/billing/i, label: "Abonelik", group: "Sistem" },
 ];
 
@@ -118,7 +121,7 @@ function ActivityFeed({ items }) {
   if (!items.length) {
     return (
       <EmptyState title="Henüz aktivite yok">
-        API veya uygulama modülleri kullanıldığında son işlemler burada listelenecek.
+        Bağlantı veya uygulama modülleri kullanıldığında son işlemler burada listelenecek.
       </EmptyState>
     );
   }
@@ -134,7 +137,7 @@ function ActivityFeed({ items }) {
               <span className={`usage-status-dot ${ok ? "success" : "error"}`} />
               <div>
                 <strong>{mod.label}</strong>
-                <span>{item.method || "GET"} {item.endpoint || "Bilinmeyen uç"}</span>
+                <span>Bağlantı adresi: {item.endpoint || "Bilinmeyen uç"}</span>
               </div>
             </div>
             <div className="usage-activity-meta">
@@ -216,7 +219,7 @@ export default function Usage() {
           </div>
         }
       >
-        Tenant bazlı API trafiğini, modül dağılımını ve son işlemleri izleyin.
+        Müşteri alanı bazlı bağlantı trafiğini, modül dağılımını ve son işlemleri izleyin.
         Bu ekran ürünün gerçekten nasıl kullanıldığını gösterir.
       </PageIntro>
 
@@ -243,7 +246,7 @@ export default function Usage() {
           tone="warning"
           title="Yazma işlemi"
           value={loading ? "..." : formatNumber(activityStats.writeCount)}
-          sub="POST, PUT, PATCH ve DELETE"
+          sub="Kayıt oluşturan veya değiştiren işlemler"
         />
         <KpiCard
           tone="muted"

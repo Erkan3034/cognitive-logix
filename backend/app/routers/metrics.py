@@ -5,10 +5,11 @@ import time
 from threading import Lock
 from pathlib import Path
 import pickle
+import hashlib
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.models.metrics import (
     DriftResponse,
@@ -22,6 +23,7 @@ from app.models.metrics import (
     XaiResponse,
 )
 from app.ml.model_contract import ARTIFACT_VERSION
+from app.services.supabase_ops import get_supabase_admin, is_configured
 
 router = APIRouter(prefix="/metrics", tags=["metrics"])
 logger = logging.getLogger(__name__)
@@ -50,8 +52,112 @@ def _current_data_signature() -> tuple[tuple[int, int], tuple[int, int]]:
     return (_file_signature(ANALYSIS_PATH), _file_signature(LATEST_FULL_PATH))
 
 
-def _load_analysis_df() -> pd.DataFrame:
-    return pd.read_csv(
+def _to_number(value: object, default: float = 0.0) -> float:
+    parsed = pd.to_numeric(value, errors="coerce")
+    if pd.isna(parsed):
+        return default
+    return float(parsed)
+
+
+def _to_datetime(value: object) -> pd.Timestamp | None:
+    parsed = pd.to_datetime(value, errors="coerce")
+    if pd.isna(parsed):
+        return None
+    return parsed
+
+
+def _stable_numeric_id(value: object, fallback: int) -> int:
+    if value is None or str(value).strip() == "":
+        return fallback
+    parsed = pd.to_numeric(value, errors="coerce")
+    if not pd.isna(parsed):
+        return int(parsed)
+    digest = hashlib.sha1(str(value).encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) % 1_000_000
+
+
+def _load_uploaded_payloads(tenant_id: str | None, limit: int = 5000) -> list[dict]:
+    if not tenant_id or not is_configured():
+        return []
+    try:
+        response = (
+            get_supabase_admin()
+            .table("ingested_records")
+            .select("standard_payload")
+            .eq("tenant_id", tenant_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = getattr(response, "data", None) or []
+    except Exception as exc:
+        logger.warning("uploaded records could not be loaded for metrics: %s", exc)
+        return []
+    payloads = []
+    for row in rows:
+        payload = row.get("standard_payload")
+        if isinstance(payload, dict):
+            payloads.append(payload)
+    return payloads
+
+
+def _uploaded_analysis_df(tenant_id: str | None) -> pd.DataFrame:
+    payloads = _load_uploaded_payloads(tenant_id)
+    rows = []
+    for idx, payload in enumerate(payloads, start=1):
+        order_date = _to_datetime(payload.get("Order_Date")) or pd.Timestamp.utcnow().tz_localize(None)
+        expected = _to_datetime(payload.get("Expected_Delivery_Date"))
+        actual = _to_datetime(payload.get("Actual_Delivery_Date"))
+        late_risk = int(bool(expected is not None and actual is not None and actual > expected))
+        product_raw = payload.get("Product_ID") or f"UPL-{idx}"
+        product_id = _stable_numeric_id(product_raw, idx)
+        quantity = max(1.0, _to_number(payload.get("Quantity"), 1.0))
+        sales = _to_number(payload.get("Sales"), quantity)
+        region = payload.get("Destination") or payload.get("Origin") or "Yuklenen veri"
+        rows.append(
+            {
+                "Late_delivery_risk": late_risk,
+                "order date (DateOrders)": order_date,
+                "Category Name": payload.get("Category") or "Genel",
+                "Sales": sales,
+                "Order Region": region,
+                "Shipping Mode": payload.get("Shipping_Mode") or "Bilinmiyor",
+                "Product Card Id": product_id,
+                "Product Name": str(product_raw),
+                "Order Id": _stable_numeric_id(payload.get("Order_ID"), idx),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _uploaded_full_df(tenant_id: str | None) -> pd.DataFrame:
+    payloads = _load_uploaded_payloads(tenant_id)
+    rows = []
+    for idx, payload in enumerate(payloads, start=1):
+        order_date = _to_datetime(payload.get("Order_Date")) or pd.Timestamp.utcnow().tz_localize(None)
+        expected = _to_datetime(payload.get("Expected_Delivery_Date"))
+        actual = _to_datetime(payload.get("Actual_Delivery_Date"))
+        late_risk = int(bool(expected is not None and actual is not None and actual > expected))
+        quantity = max(1.0, _to_number(payload.get("Quantity"), 1.0))
+        sales = _to_number(payload.get("Sales"), quantity)
+        profit = _to_number(payload.get("Profit"), 0.0)
+        rows.append(
+            {
+                "negative_profit_flag": int(profit < 0),
+                "Sales_winsor": sales,
+                "order_date": order_date,
+                "Late_delivery_risk": late_risk,
+                "Order Status": "COMPLETE",
+                "Order Region": payload.get("Destination") or payload.get("Origin") or "Yuklenen veri",
+                "Shipping Mode": payload.get("Shipping_Mode") or "Bilinmiyor",
+                "Category Name": payload.get("Category") or "Genel",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _load_analysis_df(tenant_id: str | None = None) -> pd.DataFrame:
+    base = pd.read_csv(
         ANALYSIS_PATH,
         encoding="utf-8-sig",
         usecols=[
@@ -67,10 +173,14 @@ def _load_analysis_df() -> pd.DataFrame:
         ],
         parse_dates=["order date (DateOrders)"],
     )
+    uploaded = _uploaded_analysis_df(tenant_id)
+    if uploaded.empty:
+        return base
+    return pd.concat([base, uploaded], ignore_index=True)
 
 
-def _load_full_df() -> pd.DataFrame:
-    return pd.read_csv(
+def _load_full_df(tenant_id: str | None = None) -> pd.DataFrame:
+    base = pd.read_csv(
         LATEST_FULL_PATH,
         encoding="utf-8-sig",
         usecols=[
@@ -85,10 +195,14 @@ def _load_full_df() -> pd.DataFrame:
         ],
         parse_dates=["order_date"],
     )
+    uploaded = _uploaded_full_df(tenant_id)
+    if uploaded.empty:
+        return base
+    return pd.concat([base, uploaded], ignore_index=True)
 
 
-def _load_drilldown_df() -> pd.DataFrame:
-    return pd.read_csv(
+def _load_drilldown_df(tenant_id: str | None = None) -> pd.DataFrame:
+    base = pd.read_csv(
         ANALYSIS_PATH,
         encoding="utf-8-sig",
         usecols=[
@@ -102,6 +216,10 @@ def _load_drilldown_df() -> pd.DataFrame:
             "Order Id",
         ],
     )
+    uploaded = _uploaded_analysis_df(tenant_id)
+    if uploaded.empty:
+        return base
+    return pd.concat([base, uploaded], ignore_index=True)
 
 
 def _coerce_metrics_payload(payload: dict) -> MetricsOverviewResponse:
@@ -236,9 +354,9 @@ def _filter_equals_case_insensitive(df: pd.DataFrame, column: str, value: str | 
     return df[df[column].astype(str).str.casefold() == value.casefold()]
 
 
-def _compute_overview_metrics() -> dict:
-    anal = _load_analysis_df()
-    full = _load_full_df()
+def _compute_overview_metrics(tenant_id: str | None = None) -> dict:
+    anal = _load_analysis_df(tenant_id)
+    full = _load_full_df(tenant_id)
 
     # Logistics: on-time vs late based on Late_delivery_risk flag
     late_rate = float(anal["Late_delivery_risk"].mean())
@@ -318,12 +436,17 @@ def warmup_overview_metrics(force_refresh: bool = False) -> None:
 
 
 @router.get("/overview")
-def get_overview_metrics() -> MetricsOverviewResponse:
+def get_overview_metrics(request: Request) -> MetricsOverviewResponse:
     """
     High-level KPIs for the executive dashboard, computed from the latest datasets.
     """
     started = time.perf_counter()
-    payload, cache_hit = _get_or_refresh_metrics_cache(force_refresh=False)
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if tenant_id:
+        payload = _compute_overview_metrics(tenant_id)
+        cache_hit = False
+    else:
+        payload, cache_hit = _get_or_refresh_metrics_cache(force_refresh=False)
     elapsed_ms = (time.perf_counter() - started) * 1000
     logger.info(
         "GET /metrics/overview | cache_hit=%s | elapsed_ms=%.2f",
@@ -352,8 +475,12 @@ def get_xai_explanations(
 
 
 @router.post("/simulate", response_model=WhatIfScenarioResponse)
-def simulate_metrics(req: WhatIfScenarioRequest) -> WhatIfScenarioResponse:
-    base_payload, _ = _get_or_refresh_metrics_cache(force_refresh=False)
+def simulate_metrics(req: WhatIfScenarioRequest, request: Request) -> WhatIfScenarioResponse:
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if tenant_id:
+        base_payload = _compute_overview_metrics(tenant_id)
+    else:
+        base_payload, _ = _get_or_refresh_metrics_cache(force_refresh=False)
     base_metrics = _coerce_metrics_payload(base_payload)
     simulated, factors = _monte_carlo_scenario(base_metrics, req)
     return WhatIfScenarioResponse(
@@ -364,9 +491,8 @@ def simulate_metrics(req: WhatIfScenarioRequest) -> WhatIfScenarioResponse:
     )
 
 
-@router.get("/risk-map", response_model=RiskMapResponse)
-def get_risk_map(limit: int = 12) -> RiskMapResponse:
-    df = _load_analysis_df()
+def _build_risk_map(limit: int = 12, tenant_id: str | None = None) -> RiskMapResponse:
+    df = _load_analysis_df(tenant_id)
     global_late_rate = float(df["Late_delivery_risk"].mean())
     prior_weight = 120
     grouped = (
@@ -419,10 +545,17 @@ def get_risk_map(limit: int = 12) -> RiskMapResponse:
     return RiskMapResponse(total=len(items), items=items)
 
 
+@router.get("/risk-map", response_model=RiskMapResponse)
+def get_risk_map(request: Request, limit: int = 12) -> RiskMapResponse:
+    tenant_id = getattr(request.state, "tenant_id", None)
+    return _build_risk_map(limit=limit, tenant_id=tenant_id)
+
+
 @router.get("/incidents", response_model=IncidentResponse)
-def get_incidents(limit: int = 8) -> IncidentResponse:
-    risk_map = get_risk_map(limit=limit).items
-    full = _load_full_df()
+def get_incidents(request: Request, limit: int = 8) -> IncidentResponse:
+    tenant_id = getattr(request.state, "tenant_id", None)
+    risk_map = _build_risk_map(limit=limit, tenant_id=tenant_id).items
+    full = _load_full_df(tenant_id)
     incidents = []
     for item in risk_map:
         severity = "critical" if item.late_risk_pct >= 0.8 else "high" if item.late_risk_pct >= 0.65 else "medium"
@@ -501,9 +634,8 @@ def _psi(expected: pd.Series, actual: pd.Series, buckets: int = 10) -> float:
     return float(np.sum((a_pct - e_pct) * np.log(a_pct / e_pct)))
 
 
-@router.get("/drift", response_model=DriftResponse)
-def get_data_drift() -> DriftResponse:
-    full = _load_full_df().sort_values("order_date")
+def _build_data_drift(tenant_id: str | None = None) -> DriftResponse:
+    full = _load_full_df(tenant_id).sort_values("order_date")
     midpoint = len(full) // 2
     old = full.iloc[:midpoint]
     recent = full.iloc[midpoint:]
@@ -513,6 +645,12 @@ def get_data_drift() -> DriftResponse:
         status = "drift" if psi >= 0.25 else "watch" if psi >= 0.10 else "stable"
         metrics.append({"feature": feature, "psi": psi, "status": status})
     return DriftResponse(window_a_rows=len(old), window_b_rows=len(recent), metrics=metrics)
+
+
+@router.get("/drift", response_model=DriftResponse)
+def get_data_drift(request: Request) -> DriftResponse:
+    tenant_id = getattr(request.state, "tenant_id", None)
+    return _build_data_drift(tenant_id)
 
 
 def _read_model_health(name: str, filename: str) -> dict:
@@ -547,17 +685,19 @@ def get_model_health() -> ModelHealthResponse:
         _read_model_health("Demand Forecast", "demand_model.pkl"),
         _read_model_health("Fraud & Financial Risk", "fraud_model.pkl"),
     ]
-    return ModelHealthResponse(models=models, drift=get_data_drift())
+    return ModelHealthResponse(models=models, drift=_build_data_drift())
 
 
 @router.get("/drilldown-skus", response_model=DrilldownSkuResponse)
 def get_drilldown_skus(
+    request: Request,
     order_region: str | None = None,
     shipping_mode: str | None = None,
     category: str | None = None,
     limit: int = 10,
 ) -> DrilldownSkuResponse:
-    df = _load_drilldown_df()
+    tenant_id = getattr(request.state, "tenant_id", None)
+    df = _load_drilldown_df(tenant_id)
     df = _filter_equals_case_insensitive(df, "Order Region", order_region)
     df = _filter_equals_case_insensitive(df, "Shipping Mode", shipping_mode)
     df = _filter_equals_case_insensitive(df, "Category Name", category)

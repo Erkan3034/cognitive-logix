@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, LayerGroup, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { translateIncidentTitle } from "./OperationsUI.jsx";
 
 // Fix Leaflet's default icon paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -99,7 +100,35 @@ const createWeatherIcon = () => {
 
 const EMPTY_ARRAY = [];
 
-export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_ARRAY }) {
+function regionLabel(region) {
+  const labels = {
+    "Western Europe": "Batı Avrupa",
+    "Eastern Europe": "Doğu Avrupa",
+    "Pacific Asia": "Pasifik Asya",
+    "Central America": "Orta Amerika",
+    "Caribbean": "Karayipler",
+    "South America": "Güney Amerika",
+    LATAM: "Latin Amerika",
+    USCA: "ABD ve Kanada",
+    "US / Puerto Rico": "ABD / Porto Riko",
+    "West of USA": "ABD Batısı",
+    "East of USA": "ABD Doğusu",
+    "South Asia": "Güney Asya",
+    "North Africa": "Kuzey Afrika",
+    "West Africa": "Batı Afrika",
+    "Southern Africa": "Güney Afrika",
+    Oceania: "Okyanusya",
+  };
+  return labels[region] || region;
+}
+
+function transportLabel(type) {
+  if (type === "Ship") return "Deniz taşıması";
+  if (type === "Air") return "Hava taşıması";
+  return "Kara taşıması";
+}
+
+export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_ARRAY, customRoutes = EMPTY_ARRAY }) {
   const [vehicles, setVehicles] = useState([]);
   const [timelinePct, setTimelinePct] = useState(80);
   const [showWeather, setShowWeather] = useState(false);
@@ -151,7 +180,7 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
           region: z.order_region,
           type: vType,
           detail: "Rota analizi",
-          sku: z.sku || "Various"
+          sku: z.sku || "Çeşitli"
         });
       }
     });
@@ -170,14 +199,29 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
           riskPct: inc.severity === 'critical' ? 0.9 : inc.severity === 'high' ? 0.68 : 0.5,
           region: randomRegion,
           type: route.type,
-          detail: inc.title,
+          detail: translateIncidentTitle(inc.title),
           sku: inc.id.split('-')[0]
         });
       }
     });
 
+    customRoutes.forEach((route, i) => {
+      const type = route.transport_type === "Hava" ? "Air" : route.transport_type === "Deniz" ? "Ship" : "Truck";
+      newVehicles.push({
+        id: `custom-${i}`,
+        start: [Number(route.origin.lat), Number(route.origin.lng)],
+        end: [Number(route.destination.lat), Number(route.destination.lng)],
+        riskPct: route.riskPct ?? route.adjusted_late_risk_pct ?? 0.35,
+        region: `${route.origin.name} → ${route.destination.name}`,
+        type,
+        detail: route.detail || "Kullanıcı rotası",
+        sku: route.label || "Özel rota",
+        custom: true,
+      });
+    });
+
     setVehicles(newVehicles);
-  }, [zones, incidents]);
+  }, [zones, incidents, customRoutes]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -260,8 +304,8 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
                 >
                   <Popup className="digital-twin-popup">
                     <div style={{ padding: "4px 8px", background: "#18181b", color: "#f4f4f5", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", minWidth: "180px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: "600", color: "#a1a1aa", textTransform: "uppercase" }}>{v.region} rotası</div>
-                      <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>{v.type === "Ship" ? "Deniz taşıması" : "Kara/hava taşıması"} / {v.sku}</div>
+                      <div style={{ fontSize: "10px", fontWeight: "600", color: "#a1a1aa", textTransform: "uppercase" }}>{regionLabel(v.region)} rotası</div>
+                      <div style={{ fontSize: "14px", fontWeight: "600", marginBottom: "8px" }}>{transportLabel(v.type)} / {v.sku}</div>
                       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "4px" }}>
                         <span style={{ color: "#a1a1aa" }}>Risk skoru:</span>
                         <span style={{ fontWeight: "700", color: pathColor }}>

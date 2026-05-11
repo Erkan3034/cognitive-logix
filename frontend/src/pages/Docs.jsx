@@ -51,7 +51,7 @@ export default function Docs() {
             transition={{ delay: 0.1 }}
             className="landing-hero-desc"
           >
-            Kurulum, veri içe aktarma, API kullanımı ve karar ekranlarını doğru yorumlamak için kısa rehberler.
+            Kurulum, veri içe aktarma, bağlantı kullanımı ve karar ekranlarını doğru yorumlamak için kısa rehberler.
           </motion.p>
         </div>
       </header>
@@ -63,12 +63,12 @@ export default function Docs() {
           variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
           style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 24 }}
         >
-          <DocCard title="Hızlı Başlangıç" desc="Kayıt, API anahtarı oluşturma ve ilk veri aktarımı." linkTo="/register" code="START" />
+          <DocCard title="Hızlı Başlangıç" desc="Kayıt, bağlantı anahtarı oluşturma ve ilk veri aktarımı." linkTo="/register" code="START" />
           <DocCard title="Lojistik ve Teslimat" desc="Gecikme riski skorlarını ve rota kararlarını yorumlama." linkTo="/docs/logistics" code="OPS" />
           <DocCard title="Talep Tahmini" desc="Stok planlama, güven aralığı ve sipariş tetik noktası." linkTo="/docs/demand" code="FORECAST" />
           <DocCard title="Finansal Risk" desc="Anomali skorları, gerekçeler ve manuel inceleme akışı." linkTo="/docs/fraud" code="RISK" />
-          <DocCard title="Veri Formatı ve Şema" desc="CSV yükleme, kolon eşleme ve JSON formatları." linkTo="/api-docs" code="DATA" />
-          <DocCard title="API Kullanımı" desc="Canlı analiz sonuçları almak için REST API referansı." linkTo="/api-docs" code="API" />
+          <DocCard title="Veri Formatı ve Şema" desc="Dosya yükleme, kolon eşleme ve JSON formatları." linkTo="/api-docs" code="DATA" />
+          <DocCard title="Bağlantı Kullanımı" desc="Canlı analiz sonuçları almak için bağlantı referansı." linkTo="/api-docs" code="REF" />
         </motion.div>
       </section>
 

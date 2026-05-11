@@ -35,6 +35,19 @@ def insert_row(table: str, row: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def insert_rows(table: str, rows: list[dict[str, Any]], chunk_size: int = 500) -> int:
+    inserted = 0
+    client = get_supabase_admin()
+    for start in range(0, len(rows), chunk_size):
+        chunk = rows[start : start + chunk_size]
+        if not chunk:
+            continue
+        response = client.table(table).insert(chunk).execute()
+        data = getattr(response, "data", None)
+        inserted += len(data) if isinstance(data, list) else len(chunk)
+    return inserted
+
+
 def select_rows(table: str, tenant_id: str | None, limit: int = 100) -> list[dict[str, Any]]:
     query = get_supabase_admin().table(table).select("*").order("created_at", desc=True).limit(limit)
     if tenant_id:

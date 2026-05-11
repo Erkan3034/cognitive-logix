@@ -143,7 +143,7 @@ export default function ModelHealth() {
           health.models.map((model) => <ModelCard key={model.name} model={model} />)
         ) : (
           <EmptyState title="Model kaydı yok">
-            Backend model sağlığı endpoint'i henüz model listesi döndürmedi.
+            Sunucu model sağlığı bağlantısı henüz model listesi döndürmedi.
           </EmptyState>
         )}
       </section>
@@ -166,8 +166,8 @@ export default function ModelHealth() {
             {[1, 2, 3, 4].map((item) => <div key={item} className="skeleton" />)}
           </div>
         ) : stats.driftMetrics.length === 0 ? (
-          <EmptyState title="Drift metriği yok">
-            Drift hesaplaması çalıştığında özellik bazlı sapma burada görünür.
+          <EmptyState title="Sapma metriği yok">
+            Sapma hesaplaması çalıştığında özellik bazlı değişim burada görünür.
           </EmptyState>
         ) : (
           <div className="model-drift-list">

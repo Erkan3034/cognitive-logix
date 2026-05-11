@@ -14,7 +14,15 @@ PLAN_LIMITS = {
     "pro": 10000,
     "enterprise": 9999999,
 }
-BILLABLE_ENDPOINT_PREFIXES = ("/predict", "/forecast", "/fraud", "/metrics/simulate", "/api/v1/ingest")
+BILLABLE_ENDPOINT_PREFIXES = (
+    "/predict",
+    "/forecast",
+    "/fraud",
+    "/metrics/simulate",
+    "/api/v1/ingest/csv-preview",
+    "/api/v1/ingest/confirm-mapping",
+    "/api/v1/ingest/webhook",
+)
 
 class OnboardRequest(BaseModel):
     company_name: str

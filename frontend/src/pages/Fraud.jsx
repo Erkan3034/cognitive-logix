@@ -203,55 +203,55 @@ export default function Fraud() {
             <label className="field">
               <span className="field-label">Ödeme tipi</span>
               <select className="select" value={features.payment_type} onChange={(event) => setField("payment_type", event.target.value)}>
-                <option value="DEBIT">DEBIT</option>
-                <option value="TRANSFER">TRANSFER</option>
-                <option value="CASH">CASH</option>
-                <option value="PAYMENT">PAYMENT</option>
+                <option value="DEBIT">Banka kartı</option>
+                <option value="TRANSFER">Havale</option>
+                <option value="CASH">Nakit</option>
+                <option value="PAYMENT">Ödeme</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Müşteri tipi</span>
               <select className="select" value={features.customer_segment} onChange={(event) => setField("customer_segment", event.target.value)}>
-                <option value="Consumer">Consumer</option>
-                <option value="Corporate">Corporate</option>
-                <option value="Home Office">Home Office</option>
+                <option value="Consumer">Bireysel</option>
+                <option value="Corporate">Kurumsal</option>
+                <option value="Home Office">Ev ofisi</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Sipariş bölgesi</span>
               <select className="select" value={features.order_region} onChange={(event) => setField("order_region", event.target.value)}>
-                <option value="US / Puerto Rico">US / Puerto Rico</option>
-                <option value="Western Europe">Western Europe</option>
-                <option value="Central America">Central America</option>
-                <option value="South America">South America</option>
-                <option value="Southeast Asia">Southeast Asia</option>
-                <option value="West Africa">West Africa</option>
-                <option value="Eastern Europe">Eastern Europe</option>
-                <option value="LATAM">LATAM</option>
+                <option value="US / Puerto Rico">ABD / Porto Riko</option>
+                <option value="Western Europe">Batı Avrupa</option>
+                <option value="Central America">Orta Amerika</option>
+                <option value="South America">Güney Amerika</option>
+                <option value="Southeast Asia">Güneydoğu Asya</option>
+                <option value="West Africa">Batı Afrika</option>
+                <option value="Eastern Europe">Doğu Avrupa</option>
+                <option value="LATAM">Latin Amerika</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Pazar</span>
               <select className="select" value={features.market} onChange={(event) => setField("market", event.target.value)}>
-                <option value="US / Puerto Rico">US / Puerto Rico</option>
-                <option value="Europe">Europe</option>
-                <option value="LATAM">LATAM</option>
-                <option value="Pacific Asia">Pacific Asia</option>
-                <option value="Africa">Africa</option>
-                <option value="Canada">Canada</option>
-                <option value="USCA">USCA</option>
+                <option value="US / Puerto Rico">ABD / Porto Riko</option>
+                <option value="Europe">Avrupa</option>
+                <option value="LATAM">Latin Amerika</option>
+                <option value="Pacific Asia">Pasifik Asya</option>
+                <option value="Africa">Afrika</option>
+                <option value="Canada">Kanada</option>
+                <option value="USCA">ABD ve Kanada</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Kategori</span>
               <select className="select" value={features.category} onChange={(event) => setField("category", event.target.value)}>
-                <option value="Fan Shop">Fan Shop</option>
-                <option value="Sporting Goods">Sporting Goods</option>
-                <option value="Cleats">Cleats</option>
-                <option value="Apparel">Apparel</option>
-                <option value="Footwear">Footwear</option>
-                <option value="Fitness Equipment">Fitness Equipment</option>
-                <option value="Electronics">Electronics</option>
+                <option value="Fan Shop">Taraftar ürünleri</option>
+                <option value="Sporting Goods">Spor ürünleri</option>
+                <option value="Cleats">Krampon</option>
+                <option value="Apparel">Giyim</option>
+                <option value="Footwear">Ayakkabı</option>
+                <option value="Fitness Equipment">Egzersiz ekipmanı</option>
+                <option value="Electronics">Elektronik</option>
               </select>
             </label>
           </div>

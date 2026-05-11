@@ -62,7 +62,7 @@ export default function ApiDocs() {
             animate={{ y: 0, opacity: 1 }}
             className="landing-hero-title"
           >
-            API <span className="landing-hero-gradient">Referansı</span>
+            Bağlantı <span className="landing-hero-gradient">Referansı</span>
           </motion.h1>
           <motion.p 
             initial={{ y: 20, opacity: 0 }}
@@ -70,8 +70,8 @@ export default function ApiDocs() {
             transition={{ delay: 0.1 }}
             className="landing-hero-desc"
           >
-            Uygulamanızı Cognitive Logix motoruna bağlayın. Sistemlerinize yapay zeka entegre etmek 
-            için ihtiyacınız olan REST endpointleri.
+            Uygulamanızı Cognitive Logix motoruna bağlayın. Sistemlerinize yapay zeka eklemek 
+            için ihtiyacınız olan canlı bağlantı adresleri.
           </motion.p>
         </div>
       </header>
@@ -79,17 +79,17 @@ export default function ApiDocs() {
       <section className="landing-section" style={{ paddingTop: 0, maxWidth: 900 }}>
         
         <div style={{ background: "rgba(99,102,241,0.05)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: 12, padding: 24, marginBottom: 40 }}>
-          <h3 style={{ fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>Authentication (Kimlik Doğrulama)</h3>
+          <h3 style={{ fontSize: 18, color: "#f1f5f9", marginBottom: 8 }}>Kimlik Doğrulama</h3>
           <p style={{ color: "#94a3b8", fontSize: 14, lineHeight: 1.6 }}>
-            API istekleri yapabilmek için <Link to="/app/api-keys" style={{ color: "#818cf8" }}>API Keys</Link> sayfasından oluşturacağınız anahtarı 
-            <code> X-API-Key</code> header'ı ile göndermeniz gerekmektedir. Tüm endpoint'ler `application/json` formatında çalışır.
+            Bağlantı isteği yapabilmek için <Link to="/app/api-keys" style={{ color: "#818cf8" }}>Bağlantı Anahtarları</Link> sayfasından oluşturacağınız anahtarı 
+            <code> X-API-Key</code> başlığı ile göndermeniz gerekmektedir. Tüm bağlantı adresleri `application/json` formatında çalışır.
           </p>
         </div>
 
         <EndpointBlock 
           method="POST"
           path="/api/v1/ingest/webhook"
-          title="Veri İçe Aktarma (Webhook)"
+          title="Veri İçe Aktarma"
           desc="ERP veya CRM sistemlerinizden gelen gerçek zamanlı sipariş/lojistik verilerini anında içeri aktarır ve analiz sırasına ekler."
           codeStr={`curl -X POST https://api.cognitive-logix.app/v1/ingest/webhook \\
   -H "Content-Type: application/json" \\

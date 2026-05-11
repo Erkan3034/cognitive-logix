@@ -54,62 +54,62 @@ const FEATURES = [
     icon: <IconTruck />,
     tag: "Modül A",
     title: "Tahminleyici Lojistik",
-    desc: "CatBoost + SHAP ile kalibrasyon görmüş gecikme riski skoru. Her tahmin için 'Neden gecikiyor?' açıklaması ve counterfactual aksiyon önerisi.",
+    desc: "CatBoost + SHAP ile kalibrasyon görmüş gecikme riski skoru. Her tahmin için 'Neden gecikiyor?' açıklaması ve karşı olgu aksiyon önerisi.",
     color: "#6366f1",
-    algo: ["CatBoost Classifier", "Probability Calibration", "SHAP Explainability"],
+    algo: ["CatBoost sınıflandırıcı", "Olasılık kalibrasyonu", "SHAP açıklanabilirliği"],
   },
   {
     icon: <IconTrend />,
     tag: "Modül B",
     title: "Talep ve Envanter Zekası",
-    desc: "Quantile Regression ile düşük/beklenen/yüksek senaryo tahmini. Hierarchical Forecasting ve Safety Stock algoritmaları ile otonom yeniden sipariş önerileri.",
+    desc: "Kantil regresyon ile düşük, beklenen ve yüksek senaryo tahmini. Hiyerarşik tahminleme ve güvenlik stoğu algoritmaları ile otonom yeniden sipariş önerileri.",
     color: "#10b981",
-    algo: ["Quantile Demand Forecasting", "Safety Stock Algorithm", "Reorder Point"],
+    algo: ["Kantil talep tahmini", "Güvenlik stoğu algoritması", "Yeniden sipariş noktası"],
   },
   {
     icon: <IconShield />,
     tag: "Modül C",
-    title: "Finansal Güvenlik & Fraud",
-    desc: "CatBoost Fraud Classifier ile bilinen kalıpları yakala; Isolation Forest ile daha önce hiç görülmemiş anomalileri tespit et. Her uyarıya açıklama kodu ekle.",
+    title: "Finansal Güvenlik ve Usulsüzlük",
+    desc: "CatBoost usulsüzlük sınıflandırıcısı ile bilinen kalıpları yakala; Isolation Forest ile daha önce hiç görülmemiş anomalileri tespit et. Her uyarıya açıklama kodu ekle.",
     color: "#f43f5e",
-    algo: ["Fraud Classifier", "Isolation Forest / LOF", "Anomaly Reason Codes"],
+    algo: ["Usulsüzlük sınıflandırıcı", "Isolation Forest / LOF", "Anomali gerekçe kodları"],
   },
 ];
 
 const STATS = [
   { value: "54.8%", label: "Geç Teslimat Oranı", sub: "180K+ gerçek sipariş analizi" },
   { value: "12x", label: "Daha Hızlı Karar", sub: "Manuel analize kıyasla" },
-  { value: "2.25%", label: "Fraud Tespiti", sub: "43:1 sınıf dengesizliği çözüldü" },
-  { value: "%90", label: "Güven Aralığı", sub: "Quantile tahmin bandı" },
+  { value: "2.25%", label: "Usulsüzlük Tespiti", sub: "43:1 sınıf dengesizliği çözüldü" },
+  { value: "%90", label: "Güven Aralığı", sub: "Kantil tahmin bandı" },
 ];
 
 const PLANS = [
   {
-    name: "Free",
+    name: "Ücretsiz",
     price: "$0",
     period: "/ ay",
     desc: "Sistemi keşfet, demo verisiyle dene.",
-    features: ["100 AI tahmini / ay", "3 modülün demo erişimi", "Supabase auth ile oturum", "Topluluk desteği"],
+    features: ["100 yapay zeka tahmini / ay", "3 modülün deneme erişimi", "Güvenli oturum", "Topluluk desteği"],
     cta: "Ücretsiz Başla",
     highlight: false,
   },
   {
-    name: "Starter",
+    name: "Başlangıç",
     price: "$49",
     period: "/ ay",
-    desc: "KOBİ'ler için tam SaaS deneyimi.",
-    features: ["5.000 AI tahmini / ay", "CSV / Excel veri yükleme", "SHAP açıklamaları", "E-posta desteği", "API Key erişimi"],
-    cta: "Starter'ı Dene",
+    desc: "KOBİ'ler için tam bulut ürün deneyimi.",
+    features: ["5.000 yapay zeka tahmini / ay", "Dosya veri yükleme", "SHAP açıklamaları", "E-posta desteği", "Bağlantı anahtarı erişimi"],
+    cta: "Başlangıç Planını Dene",
     highlight: true,
     badge: "Popüler",
   },
   {
-    name: "Pro",
+    name: "Profesyonel",
     price: "$149",
     period: "/ ay",
     desc: "Büyüyen operasyonlar için eksiksiz motor.",
-    features: ["50.000 AI tahmini / ay", "Webhook / ERP entegrasyonu", "Monte Carlo simülatörü", "Model drift izleme", "Öncelikli destek"],
-    cta: "Pro'ya Geç",
+    features: ["50.000 yapay zeka tahmini / ay", "Otomatik veri akışı / ERP entegrasyonu", "Olasılıksal simülatör", "Model sapma izleme", "Öncelikli destek"],
+    cta: "Profesyonel Plana Geç",
     highlight: false,
   },
 ];
@@ -117,20 +117,20 @@ const PLANS = [
 const TESTIMONIALS = [
   {
     name: "Mert Kaya",
-    role: "Supply Chain Director, LogiCo",
+    role: "Tedarik Zinciri Direktörü, LogiCo",
     text: "SHAP açıklamaları sayesinde artık gecikme raporlarını birkaç dakikada anlıyoruz. Operasyonel kararlarımız %40 hızlandı.",
     stars: 5,
   },
   {
     name: "Selin Arslan",
-    role: "Procurement Manager, NovaTrade",
-    text: "Safety Stock algoritması ilk ayda fazla stoğumuzu %23 düşürdü. ROI hesaplamak için uzun süre beklememiz gerekmedi.",
+    role: "Satın Alma Müdürü, NovaTrade",
+    text: "Güvenlik stoğu algoritması ilk ayda fazla stoğumuzu %23 düşürdü. Yatırım getirisini hesaplamak için uzun süre beklememiz gerekmedi.",
     stars: 5,
   },
   {
     name: "Emir Demir",
     role: "CTO, MedSupply",
-    text: "ERP'den direkt veri akışı kurmak 30 dakika sürdü. Webhook entegrasyonu beklediğimizden çok daha kolaydı.",
+    text: "ERP'den direkt veri akışı kurmak 30 dakika sürdü. Otomatik veri akışı entegrasyonu beklediğimizden çok daha kolaydı.",
     stars: 5,
   },
 ];
@@ -212,7 +212,7 @@ function Hero() {
       <div className="landing-hero-content">
         <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible" className="landing-hero-badge">
           <span className="badge-dot" />
-          <span>12 Endüstri Standardı Algoritma • Gerçek SaaS Karar Motoru</span>
+          <span>12 Endüstri Standardı Algoritma • Gerçek Ürün Karar Motoru</span>
         </motion.div>
 
         <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible" className="landing-hero-title">
@@ -252,14 +252,14 @@ function Hero() {
       >
         <div className="mockup-bar">
           <span className="mockup-dot red" /><span className="mockup-dot yellow" /><span className="mockup-dot green" />
-          <span className="mockup-url">cognitive-logix.app / dashboard</span>
+          <span className="mockup-url">cognitive-logix.app / kontrol</span>
         </div>
         <div className="mockup-body">
           <div className="mockup-kpi-row">
             {[
               { label: "Gecikme Riski", value: "54.8%", trend: "↓ 12%", color: "#6366f1" },
               { label: "Talep Güven Skoru", value: "91.3%", trend: "↑ 4%", color: "#10b981" },
-              { label: "Fraud Tespit", value: "2.25%", trend: "↓ 0.8%", color: "#f43f5e" },
+              { label: "Usulsüzlük Tespiti", value: "2.25%", trend: "↓ 0.8%", color: "#f43f5e" },
             ].map((k, i) => (
               <motion.div
                 key={i}
@@ -342,10 +342,10 @@ function Features() {
       {/* Extra modules row */}
       <div className="extra-modules">
         {[
-          { icon: "⚡", title: "Monte Carlo Simülatörü", desc: "What-if senaryolarını olasılıksal olarak modelle" },
-          { icon: "📡", title: "Data Drift Detection", desc: "PSI/KS ile model bozulmasını gerçek zamanlı izle" },
-          { icon: "🔗", title: "Webhook / ERP Entegrasyonu", desc: "SAP, Oracle ve custom sistemlerden canlı veri akışı" },
-          { icon: "🗺️", title: "Auto Schema Mapping", desc: "Fuzzy eşleştirme ile kendi kolon isimlerini otomatik tanı" },
+          { icon: "⚡", title: "Olasılıksal Simülatör", desc: "Varsayım senaryolarını olasılıksal olarak modelle" },
+          { icon: "📡", title: "Veri Sapması Tespiti", desc: "PSI/KS ile model bozulmasını gerçek zamanlı izle" },
+          { icon: "🔗", title: "Otomatik Veri Akışı / ERP Entegrasyonu", desc: "SAP, Oracle ve özel sistemlerden canlı veri akışı" },
+          { icon: "🗺️", title: "Otomatik Şema Eşleştirme", desc: "Esnek eşleştirme ile kendi kolon isimlerini otomatik tanı" },
         ].map((m, i) => (
           <motion.div key={i} variants={fadeUp} custom={i * 0.5} className="extra-module-card">
             <span className="extra-module-icon">{m.icon}</span>
@@ -484,15 +484,15 @@ export function Footer() {
         <div className="footer-links">
           <span className="footer-links-title">Algoritmalar</span>
           <Link to="/algorithms#catboost">CatBoost / LightGBM</Link>
-          <Link to="/algorithms#shap">SHAP Explainability</Link>
+          <Link to="/algorithms#shap">SHAP Açıklanabilirliği</Link>
           <Link to="/algorithms#isolation">Isolation Forest</Link>
-          <Link to="/algorithms#montecarlo">Monte Carlo</Link>
+          <Link to="/algorithms#montecarlo">Olasılıksal Simülasyon</Link>
         </div>
         <div className="footer-links">
           <span className="footer-links-title">Destek</span>
           <a href="mailto:hello@cognitive-logix.app">İletişim</a>
           <Link to="/docs">Dokümantasyon</Link>
-          <Link to="/api-docs">API Referansı</Link>
+          <Link to="/api-docs">Bağlantı Referansı</Link>
         </div>
       </div>
       <div className="footer-bottom">

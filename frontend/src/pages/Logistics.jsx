@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import DigitalTwinMap from "../components/DigitalTwinMap.jsx";
-import { getDrilldownSkus, postPredict } from "../lib/api.js";
+import { getDrilldownSkus, postPredict, postRouteIntelligence } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 
 const FACTOR_TR = {
@@ -47,6 +47,38 @@ const INITIAL_FORM = {
   discount_rate: 0,
 };
 
+const ROUTE_PRESETS = [
+  {
+    id: "istanbul-ankara",
+    label: "İstanbul → Ankara",
+    origin: { name: "İstanbul", lat: 41.0082, lng: 28.9784 },
+    destination: { name: "Ankara", lat: 39.9334, lng: 32.8597 },
+  },
+  {
+    id: "izmir-antalya",
+    label: "İzmir → Antalya",
+    origin: { name: "İzmir", lat: 38.4237, lng: 27.1428 },
+    destination: { name: "Antalya", lat: 36.8969, lng: 30.7133 },
+  },
+  {
+    id: "hamburg-munich",
+    label: "Hamburg → Münih",
+    origin: { name: "Hamburg", lat: 53.5511, lng: 9.9937 },
+    destination: { name: "Münih", lat: 48.1351, lng: 11.582 },
+  },
+];
+
+const INITIAL_ROUTE = {
+  enabled: true,
+  preset: "istanbul-ankara",
+  originName: "İstanbul",
+  originLat: 41.0082,
+  originLng: 28.9784,
+  destinationName: "Ankara",
+  destinationLat: 39.9334,
+  destinationLng: 32.8597,
+};
+
 function toTR(key) {
   return FACTOR_TR[key] || key;
 }
@@ -64,6 +96,56 @@ function formatPct(value) {
 
 function money(value) {
   return `$${Number(value || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}`;
+}
+
+function shippingModeLabel(value) {
+  const labels = {
+    "Standard Class": "Standart",
+    "Second Class": "Ekonomi",
+    "First Class": "Öncelikli",
+    "Same Day": "Aynı gün",
+  };
+  return labels[value] || value;
+}
+
+function regionLabel(value) {
+  const labels = {
+    "Western Europe": "Batı Avrupa",
+    "Eastern Europe": "Doğu Avrupa",
+    "Central America": "Orta Amerika",
+    "South America": "Güney Amerika",
+    "Southeast Asia": "Güneydoğu Asya",
+    "West Africa": "Batı Afrika",
+    "US / Puerto Rico": "ABD / Porto Riko",
+    LATAM: "Latin Amerika",
+  };
+  return labels[value] || value;
+}
+
+function categoryLabel(value) {
+  const labels = {
+    "Sporting Goods": "Spor ürünleri",
+    "Fan Shop": "Taraftar ürünleri",
+    Cleats: "Krampon",
+    Apparel: "Giyim",
+    Footwear: "Ayakkabı",
+    "Fitness Equipment": "Egzersiz ekipmanı",
+    Electronics: "Elektronik",
+  };
+  return labels[value] || value;
+}
+
+function marketLabel(value) {
+  const labels = {
+    Europe: "Avrupa",
+    LATAM: "Latin Amerika",
+    "Pacific Asia": "Pasifik Asya",
+    Africa: "Afrika",
+    Canada: "Kanada",
+    USCA: "ABD ve Kanada",
+    "US / Puerto Rico": "ABD / Porto Riko",
+  };
+  return labels[value] || value;
 }
 
 function FactorChart({ factors }) {
@@ -117,7 +199,7 @@ function RecommendedActions({ score }) {
       ? ["Gönderim yöntemini hızlandırın.", "Müşteriye gecikme ihtimalini proaktif bildirin.", "Alternatif depo veya rota seçeneğini kontrol edin."]
       : score >= 0.4
         ? ["Siparişi izleme listesine alın.", "Planlanan ve gerçek sevkiyat süresini güncel tutun.", "Gecikme artarsa hızlı gönderim senaryosunu karşılaştırın."]
-        : ["Mevcut planla devam edin.", "Standart teslimat bildirimlerini sürdürün.", "Aynı segmentteki riskli SKU'ları periyodik izleyin."];
+        : ["Mevcut planla devam edin.", "Standart teslimat bildirimlerini sürdürün.", "Aynı segmentteki riskli ürün kodlarını periyodik izleyin."];
 
   return (
     <div className="decision-list">
@@ -140,6 +222,9 @@ export default function Logistics() {
   const [skuItems, setSkuItems] = useState([]);
   const [skuLoading, setSkuLoading] = useState(false);
   const [comparison, setComparison] = useState(null);
+  const [routeForm, setRouteForm] = useState(INITIAL_ROUTE);
+  const [routeIntel, setRouteIntel] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
 
   const drilldownContext = useMemo(() => {
     const order_region = searchParams.get("order_region");
@@ -195,6 +280,58 @@ export default function Logistics() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const setRouteField = (key, value) => {
+    setRouteForm((prev) => ({ ...prev, [key]: value, preset: key === "preset" ? value : "custom" }));
+  };
+
+  const applyRoutePreset = (presetId) => {
+    const preset = ROUTE_PRESETS.find((item) => item.id === presetId);
+    if (!preset) {
+      setRouteForm((prev) => ({ ...prev, preset: "custom" }));
+      return;
+    }
+    setRouteForm({
+      enabled: true,
+      preset: preset.id,
+      originName: preset.origin.name,
+      originLat: preset.origin.lat,
+      originLng: preset.origin.lng,
+      destinationName: preset.destination.name,
+      destinationLat: preset.destination.lat,
+      destinationLng: preset.destination.lng,
+    });
+  };
+
+  const buildRoutePayload = (baseRisk) => ({
+    origin: {
+      name: routeForm.originName,
+      lat: Number(routeForm.originLat),
+      lng: Number(routeForm.originLng),
+    },
+    destination: {
+      name: routeForm.destinationName,
+      lat: Number(routeForm.destinationLat),
+      lng: Number(routeForm.destinationLng),
+    },
+    shipping_mode: formData.shipping_mode,
+    base_late_risk_pct: Number(baseRisk || 0),
+  });
+
+  const runRouteIntelligence = async (baseRisk) => {
+    if (!routeForm.enabled) {
+      setRouteIntel(null);
+      return null;
+    }
+    setRouteLoading(true);
+    try {
+      const data = await postRouteIntelligence(buildRoutePayload(baseRisk));
+      setRouteIntel(data);
+      return data;
+    } finally {
+      setRouteLoading(false);
+    }
+  };
+
   const runPrediction = async (features) => {
     const data = await postPredict({ features });
     return {
@@ -209,8 +346,11 @@ export default function Logistics() {
     setLoading(true);
     setError(null);
     setComparison(null);
+    setRouteIntel(null);
     try {
-      setResult(await runPrediction(formData));
+      const prediction = await runPrediction(formData);
+      setResult(prediction);
+      await runRouteIntelligence(prediction.score);
     } catch (err) {
       setError(err?.response?.data?.detail || err.message || "Teslimat riski hesaplanamadı.");
     } finally {
@@ -239,8 +379,15 @@ export default function Logistics() {
   };
 
   const score = result?.score ?? null;
-  const level = riskLevel(score);
-  const financialExposure = score != null ? Number(formData.sales || 0) * Number(formData.quantity || 1) * score * 0.3 : 0;
+  const adjustedScore = routeIntel?.adjusted_late_risk_pct ?? score;
+  const adjustedLevel = riskLevel(adjustedScore);
+  const financialExposure = adjustedScore != null ? Number(formData.sales || 0) * Number(formData.quantity || 1) * adjustedScore * 0.3 : 0;
+  const routeMapData = routeIntel ? [{
+    ...routeIntel,
+    riskPct: adjustedScore,
+    label: `${routeIntel.origin.name} → ${routeIntel.destination.name}`,
+    detail: `Mesafe ${routeIntel.distance_km} km · Tahmini süre ${routeIntel.eta_hours} saat`,
+  }] : [];
 
   return (
     <div className="page-layout">
@@ -251,9 +398,9 @@ export default function Logistics() {
       {drilldownContext && (
         <StatusBanner type="warning" title="Kontrol kulesinden gelen filtre">
           {[
-            drilldownContext.order_region,
-            drilldownContext.shipping_mode,
-            drilldownContext.category,
+            regionLabel(drilldownContext.order_region),
+            shippingModeLabel(drilldownContext.shipping_mode),
+            categoryLabel(drilldownContext.category),
             drilldownContext.sku,
           ].filter(Boolean).join(" · ")}
         </StatusBanner>
@@ -290,17 +437,72 @@ export default function Logistics() {
 
           <div className="form-grid">
             <label className="field">
+              <span className="field-label">Rota analizi</span>
+              <select
+                className="select"
+                value={routeForm.enabled ? "enabled" : "disabled"}
+                onChange={(event) => setRouteForm((prev) => ({ ...prev, enabled: event.target.value === "enabled" }))}
+              >
+                <option value="enabled">Kullanıcı rotasıyla analiz et</option>
+                <option value="disabled">Sadece sipariş alanlarıyla analiz et</option>
+              </select>
+            </label>
+            {routeForm.enabled && (
+              <>
+                <label className="field">
+                  <span className="field-label">Hazır rota</span>
+                  <select className="select" value={routeForm.preset} onChange={(event) => applyRoutePreset(event.target.value)}>
+                    {ROUTE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+                    <option value="custom">Özel koordinat</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span className="field-label">Çıkış noktası</span>
+                  <input className="input" value={routeForm.originName} onChange={(event) => setRouteField("originName", event.target.value)} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Varış noktası</span>
+                  <input className="input" value={routeForm.destinationName} onChange={(event) => setRouteField("destinationName", event.target.value)} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Çıkış enlem</span>
+                  <input type="number" step="0.0001" className="input" value={routeForm.originLat} onChange={(event) => setRouteField("originLat", Number(event.target.value))} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Çıkış boylam</span>
+                  <input type="number" step="0.0001" className="input" value={routeForm.originLng} onChange={(event) => setRouteField("originLng", Number(event.target.value))} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Varış enlem</span>
+                  <input type="number" step="0.0001" className="input" value={routeForm.destinationLat} onChange={(event) => setRouteField("destinationLat", Number(event.target.value))} />
+                </label>
+                <label className="field">
+                  <span className="field-label">Varış boylam</span>
+                  <input type="number" step="0.0001" className="input" value={routeForm.destinationLng} onChange={(event) => setRouteField("destinationLng", Number(event.target.value))} />
+                </label>
+              </>
+            )}
+            <label className="field">
               <span className="field-label">Gönderim hızı</span>
               <select className="select" value={formData.shipping_mode} onChange={(event) => setField("shipping_mode", event.target.value)}>
-                <option value="Standard Class">Standard Class</option>
-                <option value="Second Class">Second Class</option>
-                <option value="First Class">First Class</option>
-                <option value="Same Day">Same Day</option>
+                <option value="Standard Class">Standart</option>
+                <option value="Second Class">Ekonomi</option>
+                <option value="First Class">Öncelikli</option>
+                <option value="Same Day">Aynı gün</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Sipariş bölgesi</span>
-              <input className="input" value={formData.order_region} onChange={(event) => setField("order_region", event.target.value)} />
+              <select className="select" value={formData.order_region} onChange={(event) => setField("order_region", event.target.value)}>
+                <option value="Western Europe">Batı Avrupa</option>
+                <option value="Eastern Europe">Doğu Avrupa</option>
+                <option value="Central America">Orta Amerika</option>
+                <option value="South America">Güney Amerika</option>
+                <option value="Southeast Asia">Güneydoğu Asya</option>
+                <option value="West Africa">Batı Afrika</option>
+                <option value="US / Puerto Rico">ABD / Porto Riko</option>
+                <option value="LATAM">Latin Amerika</option>
+              </select>
             </label>
             <label className="field">
               <span className="field-label">Planlanan süre</span>
@@ -313,11 +515,27 @@ export default function Logistics() {
             </label>
             <label className="field">
               <span className="field-label">Kategori</span>
-              <input className="input" value={formData.category} onChange={(event) => setField("category", event.target.value)} />
+              <select className="select" value={formData.category} onChange={(event) => setField("category", event.target.value)}>
+                <option value="Sporting Goods">Spor ürünleri</option>
+                <option value="Fan Shop">Taraftar ürünleri</option>
+                <option value="Cleats">Krampon</option>
+                <option value="Apparel">Giyim</option>
+                <option value="Footwear">Ayakkabı</option>
+                <option value="Fitness Equipment">Egzersiz ekipmanı</option>
+                <option value="Electronics">Elektronik</option>
+              </select>
             </label>
             <label className="field">
               <span className="field-label">Pazar</span>
-              <input className="input" value={formData.market} onChange={(event) => setField("market", event.target.value)} />
+              <select className="select" value={formData.market} onChange={(event) => setField("market", event.target.value)}>
+                <option value="Europe">Avrupa</option>
+                <option value="LATAM">Latin Amerika</option>
+                <option value="Pacific Asia">Pasifik Asya</option>
+                <option value="Africa">Afrika</option>
+                <option value="Canada">Kanada</option>
+                <option value="USCA">ABD ve Kanada</option>
+                <option value="US / Puerto Rico">ABD / Porto Riko</option>
+              </select>
             </label>
             <label className="field">
               <span className="field-label">Sipariş tutarı</span>
@@ -338,7 +556,7 @@ export default function Logistics() {
           </div>
 
           <button type="submit" className="btn btn-full" disabled={loading}>
-            {loading ? <InlineSpinner label="Analiz ediliyor" /> : "Teslimat riskini analiz et"}
+            {loading ? <InlineSpinner label={routeLoading ? "Rota sinyali alınıyor" : "Analiz ediliyor"} /> : "Teslimat riskini analiz et"}
           </button>
         </form>
 
@@ -348,7 +566,7 @@ export default function Logistics() {
               <h2 className="panel-title">Karar özeti</h2>
               <p className="panel-subtitle">Skor, etki ve önerilen aksiyon.</p>
             </div>
-            {score != null && <span className={`panel-header-badge ${level.cls === "high" ? "red" : level.cls === "medium" ? "amber" : "green"}`}>{level.label}</span>}
+            {score != null && <span className={`panel-header-badge ${adjustedLevel.cls === "high" ? "red" : adjustedLevel.cls === "medium" ? "amber" : "green"}`}>{adjustedLevel.label}</span>}
           </div>
 
           {!result ? (
@@ -359,21 +577,41 @@ export default function Logistics() {
             <div className="result-stack">
               <div className="decision-score-card">
                 <span>Gecikme riski</span>
-                <strong style={{ color: level.color }}>{formatPct(score)}</strong>
+                <strong style={{ color: adjustedLevel.color }}>{formatPct(adjustedScore)}</strong>
                 <p>Tahmini finansal maruziyet: {money(financialExposure)}</p>
               </div>
+
+              {routeIntel && (
+                <div className="route-intel-card">
+                  <div className="route-intel-head">
+                    <div>
+                      <span>Canlı rota sinyali</span>
+                      <h3>{routeIntel.origin.name} → {routeIntel.destination.name}</h3>
+                    </div>
+                    <strong>{formatPct(routeIntel.adjusted_late_risk_pct)}</strong>
+                  </div>
+                  <div className="route-intel-grid">
+                    <div><span>Mesafe</span><strong>{routeIntel.distance_km} km</strong></div>
+                    <div><span>Tahmini süre</span><strong>{routeIntel.eta_hours} saat</strong></div>
+                    <div><span>Hava kaynağı</span><strong>{routeIntel.weather?.status === "online" ? "Canlı" : "Kesintili"}</strong></div>
+                  </div>
+                  <p>
+                    Baz risk {formatPct(routeIntel.base_late_risk_pct)}; rota, mesafe ve hava sinyali sonrası fark {formatPct(Math.abs(routeIntel.risk_delta_pct))}.
+                  </p>
+                </div>
+              )}
 
               <RecommendedActions score={score} />
 
               {score >= 0.4 && (
                 <button type="button" className="pro-btn-outline" disabled={loading} onClick={handleCompareScenario}>
-                  First Class senaryosunu karşılaştır
+                  Öncelikli gönderim senaryosunu karşılaştır
                 </button>
               )}
 
               {comparison && (
                 <StatusBanner type="success" title="Senaryo karşılaştırması tamamlandı">
-                  Mevcut risk {formatPct(score)} iken First Class senaryosu {formatPct(comparison.result.score)} risk üretti.
+                  Mevcut risk {formatPct(adjustedScore)} iken öncelikli gönderim senaryosu {formatPct(comparison.result.score)} risk üretti.
                 </StatusBanner>
               )}
 
@@ -403,15 +641,16 @@ export default function Logistics() {
                 order_region: formData.order_region,
                 shipping_mode: formData.shipping_mode,
                 late_risk_pct: score ?? 0,
-                sku: formData.category,
+                sku: categoryLabel(formData.category),
               },
               ...(comparison ? [{
                 order_region: comparison.form.order_region,
                 shipping_mode: comparison.form.shipping_mode,
                 late_risk_pct: comparison.result.score,
-                sku: `${comparison.form.category} önerilen`,
+                sku: `${categoryLabel(comparison.form.category)} önerilen`,
               }] : []),
             ]}
+            customRoutes={routeMapData}
           />
         </section>
       )}
@@ -421,11 +660,11 @@ export default function Logistics() {
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Segmentteki riskli ürünler</h2>
-              <p className="panel-subtitle">Kontrol kulesinden gelen bağlam için SKU kırılımı.</p>
+              <p className="panel-subtitle">Kontrol kulesinden gelen bağlam için ürün kodu kırılımı.</p>
             </div>
           </div>
           {skuLoading ? (
-            <InlineSpinner label="SKU listesi yükleniyor" />
+            <InlineSpinner label="Ürün kodu listesi yükleniyor" />
           ) : (
             <div className="api-key-list">
               {skuItems.map((item) => (

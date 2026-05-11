@@ -10,16 +10,16 @@ const PLANS = [
     price: "0",
     unit: "ay",
     desc: "İlk canlı akışları doğrulamak ve temel analizleri denemek için.",
-    features: ["Aylık 100 analiz", "Lojistik risk analizi", "CSV içe aktarma", "Standart kullanım kayıtları"],
+    features: ["Aylık 100 analiz", "Lojistik risk analizi", "Dosya içe aktarma", "Standart kullanım kayıtları"],
   },
   {
     id: "pro",
-    name: "Pro",
+    name: "Profesyonel",
     price: "4.900",
     unit: "TL / ay",
     badge: "Önerilen",
     desc: "Düzenli operasyon ekipleri için tüm karar motorlarına erişim.",
-    features: ["Aylık 10.000 analiz", "Talep tahmini", "Finansal risk analizi", "Model sağlığı ve drift takibi"],
+    features: ["Aylık 10.000 analiz", "Talep tahmini", "Finansal risk analizi", "Model sağlığı ve sapma takibi"],
   },
   {
     id: "enterprise",
@@ -28,7 +28,7 @@ const PLANS = [
     unit: "TL / ay",
     badge: "Yüksek hacim",
     desc: "Çoklu entegrasyon, yüksek hacim ve öncelikli operasyon ihtiyaçları için.",
-    features: ["Pratik sınırsız analiz", "Genişletilmiş API kullanımı", "Öncelikli destek", "Kurumsal karar kayıtları"],
+    features: ["Pratik sınırsız analiz", "Genişletilmiş bağlantı kullanımı", "Öncelikli destek", "Kurumsal karar kayıtları"],
   },
 ];
 
@@ -104,7 +104,7 @@ export default function Billing() {
         }
       >
         Analiz kotanızı, mevcut planınızı ve plan değişikliklerini tek yerden yönetin.
-        Kota yalnızca gerçek analiz ve veri işleme uçları için sayılır.
+        Kota yalnızca gerçek analiz ve veri işleme adresleri için sayılır.
       </PageIntro>
 
       <StatusBanner type="info" title="Ödeme simülasyonu aktif">
@@ -157,7 +157,7 @@ export default function Billing() {
 
         {isNear && (
           <p className="billing-warning">
-            Kullanım oranı yüksek. Kesinti yaşamamak için Pro veya Kurumsal plana geçin.
+            Kullanım oranı yüksek. Kesinti yaşamamak için Profesyonel veya Kurumsal plana geçin.
           </p>
         )}
       </section>

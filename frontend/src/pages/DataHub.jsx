@@ -1,13 +1,14 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { confirmMapping, getIngestHistory, previewCsvFile } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 import { useAuth } from "../lib/AuthContext.jsx";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
 const EXPECTED_COLUMNS = [
   "Sipariş tarihi",
+  "Beklenen teslim tarihi",
+  "Gerçek teslim tarihi",
   "Bölge",
   "Kargo modu",
   "Sipariş tutarı",
@@ -17,6 +18,53 @@ const EXPECTED_COLUMNS = [
   "Kâr / zarar",
   "Müşteri tipi",
 ];
+
+const COLUMN_LABELS = {
+  Order_ID: "Sipariş no",
+  Product_ID: "Ürün kodu",
+  Category: "Kategori",
+  Quantity: "Miktar",
+  Order_Date: "Sipariş tarihi",
+  Expected_Delivery_Date: "Beklenen teslim",
+  Actual_Delivery_Date: "Gerçek teslim",
+  Origin: "Çıkış noktası",
+  Destination: "Bölge / varış",
+  Shipping_Mode: "Kargo modu",
+  Sales: "Sipariş tutarı",
+  Profit: "Kâr / zarar",
+  Customer_Type: "Müşteri tipi",
+  Payment_Type: "Ödeme tipi",
+  Discount_Rate: "İndirim oranı",
+};
+
+const FEED_STATUS = {
+  ready: { label: "Hazır", tone: "green", text: "Tüm ana model alanları tamam." },
+  partial: { label: "Kısmi hazır", tone: "amber", text: "Bazı modeller için eksik alan var." },
+  blocked: { label: "Eksik alan", tone: "amber", text: "Model besleme için zorunlu alanlar eksik." },
+  unknown: { label: "Eski kayıt", tone: "blue", text: "Bu kayıtta besleme raporu yok." },
+};
+
+function formatDate(value) {
+  if (!value) return "Henüz yok";
+  return new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function feedInfo(reportOrStatus) {
+  const status =
+    typeof reportOrStatus === "string"
+      ? reportOrStatus
+      : reportOrStatus?.status || "unknown";
+  return FEED_STATUS[status] || FEED_STATUS.unknown;
+}
+
+function columnLabel(value) {
+  return COLUMN_LABELS[value] || value;
+}
 
 function StepBar({ step }) {
   const steps = ["Dosya seç", "Eşleştirmeyi incele", "Kaydet"];
@@ -71,24 +119,24 @@ function DropZone({ file, setFile, onUpload, uploading, onError }) {
         <input
           ref={inputRef}
           type="file"
-          accept=".csv"
+          accept=".csv,text/csv"
           hidden
           onChange={(event) => acceptFile(event.target.files?.[0])}
         />
         <span className="data-dropzone-title">
-          {file ? file.name : "CSV dosyanızı buraya bırakın veya seçin"}
+          {file ? file.name : "Veri dosyanızı buraya bırakın veya seçin"}
         </span>
         <span className="data-dropzone-subtitle">
           {file
-            ? `${(file.size / 1024).toFixed(1)} KB seçildi. Yüklemeden önce kolon eşleştirmesi yapılacak.`
-            : "Kolon isimleri birebir aynı olmak zorunda değil; sistem eşleşmeleri incelemeniz için hazırlayacak."}
+            ? `${(file.size / 1024).toFixed(1)} KB seçildi. Kaydetmeden önce kolon eşleştirmesi ve model besleme kontrolü yapılacak.`
+            : "Kolon adları farklı olabilir; sistem alanları Türkçe veri sözlüğüne bağlayıp incelemeniz için hazırlayacak."}
         </span>
       </button>
 
       <div className="data-format-card">
-        <div className="panel-title" style={{ fontSize: 14 }}>Desteklenen alanlar</div>
+        <div className="panel-title" style={{ fontSize: 14 }}>Beklenen veri alanları</div>
         <p className="panel-subtitle" style={{ marginBottom: 12 }}>
-          Aşağıdaki alanlar lojistik, talep ve finansal risk modüllerinin ortak veri sözlüğünü oluşturur.
+          Bu alanlar lojistik, talep ve finansal risk analizlerinin ortak veri sözlüğünü oluşturur.
         </p>
         <div className="data-chip-list">
           {EXPECTED_COLUMNS.map((column) => <span key={column} className="data-chip">{column}</span>)}
@@ -109,9 +157,47 @@ function DropZone({ file, setFile, onUpload, uploading, onError }) {
   );
 }
 
-function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onReset }) {
+function ModelFeedPanel({ report }) {
+  const info = feedInfo(report);
+  const domains = report?.domains || [];
+
+  return (
+    <div className="panel">
+      <div className="panel-header">
+        <div className="panel-title-block">
+          <h2 className="panel-title">Model besleme kontrolü</h2>
+          <p className="panel-subtitle">
+            Kaynak verinin lojistik, talep ve finansal risk katmanlarına uygunluğu.
+          </p>
+        </div>
+        <span className={`panel-header-badge ${info.tone}`}>{info.label}</span>
+      </div>
+
+      <div className="feed-domain-grid">
+        {domains.map((domain) => {
+          const domainInfo = feedInfo(domain.status);
+          return (
+            <article key={domain.key} className={`feed-domain-card ${domain.status}`}>
+              <div>
+                <strong>{domain.label}</strong>
+                <span>{domainInfo.text}</span>
+              </div>
+              {domain.missing_required?.length > 0 ? (
+                <p>Eksik: {domain.missing_required.map(columnLabel).join(", ")}</p>
+              ) : (
+                <p>Zorunlu alanlar tamam.</p>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MappingReview({ mappingResult, modelFeedReport, previewData, sourceName, onConfirm, onReset }) {
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [savedResult, setSavedResult] = useState(null);
   const [error, setError] = useState("");
 
   const mapped = Object.entries(mappingResult?.mapped ?? {});
@@ -121,24 +207,29 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
     setSaving(true);
     setError("");
     try {
-      await onConfirm();
-      setSaved(true);
+      const result = await onConfirm();
+      setSavedResult(result);
     } catch (err) {
-      setError(err.message || "Veri kaydedilemedi.");
+      setError(err?.response?.data?.detail || err.message || "Veri kaydedilemedi.");
     } finally {
       setSaving(false);
     }
   }
 
-  if (saved) {
+  if (savedResult) {
+    const info = feedInfo(savedResult.model_feed_report);
     return (
-      <StatusBanner
-        type="success"
-        title="Veri kaynağı sisteme kaydedildi"
-        action={<button type="button" className="pro-btn-ghost" onClick={onReset}>Yeni dosya yükle</button>}
-      >
-        {sourceName} dosyasındaki kayıtlar veri merkezine alındı. Bu kayıtlar artık izlenebilir ve sonraki model/veri kalitesi akışlarında kullanılabilir.
-      </StatusBanner>
+      <div className="result-stack">
+        <StatusBanner
+          type={savedResult.persistence_warning ? "warning" : "success"}
+          title="Veri kaynağı kalıcı havuza kaydedildi"
+          action={<button type="button" className="pro-btn-ghost" onClick={onReset}>Yeni dosya yükle</button>}
+        >
+          {sourceName} için {Number(savedResult.persisted_records || 0).toLocaleString("tr-TR")} satır satır bazlı veri havuzuna yazıldı. Model besleme durumu: {info.label}.
+          {savedResult.persistence_warning ? ` ${savedResult.persistence_warning}` : ""}
+        </StatusBanner>
+        <ModelFeedPanel report={savedResult.model_feed_report} />
+      </div>
     );
   }
 
@@ -155,7 +246,7 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
         <article className="card">
           <p className="card-title">İncelenecek kolon</p>
           <p className="card-value">{unmapped.length}</p>
-          <p className="card-caption">Kayda engel değil; rapora dahil edilmeyecek.</p>
+          <p className="card-caption">Kayda engel değil; model alanına bağlanmaz.</p>
         </article>
         <article className="card">
           <p className="card-title">Önizleme</p>
@@ -163,6 +254,8 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
           <p className="card-caption">İlk satırlar doğrulama için gösteriliyor.</p>
         </article>
       </div>
+
+      <ModelFeedPanel report={modelFeedReport} />
 
       <section className="two-column">
         <div className="panel">
@@ -176,7 +269,7 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
             {mapped.map(([source, target]) => (
               <div key={source} className="data-mapping-row">
                 <span>{source}</span>
-                <strong>{target}</strong>
+                <strong>{columnLabel(target)}</strong>
               </div>
             ))}
             {mapped.length === 0 && (
@@ -191,7 +284,7 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Eşleşmeyen kolonlar</h2>
-              <p className="panel-subtitle">Bu kolonlar veri kaydında atlanır; ham dosyada korunmaz.</p>
+              <p className="panel-subtitle">Bu kolonlar kayda engel olmaz; model girdisi olarak kullanılmaz.</p>
             </div>
           </div>
           <div className="data-chip-list">
@@ -206,7 +299,7 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Veri önizlemesi</h2>
-              <p className="panel-subtitle">İlk satırları kontrol edin; sayısal değerler ve tarih formatları doğru görünmeli.</p>
+              <p className="panel-subtitle">İlk satırları kontrol edin; tutar ve tarih formatları doğru görünmeli.</p>
             </div>
           </div>
           <div className="ops-table-wrap">
@@ -238,15 +331,103 @@ function MappingReview({ mappingResult, previewData, sourceName, onConfirm, onRe
   );
 }
 
+function SourceHistory({ history, loading, error, onRefresh }) {
+  const stats = useMemo(() => {
+    const totalRows = history.reduce((sum, row) => sum + Number(row.persisted_record_count || row.row_count || 0), 0);
+    const ready = history.filter((row) => feedInfo(row.model_feed_status || row.model_feed_report).label === "Hazır").length;
+    return { totalRows, ready };
+  }, [history]);
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div className="panel-title-block">
+          <h2 className="panel-title">Kaydedilen veri kaynakları</h2>
+          <p className="panel-subtitle">Sayfadan çıksanız bile Supabase havuzundaki kayıtlar burada yeniden görünür.</p>
+        </div>
+        <button type="button" className="pro-btn-outline" onClick={onRefresh}>Yenile</button>
+      </div>
+
+      <div className="source-summary-grid">
+        <article>
+          <span>Kaynak</span>
+          <strong>{history.length.toLocaleString("tr-TR")}</strong>
+        </article>
+        <article>
+          <span>Kalıcı satır</span>
+          <strong>{stats.totalRows.toLocaleString("tr-TR")}</strong>
+        </article>
+        <article>
+          <span>Hazır kaynak</span>
+          <strong>{stats.ready.toLocaleString("tr-TR")}</strong>
+        </article>
+      </div>
+
+      {error && <StatusBanner type="warning" title="Geçmiş okunamadı">{error}</StatusBanner>}
+
+      {loading ? (
+        <div className="usage-skeleton-list">
+          {[1, 2, 3].map((item) => <div key={item} className="skeleton" />)}
+        </div>
+      ) : history.length === 0 ? (
+        <EmptyState title="Henüz kayıtlı veri yok">
+          Dosya yükleyip eşleştirmeyi onayladığınızda kaynak burada kalıcı olarak listelenir.
+        </EmptyState>
+      ) : (
+        <div className="source-history-list">
+          {history.map((row) => {
+            const info = feedInfo(row.model_feed_status || row.model_feed_report);
+            const count = Number(row.persisted_record_count || row.row_count || 0);
+            return (
+              <article key={row.id ?? `${row.filename}-${row.created_at}`} className="source-history-row">
+                <div>
+                  <strong>{row.filename || row.source || "Otomatik veri alımı"}</strong>
+                  <span>{formatDate(row.created_at)} tarihinde kaydedildi</span>
+                </div>
+                <div className="source-history-meta">
+                  <span>{count.toLocaleString("tr-TR")} satır</span>
+                  <span className={`panel-header-badge ${info.tone}`}>{info.label}</span>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function DataHub() {
   const { session } = useAuth();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [mappingResult, setMappingResult] = useState(null);
+  const [modelFeedReport, setModelFeedReport] = useState(null);
   const [previewData, setPreviewData] = useState([]);
   const [stagedRows, setStagedRows] = useState([]);
   const [sourceName, setSourceName] = useState("");
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState("");
+
+  async function loadHistory() {
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const data = await getIngestHistory({ limit: 50 });
+      setHistory(data?.items ?? []);
+    } catch (err) {
+      setHistory([]);
+      setHistoryError(err?.response?.data?.detail || "Veri alım geçmişi okunamadı.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (session) loadHistory();
+  }, [session]);
 
   if (!session) return <Navigate to="/login" replace />;
 
@@ -256,45 +437,35 @@ export default function DataHub() {
     if (!file) return;
     setUploading(true);
     setError("");
-    const form = new FormData();
-    form.append("file", file);
     try {
-      const response = await fetch(`${API_BASE}/api/v1/ingest/csv-preview`, {
-        method: "POST",
-        body: form,
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "CSV okunamadı.");
+      const data = await previewCsvFile(file);
       setMappingResult(data.mapping_result);
+      setModelFeedReport(data.model_feed_report);
       setPreviewData(data.preview_data || []);
       setStagedRows(data.staged_rows || []);
       setSourceName(data.source_name || file.name);
     } catch (err) {
-      setError(err.message || "Sunucuya bağlanılamadı.");
+      setError(err?.response?.data?.detail || err.message || "Sunucuya bağlanılamadı.");
     } finally {
       setUploading(false);
     }
   }
 
   async function handleConfirmMapping() {
-    const response = await fetch(`${API_BASE}/api/v1/ingest/confirm-mapping`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({
-        final_mapping: mappingResult.mapped,
-        data: stagedRows,
-        source_name: sourceName,
-      }),
+    const result = await confirmMapping({
+      final_mapping: mappingResult.mapped,
+      data: stagedRows,
+      source_name: sourceName,
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || "Veri kaydedilemedi.");
+    await loadHistory();
+    return result;
   }
 
   function resetState() {
     setFile(null);
     setError("");
     setMappingResult(null);
+    setModelFeedReport(null);
     setPreviewData([]);
     setStagedRows([]);
     setSourceName("");
@@ -303,11 +474,11 @@ export default function DataHub() {
   return (
     <div className="page-layout">
       <PageIntro eyebrow="Veri yönetimi" title="Veri Merkezi">
-        CSV verinizi güvenli şekilde yükleyin, kolon eşleştirmelerini inceleyin ve sisteme kaydedin.
+        Veri dosyanızı yükleyin, kolon eşleştirmesini onaylayın ve kaynağın model/analitik katmanında kullanılabilirliğini görün.
       </PageIntro>
 
-      <StatusBanner type="info" title="Bu akış ne sağlar?">
-        Veri Merkezi, müşterinin farklı kolon adlarıyla gelen dosyasını standart veri sözlüğüne bağlar. Kaydetmeden önce tüm eşleşmeler kullanıcıya gösterilir.
+      <StatusBanner type="info" title="Kalıcı veri akışı">
+        Onaylanan dosyalar özet olarak veri geçmişine, satır bazında ise standart veri havuzuna yazılır. Operasyon metrikleri tenant verisini bu havuzdan okuyarak güncellenir.
       </StatusBanner>
 
       {error && <StatusBanner type="error" title="İşlem tamamlanamadı">{error}</StatusBanner>}
@@ -328,6 +499,7 @@ export default function DataHub() {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <MappingReview
               mappingResult={mappingResult}
+              modelFeedReport={modelFeedReport}
               previewData={previewData}
               sourceName={sourceName}
               onConfirm={handleConfirmMapping}
@@ -336,6 +508,13 @@ export default function DataHub() {
           </motion.div>
         )}
       </div>
+
+      <SourceHistory
+        history={history}
+        loading={historyLoading}
+        error={historyError}
+        onRefresh={loadHistory}
+      />
     </div>
   );
 }

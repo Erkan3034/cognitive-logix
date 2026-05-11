@@ -1,45 +1,228 @@
 """
-Data Ingestion API — CSV yükleme, fuzzy mapping ve Supabase'e kaydetme.
+Data Ingestion API - CSV yukleme, kolon eslestirme ve kalici veri kaydi.
 """
 from __future__ import annotations
 
 from io import StringIO
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 
 from app.services.mapping_engine import map_columns
-from app.services.supabase_ops import SupabaseNotConfigured, get_supabase_admin, insert_row, is_configured
+from app.services.supabase_ops import (
+    SupabaseNotConfigured,
+    insert_row,
+    insert_rows,
+    is_configured,
+    select_rows,
+)
 
 
 router = APIRouter(prefix="/api/v1/ingest", tags=["ingestion"])
 
 
-def _supabase_client():
-    try:
-        return get_supabase_admin()
-    except SupabaseNotConfigured as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Supabase backend env is missing. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
-        ) from exc
-
-
-def _standardize_rows(rows: list[dict], final_mapping: dict) -> list[dict]:
+def _standardize_rows(rows: list[dict[str, Any]], final_mapping: dict[str, str]) -> list[dict[str, Any]]:
     return [
         {standard_col: row.get(original_col) for original_col, standard_col in final_mapping.items()}
         for row in rows
     ]
 
 
+def _non_empty_columns(rows: list[dict[str, Any]]) -> set[str]:
+    present: set[str] = set()
+    for row in rows:
+        for key, value in row.items():
+            if value is not None and str(value).strip() != "":
+                present.add(str(key))
+    return present
+
+
+def _data_quality_report(df: pd.DataFrame) -> dict[str, Any]:
+    total_cells = max(1, int(df.shape[0] * df.shape[1]))
+    missing_cells = int(df.isna().sum().sum())
+    duplicate_rows = int(df.duplicated().sum())
+    empty_columns = [str(col) for col in df.columns if int(df[col].isna().sum()) == len(df)]
+    missing_pct = missing_cells / total_cells
+    duplicate_pct = duplicate_rows / max(1, len(df))
+    score = max(0, round(100 - (missing_pct * 55) - (duplicate_pct * 30) - (len(empty_columns) * 5)))
+    return {
+        "score": score,
+        "row_count": int(len(df)),
+        "column_count": int(len(df.columns)),
+        "missing_cells": missing_cells,
+        "missing_pct": missing_pct,
+        "duplicate_rows": duplicate_rows,
+        "duplicate_pct": duplicate_pct,
+        "empty_columns": empty_columns,
+    }
+
+
+def _model_feed_report(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    present = _non_empty_columns(rows)
+    domains = [
+        {
+            "key": "logistics",
+            "label": "Gecikme riski",
+            "required": ["Order_Date", "Expected_Delivery_Date", "Destination", "Shipping_Mode"],
+            "recommended": ["Actual_Delivery_Date", "Order_ID"],
+        },
+        {
+            "key": "demand",
+            "label": "Talep tahmini",
+            "required": ["Order_Date", "Product_ID", "Category", "Quantity"],
+            "recommended": ["Destination", "Sales"],
+        },
+        {
+            "key": "financial",
+            "label": "Finansal risk",
+            "required": ["Sales", "Profit"],
+            "recommended": ["Customer_Type", "Payment_Type", "Discount_Rate"],
+        },
+    ]
+
+    domain_reports = []
+    ready_count = 0
+    for domain in domains:
+        required = set(domain["required"])
+        recommended = set(domain["recommended"])
+        missing_required = sorted(required - present)
+        missing_recommended = sorted(recommended - present)
+        status = "ready" if not missing_required else "blocked"
+        if status == "ready":
+            ready_count += 1
+        domain_reports.append(
+            {
+                "key": domain["key"],
+                "label": domain["label"],
+                "status": status,
+                "required_columns": domain["required"],
+                "missing_required": missing_required,
+                "missing_recommended": missing_recommended,
+            }
+        )
+
+    status = "ready" if ready_count == len(domains) else "partial" if ready_count else "blocked"
+    return {
+        "status": status,
+        "row_count": len(rows),
+        "ready_domain_count": ready_count,
+        "total_domain_count": len(domains),
+        "columns_present": sorted(present),
+        "domains": domain_reports,
+    }
+
+
+def _summary_payload(
+    *,
+    tenant_id: str | None,
+    user_id: str | None,
+    source: str,
+    filename: str | None,
+    row_count: int,
+    mapping: dict[str, str],
+    preview: list[dict[str, Any]],
+    status: str,
+    quality_report: dict[str, Any],
+    model_feed_report: dict[str, Any],
+    persisted_record_count: int,
+) -> dict[str, Any]:
+    return {
+        "tenant_id": tenant_id,
+        "user_id": user_id,
+        "source": source,
+        "filename": filename,
+        "row_count": row_count,
+        "column_mapping": mapping,
+        "data_preview": preview[:20],
+        "status": status,
+        "quality_report": quality_report,
+        "model_feed_report": model_feed_report,
+        "model_feed_status": model_feed_report.get("status", "unknown"),
+        "persisted_record_count": persisted_record_count,
+    }
+
+
+def _legacy_summary_payload(summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: summary[key]
+        for key in [
+            "tenant_id",
+            "user_id",
+            "source",
+            "filename",
+            "row_count",
+            "column_mapping",
+            "data_preview",
+            "status",
+        ]
+    }
+
+
+def _save_summary(summary: dict[str, Any]) -> str | None:
+    try:
+        insert_row("ingested_data", summary)
+        return None
+    except SupabaseNotConfigured:
+        return "Supabase baglantisi bulunamadi."
+    except Exception as exc:
+        try:
+            insert_row("ingested_data", _legacy_summary_payload(summary))
+            return f"Ozet ek alanlari yazilamadi: {exc}"
+        except Exception as fallback_exc:
+            raise HTTPException(status_code=500, detail=f"Supabase kayit hatasi: {fallback_exc}") from fallback_exc
+
+
+def _save_ingested_records(
+    *,
+    tenant_id: str | None,
+    user_id: str | None,
+    source_name: str | None,
+    source_type: str,
+    rows: list[dict[str, Any]],
+    standardized: list[dict[str, Any]],
+    mapping: dict[str, str],
+) -> tuple[int, str | None]:
+    record_rows = [
+        {
+            "tenant_id": tenant_id,
+            "uploaded_by": user_id,
+            "source_name": source_name or source_type,
+            "standard_payload": standard_row,
+            "original_payload": original_row,
+            "mapping": mapping,
+        }
+        for original_row, standard_row in zip(rows, standardized)
+    ]
+    if not record_rows:
+        return 0, None
+    try:
+        return insert_rows("ingested_records", record_rows), None
+    except SupabaseNotConfigured:
+        return 0, "Supabase baglantisi bulunamadi."
+    except Exception as exc:
+        return 0, f"Satir bazli kayit tamamlanamadi: {exc}"
+
+
+def _enrich_history_row(row: dict[str, Any]) -> dict[str, Any]:
+    if row.get("model_feed_report"):
+        return row
+    preview = row.get("data_preview") or []
+    if isinstance(preview, list):
+        report = _model_feed_report(preview)
+    else:
+        report = {"status": "unknown", "domains": [], "ready_domain_count": 0, "total_domain_count": 0}
+    row["model_feed_report"] = report
+    row["model_feed_status"] = report.get("status", "unknown")
+    return row
+
+
 @router.post("/csv-preview")
 async def preview_csv_mapping(file: UploadFile = File(...)):
     """
-    CSV dosyasını okur, fuzzy matching ile standart şemaya eşleştirir.
-    Sonucu ve 3 satırlık önizlemeyi döner. Henüz kaydetmez.
+    CSV dosyasini okur, standart semaya eslestirir ve kaydetmeden on izleme dondurur.
     """
-    if not file.filename or not file.filename.endswith(".csv"):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported.")
 
     content = await file.read()
@@ -48,25 +231,45 @@ async def preview_csv_mapping(file: UploadFile = File(...)):
         columns = df.columns.tolist()
         mapping_result = map_columns(columns)
         df = df.where(pd.notnull(df), None)
+        staged_rows = df.to_dict(orient="records")
+        standardized = _standardize_rows(staged_rows, mapping_result.get("mapped", {}))
 
         return {
             "status": "success",
             "mapping_result": mapping_result,
             "columns_found": columns,
             "preview_data": df.head(3).to_dict(orient="records"),
-            "staged_rows": df.to_dict(orient="records"),
+            "staged_rows": staged_rows,
             "total_rows": len(df),
             "source_name": file.filename,
+            "quality_report": _data_quality_report(df),
+            "model_feed_report": _model_feed_report(standardized),
         }
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="CSV UTF-8 formatinda okunamadi.") from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"CSV read error: {exc}") from exc
 
 
-@router.post("/confirm-mapping")
-async def confirm_mapping_and_save(payload: Dict[str, Any], request: Request):
+@router.get("/history")
+async def ingestion_history(request: Request, limit: int = 25):
     """
-    Kullanıcı eşleştirmeyi onaylayınca çağrılır.
-    Veriyi Supabase ingested_data tablosuna kaydeder.
+    Tenant icin onceki veri alim kayitlarini listeler.
+    """
+    if not is_configured():
+        raise HTTPException(status_code=503, detail="Supabase is not configured.")
+    tenant_id = getattr(request.state, "tenant_id", None)
+    try:
+        rows = select_rows("ingested_data", tenant_id, limit=max(1, min(limit, 100)))
+    except SupabaseNotConfigured as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"items": [_enrich_history_row(row) for row in rows], "total": len(rows)}
+
+
+@router.post("/confirm-mapping")
+async def confirm_mapping_and_save(payload: dict[str, Any], request: Request):
+    """
+    Kullanici eslestirmeyi onaylayinca ozet ve satir bazli kalici kayit olusturur.
     """
     final_mapping = payload.get("final_mapping", {})
     rows = payload.get("data", [])
@@ -77,54 +280,73 @@ async def confirm_mapping_and_save(payload: Dict[str, Any], request: Request):
     if not rows:
         raise HTTPException(status_code=400, detail="data rows are required.")
 
-    # Middleware'den gelen tenant ve user bilgisi
     tenant_id = getattr(request.state, "tenant_id", None)
     user_id = getattr(request.state, "user_id", None)
-
-    # Standartlaştırılmış veriyi oluştur
     standardized = _standardize_rows(rows, final_mapping)
+    quality_report = _data_quality_report(pd.DataFrame(rows))
+    model_feed_report = _model_feed_report(standardized)
 
-    if is_configured():
-        try:
-            # ingested_data tablosuna özet kaydı yaz
-            insert_row("ingested_data", {
-                "tenant_id": tenant_id,
-                "user_id": user_id,
-                "source": "csv",
-                "filename": source_name,
-                "row_count": len(rows),
-                "column_mapping": final_mapping,
-                "data_preview": standardized[:5],  # İlk 5 satır önizleme olarak
-                "status": "confirmed",
-            })
-        except SupabaseNotConfigured:
-            pass
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Supabase kayıt hatası: {exc}") from exc
+    if not is_configured():
+        raise HTTPException(status_code=503, detail="Supabase kaydi yapilandirilmamis; veri kaydedilemedi.")
+
+    persisted_records = 0
+    persistence_warnings: list[str] = []
+
+    persisted_records, record_warning = _save_ingested_records(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        source_name=source_name,
+        source_type="csv",
+        rows=rows,
+        standardized=standardized,
+        mapping=final_mapping,
+    )
+    if record_warning:
+        persistence_warnings.append(record_warning)
+
+    summary_warning = _save_summary(
+        _summary_payload(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            source="csv",
+            filename=source_name,
+            row_count=len(rows),
+            mapping=final_mapping,
+            preview=standardized,
+            status="confirmed",
+            quality_report=quality_report,
+            model_feed_report=model_feed_report,
+            persisted_record_count=persisted_records,
+        )
+    )
+    if summary_warning:
+        persistence_warnings.append(summary_warning)
 
     return {
         "status": "success",
-        "message": f"{len(rows)} satır başarıyla sisteme kaydedildi.",
+        "message": f"{len(rows)} satir basariyla sisteme kaydedildi.",
         "applied_mapping": final_mapping,
         "inserted_rows": len(rows),
+        "persisted_records": persisted_records,
+        "quality_report": quality_report,
+        "model_feed_report": model_feed_report,
+        "persistence_warning": " ".join(persistence_warnings) or None,
         "tenant_id": tenant_id,
     }
 
 
 @router.post("/webhook")
-async def erp_webhook_ingest(payload: Dict[str, Any], request: Request):
+async def erp_webhook_ingest(payload: dict[str, Any], request: Request):
     """
-    ERP sistemlerinden otomatik JSON beslemesi için endpoint.
-    X-API-Key header'ı ile kimlik doğrulaması yapılır.
+    ERP sistemlerinden otomatik JSON beslemesi icin endpoint.
     """
     if not payload:
         raise HTTPException(status_code=400, detail="Empty payload")
 
-    # API key ile gelen isteklerde tenant_id middleware'den gelir
     tenant_id = getattr(request.state, "tenant_id", None)
     user_id = getattr(request.state, "user_id", None)
 
-    if isinstance(payload, list) and len(payload) > 0:
+    if isinstance(payload, list) and payload:
         columns = list(payload[0].keys())
         rows = payload
     elif isinstance(payload, dict):
@@ -135,26 +357,52 @@ async def erp_webhook_ingest(payload: Dict[str, Any], request: Request):
         rows = []
 
     mapping_result = map_columns(columns)
+    mapping = mapping_result.get("mapped", {})
+    standardized = _standardize_rows(rows, mapping)
+    quality_report = _data_quality_report(pd.DataFrame(rows)) if rows else {}
+    model_feed_report = _model_feed_report(standardized)
 
-    # Eğer Supabase yapılandırılmışsa, webhook verisini de kaydet
-    if is_configured() and rows:
-        try:
-            insert_row("ingested_data", {
-                "tenant_id": tenant_id,
-                "user_id": user_id,
-                "source": "webhook",
-                "filename": None,
-                "row_count": len(rows),
-                "column_mapping": mapping_result.get("mapped", {}),
-                "data_preview": rows[:5],
-                "status": "mapped",
-            })
-        except Exception:
-            pass  # Webhook loglama hatası ana akışı kırmamalı
+    if rows and not is_configured():
+        raise HTTPException(status_code=503, detail="Supabase kaydi yapilandirilmamis; veri kaydedilemedi.")
+
+    persistence_warnings: list[str] = []
+    persisted_records = 0
+    if rows:
+        persisted_records, record_warning = _save_ingested_records(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            source_name="webhook",
+            source_type="webhook",
+            rows=rows,
+            standardized=standardized,
+            mapping=mapping,
+        )
+        if record_warning:
+            persistence_warnings.append(record_warning)
+        summary_warning = _save_summary(
+            _summary_payload(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                source="webhook",
+                filename=None,
+                row_count=len(rows),
+                mapping=mapping,
+                preview=standardized,
+                status="mapped",
+                quality_report=quality_report,
+                model_feed_report=model_feed_report,
+                persisted_record_count=persisted_records,
+            )
+        )
+        if summary_warning:
+            persistence_warnings.append(summary_warning)
 
     return {
         "status": "success",
-        "message": f"Webhook alındı. {len(rows)} kayıt işlendi.",
+        "message": f"Webhook alindi. {len(rows)} kayit islendi.",
         "mapping_result": mapping_result,
+        "persisted_records": persisted_records,
+        "model_feed_report": model_feed_report,
+        "persistence_warning": " ".join(persistence_warnings) or None,
         "tenant_id": tenant_id,
     }

@@ -158,33 +158,42 @@ export default function Demand() {
               <span className="field-label">Ürün kategorisi</span>
               <select className="select" value={category} onChange={(event) => setCategory(event.target.value)}>
                 <option value="">Tüm kategoriler</option>
-                <option value="Fan Shop">Fan Shop</option>
-                <option value="Sporting Goods">Sporting Goods</option>
-                <option value="Cleats">Cleats</option>
-                <option value="Women's Apparel">Women's Apparel</option>
-                <option value="Men's Footwear">Men's Footwear</option>
-                <option value="Fishing">Fishing</option>
-                <option value="Water Sports">Water Sports</option>
-                <option value="Camping & Hiking">Camping & Hiking</option>
+                <option value="Fan Shop">Taraftar ürünleri</option>
+                <option value="Sporting Goods">Spor ürünleri</option>
+                <option value="Cleats">Krampon</option>
+                <option value="Women's Apparel">Kadın giyim</option>
+                <option value="Men's Footwear">Erkek ayakkabı</option>
+                <option value="Fishing">Balıkçılık</option>
+                <option value="Water Sports">Su sporları</option>
+                <option value="Camping & Hiking">Kamp ve doğa yürüyüşü</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Pazar</span>
               <select className="select" value={market} onChange={(event) => setMarket(event.target.value)}>
                 <option value="">Tüm pazarlar</option>
-                <option value="Europe">Europe</option>
-                <option value="US / Puerto Rico">US / Puerto Rico</option>
-                <option value="LATAM">LATAM</option>
-                <option value="Pacific Asia">Pacific Asia</option>
-                <option value="Africa">Africa</option>
+                <option value="Europe">Avrupa</option>
+                <option value="US / Puerto Rico">ABD / Porto Riko</option>
+                <option value="LATAM">Latin Amerika</option>
+                <option value="Pacific Asia">Pasifik Asya</option>
+                <option value="Africa">Afrika</option>
               </select>
             </label>
             <label className="field">
               <span className="field-label">Alt bölge</span>
-              <input className="input" value={orderRegion} onChange={(event) => setOrderRegion(event.target.value)} placeholder="Örn. Western Europe" />
+              <select className="select" value={orderRegion} onChange={(event) => setOrderRegion(event.target.value)}>
+                <option value="">Tüm alt bölgeler</option>
+                <option value="Western Europe">Batı Avrupa</option>
+                <option value="Eastern Europe">Doğu Avrupa</option>
+                <option value="Central America">Orta Amerika</option>
+                <option value="South America">Güney Amerika</option>
+                <option value="Southeast Asia">Güneydoğu Asya</option>
+                <option value="West Africa">Batı Afrika</option>
+                <option value="US / Puerto Rico">ABD / Porto Riko</option>
+              </select>
             </label>
             <label className="field">
-              <span className="field-label">SKU</span>
+              <span className="field-label">Ürün kodu</span>
               <input className="input" value={sku} onChange={(event) => setSku(event.target.value)} placeholder="Örn. 1360" />
             </label>
             <label className="field">

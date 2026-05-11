@@ -1,311 +1,254 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   getIncidents,
   getOverviewMetrics,
   getRiskMap,
   getXaiExplanations,
   postIncidentAction,
-  postWhatIfScenario,
 } from "../lib/api.js";
 import DigitalTwinMap from "../components/DigitalTwinMap.jsx";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
-
-function fmtPct(value) {
-  if (value == null) return "-";
-  return `${(value * 100).toFixed(1)}%`;
-}
-
-function fmtMoney(value) {
-  if (value == null) return "-";
-  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-  return `$${value.toFixed(0)}`;
-}
-
-function severityTone(severity) {
-  if (severity === "critical") return "red";
-  if (severity === "high" || severity === "medium") return "amber";
-  return "green";
-}
-
-function riskTone(score) {
-  if (score >= 0.75) return { label: "Kritik", color: "var(--risk-high)", badge: "red" };
-  if (score >= 0.55) return { label: "Yüksek", color: "var(--risk-med)", badge: "amber" };
-  return { label: "Normal", color: "var(--risk-low)", badge: "green" };
-}
+import {
+  DecisionDrawer,
+  formatMoney,
+  formatPct,
+  severityMeta,
+  translateIncidentDescription,
+  translateIncidentTitle,
+  typeLabel,
+} from "../components/OperationsUI.jsx";
 
 const KPI_META = [
-  {
-    key: "on_time_delivery_pct",
-    title: "Zamanında Teslimat",
-    caption: "Operasyon sağlığı",
-    formatter: fmtPct,
-    accent: "green",
-  },
-  {
-    key: "late_delivery_risk_pct",
-    title: "Gecikme Riski",
-    caption: "Öncelikli sevkiyat takibi",
-    formatter: fmtPct,
-    accent: "red",
-  },
-  {
-    key: "demand_risk_pct",
-    title: "Talep Riski",
-    caption: "Stok ve kapasite baskısı",
-    formatter: fmtPct,
-    accent: "amber",
-  },
-  {
-    key: "financial_exposure_usd",
-    title: "Finansal Maruziyet",
-    caption: "Risk altındaki gelir",
-    formatter: fmtMoney,
-    accent: "red",
-  },
+  { key: "on_time_delivery_pct", label: "Zamanında teslimat", formatter: formatPct, tone: "success" },
+  { key: "late_delivery_risk_pct", label: "Gecikme riski", formatter: formatPct, tone: "risk" },
+  { key: "demand_risk_pct", label: "Talep riski", formatter: formatPct, tone: "warning" },
+  { key: "financial_exposure_usd", label: "Finansal maruziyet", formatter: formatMoney, tone: "risk" },
 ];
 
 const FALLBACK_EXPLANATIONS = {
-  on_time_delivery_pct: "Zamanında teslimat oranı, geçmiş sevkiyat performansı ve gecikme kayıtları üzerinden hesaplanır.",
-  late_delivery_risk_pct: "Gecikme riski; rota, kargo modu, bölge ve geçmiş teslimat kalıplarının birleşik sinyalidir.",
-  demand_risk_pct: "Talep riski, kategori ve bölge bazlı oynaklık ile sipariş trendlerinden türetilir.",
-  financial_exposure_usd: "Finansal maruziyet, zarar eden veya anomali taşıyan siparişlerin toplam etkisini gösterir.",
+  on_time_delivery_pct: "Zamanında teslimat oranı mevcut sevkiyat verisinden hesaplanır.",
+  late_delivery_risk_pct: "Bölge, taşıma modu ve geçmiş teslimat bayrakları gecikme riskini belirler.",
+  demand_risk_pct: "Kategori bazlı oynaklık ve sipariş trendleri talep riskini üretir.",
+  financial_exposure_usd: "Negatif kar ve şüpheli işlem sinyalleri finansal maruziyeti gösterir.",
 };
 
-const TITLE_TR = {
-  "Negative-profit order exposure": "Zarar Eden Sipariş Riski",
-  "Suspected fraud exposure cluster": "Şüpheli İşlem Kümesi",
-};
-
-function translateTitle(title) {
-  if (TITLE_TR[title]) return TITLE_TR[title];
-  return title
-    ?.replace("lane delay risk", "hat gecikme riski")
-    ?.replace("Standard Class", "Standart")
-    ?.replace("First Class", "Öncelikli")
-    ?.replace("Second Class", "İkinci Sınıf")
-    ?.replace("Same Day", "Aynı Gün") ?? "Risk olayı";
+function shippingModeLabel(value) {
+  const labels = {
+    "Standard Class": "Standart",
+    "Second Class": "Ekonomi",
+    "First Class": "Öncelikli",
+    "Same Day": "Aynı gün",
+  };
+  return labels[value] || value;
 }
 
-function translateAction(action) {
-  const text = (action || "").toLowerCase();
-  if (text.includes("hold")) return "Sevkiyatı durdur";
-  if (text.includes("review")) return "İncelemeye al";
-  if (text.includes("upgrade")) return "Servis seviyesini yükselt";
-  if (text.includes("notify")) return "Ekibi bilgilendir";
-  if (text.includes("inspect")) return "Detaya bak";
-  return "Onayla";
+function regionLabel(value) {
+  const labels = {
+    "Western Europe": "Batı Avrupa",
+    "Eastern Europe": "Doğu Avrupa",
+    "Central America": "Orta Amerika",
+    "South America": "Güney Amerika",
+    "Southeast Asia": "Güneydoğu Asya",
+    "West Africa": "Batı Afrika",
+    "US / Puerto Rico": "ABD / Porto Riko",
+    LATAM: "Latin Amerika",
+  };
+  return labels[value] || value;
 }
 
 function KpiCard({ meta, value, explanation }) {
   return (
-    <article className={`card kpi-accent-${meta.accent}`}>
-      <div className="ct-kpi-head">
-        <div>
-          <p className="card-title">{meta.title}</p>
-          <p className="card-value">{meta.formatter(value)}</p>
-          <p className="card-caption">{meta.caption}</p>
-        </div>
-      </div>
-      <p className="card-caption" style={{ marginTop: 12, lineHeight: 1.55 }}>{explanation}</p>
+    <article className={`usage-kpi usage-kpi-${meta.tone === "risk" ? "warning" : meta.tone}`}>
+      <span>{meta.label}</span>
+      <strong>{meta.formatter(value)}</strong>
+      <p>{explanation}</p>
     </article>
   );
 }
 
-function ScenarioDrawer({ open, onClose, scenario, onChange, onApply, onReset, loading }) {
-  if (!open) return null;
+function RiskLaneRow({ zone, onOpen }) {
+  const tone = zone.late_risk_pct >= 0.75 ? "red" : zone.late_risk_pct >= 0.55 ? "amber" : "green";
   return (
-    <>
-      <button aria-label="Senaryo panelini kapat" className="ct-drawer-overlay" onClick={onClose} />
-      <aside className="ct-drawer" role="dialog" aria-label="Senaryo simülasyonu">
-        <div className="ct-drawer-head">
-          <div>
-            <p className="ct-drawer-eyebrow">Senaryo</p>
-            <h2 className="ct-drawer-title">Operasyon Etkisini Simüle Et</h2>
-            <p className="ct-drawer-subtitle">Varsayımları değiştirin, KPI etkisini ayrı bir senaryo olarak görün.</p>
-          </div>
-          <button type="button" onClick={onClose} className="ct-drawer-close">Kapat</button>
-        </div>
-
-        <div className="ct-drawer-fields">
-          <label className="ct-drawer-field">
-            <span className="ct-drawer-field-label">Liman kapanması</span>
-            <select
-              value={scenario.portClosed ? "yes" : "no"}
-              onChange={(event) => onChange({ portClosed: event.target.value === "yes" })}
-              className="ct-drawer-select"
-            >
-              <option value="no">Yok</option>
-              <option value="yes">Büyük liman kapalı</option>
-            </select>
-          </label>
-          <label className="ct-drawer-field">
-            <span className="ct-drawer-field-label">Talep artışı: %{scenario.demandSurge}</span>
-            <input
-              type="range"
-              min={0}
-              max={30}
-              step={1}
-              value={scenario.demandSurge}
-              onChange={(event) => onChange({ demandSurge: Number(event.target.value) })}
-              className="ct-drawer-range"
-            />
-          </label>
-          <label className="ct-drawer-field">
-            <span className="ct-drawer-field-label">Tedarikçi grevi</span>
-            <select
-              value={scenario.strike}
-              onChange={(event) => onChange({ strike: event.target.value })}
-              className="ct-drawer-select"
-            >
-              <option value="none">Yok</option>
-              <option value="local">Bölgesel</option>
-              <option value="global">Küresel</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="ct-drawer-actions">
-          <button type="button" onClick={onApply} className="ct-drawer-btn ct-drawer-btn-primary" disabled={loading}>
-            {loading ? <InlineSpinner label="Simülasyon çalışıyor..." /> : "Simülasyonu çalıştır"}
-          </button>
-          <button type="button" onClick={onReset} className="ct-drawer-btn ct-drawer-btn-secondary" disabled={loading}>
-            Sıfırla
-          </button>
-        </div>
-      </aside>
-    </>
+    <button type="button" className="pro-table-row pro-table-button" onClick={() => onOpen(zone)}>
+      <span className="pro-td pro-td-name" style={{ flex: 2 }}>{regionLabel(zone.order_region)}</span>
+      <span className="pro-td" style={{ flex: 1.4 }}>{shippingModeLabel(zone.shipping_mode)}</span>
+      <span className="pro-td" style={{ flex: 1.5, gap: 10 }}>
+        <span className="pro-mini-track">
+          <span className="pro-mini-fill" style={{ width: `${zone.late_risk_pct * 100}%`, background: `var(--risk-${tone === "red" ? "high" : tone === "amber" ? "med" : "low"})` }} />
+        </span>
+        <strong>{formatPct(zone.late_risk_pct)}</strong>
+      </span>
+      <span className="pro-td" style={{ flex: 1 }}>{formatMoney(zone.financial_exposure_usd)}</span>
+    </button>
   );
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState(null);
-  const [simulatedMetrics, setSimulatedMetrics] = useState(null);
-  const [xaiMap, setXaiMap] = useState(FALLBACK_EXPLANATIONS);
+  const [explanations, setExplanations] = useState(FALLBACK_EXPLANATIONS);
   const [riskZones, setRiskZones] = useState([]);
   const [incidents, setIncidents] = useState([]);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [scenarioOpen, setScenarioOpen] = useState(false);
-  const [scenarioLoading, setScenarioLoading] = useState(false);
-  const [isSimulationApplied, setIsSimulationApplied] = useState(false);
-  const [decisionLoading, setDecisionLoading] = useState({});
-  const [decisions, setDecisions] = useState({});
-  const [scenario, setScenario] = useState({ portClosed: false, demandSurge: 0, strike: "none" });
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState({});
+
+  const fetchCommandCenter = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [overview, xai, riskMap, incidentData] = await Promise.all([
+        getOverviewMetrics(),
+        getXaiExplanations({ port_closed: false, demand_surge_pct: 0, supplier_strike: "none" }),
+        getRiskMap({ limit: 8 }),
+        getIncidents({ limit: 8 }),
+      ]);
+      setMetrics(overview);
+      setExplanations({ ...FALLBACK_EXPLANATIONS, ...(xai?.explanations ?? {}) });
+      setRiskZones(riskMap?.items ?? []);
+      setIncidents(incidentData?.items ?? []);
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Operasyon merkezi verileri yüklenemedi.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    setError("");
-    Promise.all([
-      getOverviewMetrics(),
-      getXaiExplanations({ port_closed: false, demand_surge_pct: 0, supplier_strike: "none" }),
-      getRiskMap({ limit: 8 }),
-      getIncidents({ limit: 6 }),
-    ])
-      .then(([overview, explanations, riskMap, incidentData]) => {
-        if (!mounted) return;
-        setMetrics(overview);
-        setRiskZones(riskMap?.items ?? []);
-        setIncidents(incidentData?.items ?? []);
-        if (explanations?.explanations) {
-          setXaiMap((prev) => ({ ...prev, ...explanations.explanations }));
-        }
-      })
-      .catch((err) => {
-        if (!mounted) return;
-        setError(err?.response?.data?.detail || "Kontrol kulesi verileri yüklenemedi.");
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
+    fetchCommandCenter();
   }, []);
 
-  const activeMetrics = useMemo(
-    () => (isSimulationApplied ? simulatedMetrics ?? metrics : metrics),
-    [isSimulationApplied, metrics, simulatedMetrics],
-  );
+  const summary = useMemo(() => {
+    const critical = incidents.filter((item) => ["critical", "high"].includes(item.severity)).length;
+    const exposure = incidents.reduce((sum, item) => sum + Number(item.impact_usd || 0), 0);
+    const topIncident = [...incidents].sort((a, b) => Number(b.impact_usd || 0) - Number(a.impact_usd || 0))[0];
+    return { critical, exposure, topIncident };
+  }, [incidents]);
 
-  async function approveIncident(item) {
-    setDecisionLoading((prev) => ({ ...prev, [item.id]: true }));
+  const handleAction = async (item, status) => {
+    setSaving((prev) => ({ ...prev, [item.id]: status }));
     try {
       await postIncidentAction({
         incident_id: item.id,
         action: item.recommended_action,
-        status: "approved",
+        status,
         metadata: {
           title: item.title,
+          type: item.type,
           severity: item.severity,
           impact_usd: item.impact_usd,
-          source: "control_tower",
+          confidence: item.confidence,
+          source: "command_center",
         },
       });
-      setDecisions((prev) => ({ ...prev, [item.id]: "approved" }));
-    } catch {
-      setDecisions((prev) => ({ ...prev, [item.id]: "failed" }));
+      setSelectedIncident(null);
+      await fetchCommandCenter();
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Karar kaydedilemedi.");
     } finally {
-      setDecisionLoading((prev) => ({ ...prev, [item.id]: false }));
+      setSaving((prev) => ({ ...prev, [item.id]: null }));
     }
-  }
+  };
 
-  function drillLogistics(params) {
-    navigate(`/app/logistics?${new URLSearchParams(params).toString()}`);
-  }
+  const openZone = (zone) => {
+    navigate(`/app/logistics?${new URLSearchParams({
+      order_region: zone.order_region,
+      shipping_mode: zone.shipping_mode,
+      category: zone.category_name,
+      sku: zone.sku,
+    }).toString()}`);
+  };
+
+  const drilldownIncident = (item) => {
+    const params = item.drilldown_params ?? {};
+    if (Object.keys(params).length > 0) {
+      navigate(`/app/logistics?${new URLSearchParams(params).toString()}`);
+    } else if (item.type === "fraud") {
+      navigate("/app/fraud");
+    } else {
+      navigate("/app/demand");
+    }
+  };
 
   return (
     <div className="page-layout">
       <PageIntro
-        eyebrow="Yönetici kokpiti"
-        title="Kontrol Kulesi"
+        eyebrow="Operasyon merkezi"
+        title="Operasyon Karar Merkezi"
         aside={
           <div className="ct-top-actions">
-            <button type="button" onClick={() => setScenarioOpen(true)} className="ct-sim-open-btn">
-              Senaryo simülasyonu
-            </button>
-            <div className="pill">
-              <span className="pill-dot" />
-              {loading ? "Yükleniyor..." : "Canlı veri"}
-            </div>
+            <Link to="/app/inbox" className="pro-btn-outline">Olay Kutusu</Link>
+            <Link to="/app/scenario-lab" className="ct-sim-open-btn">Senaryo Laboratuvarı</Link>
           </div>
         }
       >
-        Bugün aksiyon gerektiren riskleri, finansal etkiyi ve model sinyallerini tek yerde izleyin.
+        Bugün müdahale gerektiren riskleri, finansal etkiyi, rota yoğunluğunu ve model sinyallerini tek ekranda izleyin.
       </PageIntro>
 
-      {error && <StatusBanner type="error" title="Veri alınamadı">{error}</StatusBanner>}
-      {isSimulationApplied && (
-        <StatusBanner type="warning" title="Senaryo görünümü açık">
-          KPI değerleri simülasyon sonucunu gösteriyor. Gerçek operasyon görünümüne dönmek için senaryoyu sıfırlayın.
+      {error && (
+        <StatusBanner type="error" title="Veri alınamadı">
+          {error}
         </StatusBanner>
       )}
 
-      <section className="kpi-grid">
-        {loading || !activeMetrics ? (
-          [1, 2, 3, 4].map((key) => <article key={key} className="card"><div className="skeleton skeleton-card" /></article>)
+      <section className="command-hero">
+        <div className="command-hero-panel">
+          <div>
+            <h2 className="command-hero-title">
+              {loading ? "Operasyon sinyalleri hazırlanıyor" : `${summary.critical} öncelikli olay, ${formatMoney(summary.exposure)} risk altında`}
+            </h2>
+            <p className="command-hero-text">
+              Operasyon Merkezi, analiz sonuçlarını ayrı kartlar olarak değil, günlük operasyon karar kuyruğu olarak sunar.
+            </p>
+          </div>
+          <div className="command-hero-actions">
+            <button type="button" className="btn" onClick={fetchCommandCenter} disabled={loading}>
+              {loading ? <InlineSpinner label="Yenileniyor" /> : "Verileri yenile"}
+            </button>
+            <Link to="/app/data-quality" className="pro-btn-outline">Veri kalitesini kontrol et</Link>
+          </div>
+        </div>
+
+        <div className="command-hero-panel">
+          <div className="panel-title-block">
+            <h2 className="panel-title">Günün en büyük riski</h2>
+            <p className="panel-subtitle">Finansal etkiye göre sıralanır.</p>
+          </div>
+          {loading ? (
+            <div className="skeleton" style={{ height: 86 }} />
+          ) : summary.topIncident ? (
+            <button type="button" className="exception-card" onClick={() => setSelectedIncident(summary.topIncident)}>
+              <div>
+                <h3>{translateIncidentTitle(summary.topIncident.title)}</h3>
+                <p>{translateIncidentDescription(summary.topIncident.description)}</p>
+              </div>
+              <div className="exception-card-impact">{formatMoney(summary.topIncident.impact_usd)}</div>
+            </button>
+          ) : (
+            <EmptyState title="Kritik risk yok" />
+          )}
+        </div>
+      </section>
+
+      <section className="usage-kpi-grid">
+        {loading || !metrics ? (
+          [1, 2, 3, 4].map((item) => <article key={item} className="usage-kpi"><div className="skeleton" style={{ height: 84 }} /></article>)
         ) : (
           KPI_META.map((meta) => (
-            <KpiCard
-              key={meta.key}
-              meta={meta}
-              value={activeMetrics[meta.key]}
-              explanation={xaiMap[meta.key] ?? FALLBACK_EXPLANATIONS[meta.key]}
-            />
+            <KpiCard key={meta.key} meta={meta} value={metrics[meta.key]} explanation={explanations[meta.key]} />
           ))
         )}
       </section>
 
-      <section className="panel" style={{ padding: 0, overflow: "hidden", marginBottom: 20 }}>
+      <section className="panel" style={{ padding: 0, overflow: "hidden" }}>
         <div className="panel-header" style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="panel-title-block">
-            <h2 className="panel-title">Operasyon Haritası</h2>
-            <p className="panel-subtitle">Bölge ve rota bazında risk yoğunluğunu izleyin.</p>
+            <h2 className="panel-title">Operasyon haritası</h2>
+            <p className="panel-subtitle">Riskli hatlar ve olaylar aynı coğrafi görünümde.</p>
           </div>
-          <span className="panel-header-badge blue">Canlı görünüm</span>
+          <span className="panel-header-badge blue">{riskZones.length} hat</span>
         </div>
         <DigitalTwinMap zones={riskZones} incidents={incidents} />
       </section>
@@ -314,50 +257,25 @@ export default function Dashboard() {
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Bölgesel Gecikme Riskleri</h2>
-              <p className="panel-subtitle">Bir satıra tıklayarak ilgili lojistik analizine geçin.</p>
+              <h2 className="panel-title">Riskli hatlar</h2>
+              <p className="panel-subtitle">Lojistik detayına geçmek için satıra tıklayın.</p>
             </div>
-            <span className="panel-header-badge amber">{riskZones.length} hat</span>
           </div>
-          {riskZones.length === 0 && !loading ? (
-            <EmptyState title="Risk verisi bulunamadı">
-              Veri Merkezi üzerinden sipariş veya sevkiyat verisi yükleyerek risk haritasını güncelleyin.
-            </EmptyState>
+          {loading ? (
+            <div className="usage-skeleton-list">
+              {[1, 2, 3, 4].map((item) => <div key={item} className="skeleton" />)}
+            </div>
+          ) : riskZones.length === 0 ? (
+            <EmptyState title="Riskli hat bulunamadı" />
           ) : (
             <div className="pro-table">
               <div className="pro-table-head">
                 <span className="pro-th" style={{ flex: 2 }}>Bölge</span>
-                <span className="pro-th" style={{ flex: 2 }}>Kargo modu</span>
-                <span className="pro-th" style={{ flex: 2 }}>Risk</span>
-                <span className="pro-th" style={{ width: 72 }} />
+                <span className="pro-th" style={{ flex: 1.4 }}>Mod</span>
+                <span className="pro-th" style={{ flex: 1.5 }}>Risk</span>
+                <span className="pro-th" style={{ flex: 1 }}>Etki</span>
               </div>
-              {riskZones.map((zone) => {
-                const tone = riskTone(zone.late_risk_pct);
-                return (
-                  <button
-                    key={zone.id}
-                    type="button"
-                    className="pro-table-row pro-table-button"
-                    onClick={() => drillLogistics({
-                      order_region: zone.order_region,
-                      shipping_mode: zone.shipping_mode,
-                      category: zone.category_name,
-                      sku: zone.sku,
-                    })}
-                  >
-                    <span className="pro-td pro-td-name" style={{ flex: 2 }}>{zone.order_region}</span>
-                    <span className="pro-td" style={{ flex: 2 }}>{zone.shipping_mode}</span>
-                    <span className="pro-td" style={{ flex: 2, display: "flex", alignItems: "center", gap: 10 }}>
-                      <span className="pro-mini-track">
-                        <span className="pro-mini-fill" style={{ width: `${zone.late_risk_pct * 100}%`, background: tone.color }} />
-                      </span>
-                      <strong style={{ color: tone.color }}>{fmtPct(zone.late_risk_pct)}</strong>
-                      <span className={`pro-tag pro-tag-${tone.badge}`}>{tone.label}</span>
-                    </span>
-                    <span className="pro-td pro-td-action" style={{ width: 72 }}>İncele</span>
-                  </button>
-                );
-              })}
+              {riskZones.map((zone) => <RiskLaneRow key={zone.id} zone={zone} onOpen={openZone} />)}
             </div>
           )}
         </div>
@@ -365,52 +283,32 @@ export default function Dashboard() {
         <div className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
-              <h2 className="panel-title">Bugünün Aksiyonları</h2>
-              <p className="panel-subtitle">Onaylanan kararlar denetim kaydına yazılır.</p>
+              <h2 className="panel-title">Olay Kutusu önizlemesi</h2>
+              <p className="panel-subtitle">Detay için olayı açın veya tüm kuyruğa geçin.</p>
             </div>
-            <span className="panel-header-badge amber">{incidents.length} bekleyen</span>
+            <Link to="/app/inbox" className="pro-btn-outline">Tümünü aç</Link>
           </div>
-
-          {incidents.length === 0 && !loading ? (
-            <EmptyState title="Bekleyen aksiyon yok">
-              Kritik bir olay oluştuğunda burada etki, önerilen aksiyon ve inceleme bağlantısı görünür.
-            </EmptyState>
+          {loading ? (
+            <div className="usage-skeleton-list">
+              {[1, 2, 3].map((item) => <div key={item} className="skeleton" />)}
+            </div>
+          ) : incidents.length === 0 ? (
+            <EmptyState title="Bekleyen olay yok" />
           ) : (
-            <div className="pro-table">
-              <div className="pro-table-head">
-                <span className="pro-th" style={{ flex: 2 }}>Olay</span>
-                <span className="pro-th" style={{ width: 90 }}>Etki</span>
-                <span className="pro-th" style={{ width: 150, textAlign: "right" }}>Aksiyon</span>
-              </div>
-              {incidents.map((item) => {
-                const approved = decisions[item.id] === "approved";
-                const failed = decisions[item.id] === "failed";
-                const saving = decisionLoading[item.id];
+            <div className="exception-card-list">
+              {incidents.slice(0, 4).map((item) => {
+                const sev = severityMeta(item.severity);
                 return (
-                  <div key={item.id} className="pro-table-row">
-                    <span className="pro-td pro-td-name" style={{ flex: 2 }}>
-                      <span className={`ct-dot ${severityTone(item.severity)}`} style={{ marginRight: 8 }} />
-                      {translateTitle(item.title)}
-                    </span>
-                    <span className="pro-td" style={{ width: 90, color: item.impact_usd > 0 ? "var(--risk-high)" : "var(--text-muted)", fontWeight: 800 }}>
-                      {item.impact_usd > 0 ? fmtMoney(item.impact_usd) : "-"}
-                    </span>
-                    <span className="pro-td" style={{ width: 150, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                      <button
-                        type="button"
-                        className="pro-btn-ghost"
-                        onClick={() => approveIncident(item)}
-                        disabled={approved || saving}
-                      >
-                        {saving ? "Kaydediliyor" : approved ? "Onaylandı" : failed ? "Tekrar dene" : translateAction(item.recommended_action)}
-                      </button>
-                      {Object.keys(item.drilldown_params ?? {}).length > 0 && (
-                        <button type="button" className="pro-btn-outline" onClick={() => drillLogistics(item.drilldown_params)}>
-                          İncele
-                        </button>
-                      )}
-                    </span>
-                  </div>
+                  <button key={item.id} type="button" className="exception-card" onClick={() => setSelectedIncident(item)}>
+                    <div>
+                      <h3>{translateIncidentTitle(item.title)}</h3>
+                      <div className="exception-card-meta">
+                        <span className={`panel-header-badge ${sev.tone}`}>{sev.label}</span>
+                        <span className="data-chip">{typeLabel(item.type)}</span>
+                      </div>
+                    </div>
+                    <div className="exception-card-impact">{formatMoney(item.impact_usd)}</div>
+                  </button>
                 );
               })}
             </div>
@@ -418,45 +316,13 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <ScenarioDrawer
-        open={scenarioOpen}
-        scenario={scenario}
-        loading={scenarioLoading}
-        onClose={() => setScenarioOpen(false)}
-        onChange={(patch) => setScenario((prev) => ({ ...prev, ...patch }))}
-        onApply={async () => {
-          setScenarioLoading(true);
-          try {
-            const result = await postWhatIfScenario({
-              port_closed: scenario.portClosed,
-              demand_surge_pct: scenario.demandSurge,
-              supplier_strike: scenario.strike,
-            });
-            if (result?.metrics) {
-              setSimulatedMetrics(result.metrics);
-              setIsSimulationApplied(true);
-            }
-            if (result?.explanations) {
-              setXaiMap((prev) => ({ ...prev, ...result.explanations }));
-            }
-            setScenarioOpen(false);
-          } finally {
-            setScenarioLoading(false);
-          }
-        }}
-        onReset={async () => {
-          setScenario({ portClosed: false, demandSurge: 0, strike: "none" });
-          setIsSimulationApplied(false);
-          setSimulatedMetrics(null);
-          const explanations = await getXaiExplanations({
-            port_closed: false,
-            demand_surge_pct: 0,
-            supplier_strike: "none",
-          });
-          if (explanations?.explanations) {
-            setXaiMap((prev) => ({ ...prev, ...explanations.explanations }));
-          }
-        }}
+      <DecisionDrawer
+        open={Boolean(selectedIncident)}
+        item={selectedIncident}
+        onClose={() => setSelectedIncident(null)}
+        onAction={handleAction}
+        loadingAction={selectedIncident ? saving[selectedIncident.id] : null}
+        drilldownAction={drilldownIncident}
       />
     </div>
   );
