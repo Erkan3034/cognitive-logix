@@ -47,12 +47,12 @@ def onboard_user(payload: OnboardRequest):
     try:
         sb = get_supabase_admin()
         
-        # 0. Kullanıcının zaten bir tenant'ı var mı kontrol et
+
         profile_resp = sb.table("profiles").select("tenant_id").eq("id", payload.user_id).execute()
         profile_data = getattr(profile_resp, "data", [])
         
         if profile_data and profile_data[0].get("tenant_id"):
-            # Zaten tenant_id atanmış, yenisini oluşturmaya gerek yok
+
             existing_tenant_id = profile_data[0]["tenant_id"]
             return {
                 "status": "success",
@@ -61,7 +61,7 @@ def onboard_user(payload: OnboardRequest):
                 "message": "User already onboarded."
             }
             
-        # 1. Tenant oluştur
+
         tenant_resp = sb.table("tenants").insert({
             "name": payload.company_name,
             "plan": "free"
@@ -73,7 +73,7 @@ def onboard_user(payload: OnboardRequest):
             
         tenant_id = tenant_data[0]["id"]
         
-        # 2. Profili güncelle (user'ı tenant'a bağla)
+
         sb.table("profiles").update({
             "tenant_id": tenant_id
         }).eq("id", payload.user_id).execute()
@@ -104,13 +104,13 @@ def get_billing_status(request: Request):
         
     sb = get_supabase_admin()
     
-    # 1. Tenant planını al
+
     tenant_resp = sb.table("tenants").select("plan").eq("id", tenant_id).single().execute()
     tenant_data = getattr(tenant_resp, "data", {})
     current_plan = tenant_data.get("plan", "free")
     limit = PLAN_LIMITS.get(current_plan, 100)
     
-    # 2. Bu ayki kullanım miktarını say
+
     import datetime
     first_day_of_month = datetime.datetime.now(datetime.timezone.utc).replace(day=1, hour=0, minute=0, second=0).isoformat()
     
@@ -153,7 +153,7 @@ def upgrade_plan(payload: UpgradeRequest, request: Request):
         
     sb = get_supabase_admin()
     
-    # Planı güncelle
+
     sb.table("tenants").update({
         "plan": new_plan
     }).eq("id", tenant_id).execute()

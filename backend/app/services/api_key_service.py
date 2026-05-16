@@ -14,8 +14,8 @@ from typing import Any
 from app.services.supabase_ops import get_supabase_admin, is_configured
 
 
-KEY_PREFIX = "cl_"          # Tüm key'ler "cl_" ile başlar
-KEY_LENGTH = 40             # Toplam karakter uzunluğu
+KEY_PREFIX = "cl_"
+KEY_LENGTH = 40
 
 
 def _hash_key(raw_key: str) -> str:
@@ -36,7 +36,7 @@ def generate_api_key(
     if not is_configured():
         raise RuntimeError("Supabase is not configured.")
 
-    # Rastgele güvenli key üret
+
     raw_key = KEY_PREFIX + secrets.token_urlsafe(KEY_LENGTH)
     key_hash = _hash_key(raw_key)
     key_prefix_display = raw_key[:12] + "****"
@@ -60,7 +60,7 @@ def generate_api_key(
 
     return {
         "id": row.get("id"),
-        "raw_key": raw_key,           # Sadece bir kez gösterilir!
+        "raw_key": raw_key,
         "key_prefix": key_prefix_display,
         "label": label,
         "scopes": scopes,
@@ -95,20 +95,20 @@ def validate_api_key(raw_key: str) -> dict[str, Any] | None:
 
     row = data[0]
 
-    # Süresi dolmuş mu kontrol et
+
     expires_at = row.get("expires_at")
     if expires_at:
         exp = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
         if exp < datetime.now(timezone.utc):
             return None
 
-    # Son kullanım zamanını güncelle
+
     try:
         sb.table("api_keys").update({
             "last_used_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", row["id"]).execute()
     except Exception:
-        pass  # Güncelleme başarısız olursa key doğrulamayı engellemesin
+        pass
 
     return {
         "key_id": row["id"],

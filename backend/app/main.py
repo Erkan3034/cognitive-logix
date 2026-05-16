@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# .env dosyasını yükle (Supabase key'leri burada tanımlı)
+
 _env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(_env_path)
 
@@ -70,19 +70,19 @@ async def _periodic_metrics_refresh_task() -> None:
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    # Warm up DataFrame caches first (CSV reads) — this is the main bottleneck
+
     try:
         await run_in_threadpool(_get_cached_analysis_base)
         await run_in_threadpool(_get_cached_full_base)
         logger.info("DataFrame caches warmed up at startup")
     except Exception:
         logger.exception("Startup DataFrame cache warm-up failed")
-    # Warm up KPI metrics cache
+
     try:
         await run_in_threadpool(warmup_overview_metrics, True)
     except Exception:
         logger.exception("Startup metrics warm-up failed")
-    # Warm up risk-map cache
+
     try:
         await run_in_threadpool(_build_risk_map, 12, None)
         logger.info("Risk-map cache warmed up at startup")

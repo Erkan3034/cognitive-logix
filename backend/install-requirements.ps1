@@ -20,4 +20,4 @@ Write-Host "`nStep 4: Installing optional packages..." -ForegroundColor Yellow
 pip install xgboost==2.1.3 || Write-Host "  Warning: xgboost installation failed, skipping..." -ForegroundColor Yellow
 pip install prophet==1.1.5 || Write-Host "  Warning: prophet installation failed, skipping..." -ForegroundColor Yellow
 
-Write-Host "`n✅ Installation complete!" -ForegroundColor Green
+Write-Host "`n[DONE] Installation complete!" -ForegroundColor Green
