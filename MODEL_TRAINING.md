@@ -82,7 +82,7 @@ python notebooks/module_a_logistics/train_logistics_model.py
 
 **Model Özellikleri:**
 - Hedef: `Late_delivery_risk` (Teslimat gecikmesi riski)
-- Algoritma: Random Forest Classifier (200 ağaç)
+- Algoritma: CatBoost Classifier (Kategorik veri odaklı)
 - Özellikler: Kargo modu, region, pazar, kategori, kargo gecikmesi, vs.
 
 ---
@@ -100,7 +100,7 @@ python notebooks/module_b_demand/train_demand_model.py
 
 **Model Özellikleri:**
 - Hedef: Günlük satış toplamı tahmini
-- Algoritma: Random Forest Regressor
+- Algoritma: LightGBM Quantile Regressor (LGBMRegressor)
 - Veri Kaynağı: `data/processed/analiz_veri.csv`
 
 ---
@@ -118,7 +118,7 @@ python notebooks/module_c_fraud/train_fraud_model.py
 
 **Model Özellikleri:**
 - Hedef: `is_fraud` (SUSPECTED_FRAUD vs normal siparişler)
-- Algoritma: Random Forest Classifier
+- Algoritma: CatBoost Classifier (Supervised) + IsolationForest (Unsupervised)
 - Özellikler: Satış tutarı, kâr, kargo gecikmesi, negatif kâr bayrağı, vs.
 
 ---

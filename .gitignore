@@ -37,3 +37,6 @@ backend/trained_models/
 *.log
 
 my-claude-skills/
+V2_SAAS_ROADMAP.md
+PRESENTATION_PROMPT.md
+SAAS_MIMARISI.md
