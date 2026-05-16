@@ -4,6 +4,12 @@ import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 
+const LOCAL_SCENES = {
+  ship: "/isometric-dribbble.png",
+  globe: "/globe-3d.png",
+  container: "/truck-dribbble.png",
+};
+
 /* ─── SVG Icons ─────────────────────────────────────────── */
 const IconBrain = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" style={{ width: 28, height: 28 }}>
@@ -124,72 +130,107 @@ const TESTIMONIALS = [
   { name: "Emir Demir", role: "CTO, MedSupply", text: "ERP'den direkt veri akışı kurmak 30 dakika sürdü. Otomatik veri akışı entegrasyonu beklediğimizden çok daha kolaydı.", stars: 5 },
 ];
 
-/* ─── 3D Visual Component (CSS-based) ────────────────────── */
+/* ─── 3D Visual Component ──────────────────────────── */
 function Visual3D({ type, color }) {
-  if (type === "ship") {
-    return (
-      <div className="visual-3d-container" style={{ "--accent": color }}>
-        <div className="visual-3d-glow" />
-        <div className="ship-scene">
-          <div className="ship-water" />
-          <div className="ship-body">
-            <div className="ship-hull" />
-            <div className="ship-bridge" />
-            <div className="ship-containers">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="ship-container-box" style={{ animationDelay: `${i * 0.15}s` }} />
-              ))}
-            </div>
-            <div className="ship-smoke">
-              <div className="smoke-puff s1" />
-              <div className="smoke-puff s2" />
-              <div className="smoke-puff s3" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (type === "globe") {
-    return (
-      <div className="visual-3d-container" style={{ "--accent": color }}>
-        <div className="visual-3d-glow" />
-        <div className="globe-scene">
-          <div className="globe-sphere">
-            <div className="globe-ring ring-1" />
-            <div className="globe-ring ring-2" />
-            <div className="globe-ring ring-3" />
-            <div className="globe-core" />
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="globe-dot" style={{ "--angle": `${i * 45}deg`, "--delay": `${i * 0.3}s` }} />
-            ))}
-          </div>
-          <div className="globe-pulse" />
-        </div>
-      </div>
-    );
-  }
-  // container
+  const imageUrl = LOCAL_SCENES[type];
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Max rotation is 15 degrees
+    setRotateX(((y - centerY) / centerY) * -15);
+    setRotateY(((x - centerX) / centerX) * 15);
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
+    setIsHovered(false);
+  };
+
+  const isTruck = type === "container";
+
   return (
-    <div className="visual-3d-container" style={{ "--accent": color }}>
+    <motion.div
+      className="visual-3d-container"
+      style={{ "--accent": color, perspective: "1000px" }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="visual-3d-glow" />
-      <div className="container-scene">
-        <div className="container-stack">
-          {[...Array(4)].map((_, row) => (
-            <div key={row} className="container-row">
-              {[...Array(3)].map((_, col) => (
-                <div key={col} className="container-box" style={{ animationDelay: `${(row * 3 + col) * 0.1}s` }} />
-              ))}
-            </div>
+      <motion.img
+        src={imageUrl}
+        alt={`${type} 3D visualization`}
+        animate={{
+          rotateX: isHovered ? rotateX : 0,
+          rotateY: isHovered ? rotateY : 0,
+          scale: isHovered && !isTruck ? 1.05 : 1 // Tır büyümesin
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.5 }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          position: "relative",
+          zIndex: 1,
+          transformStyle: "preserve-3d"
+        }}
+      />
+
+      {/* Kamyon Yükleme Animasyonu (Sadece Tır için) */}
+      {isTruck && (
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 2, transformStyle: "preserve-3d" }}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <motion.div
+              key={i}
+              initial={{ y: -50, opacity: 0, scale: 0.5 }}
+              animate={isHovered ? { 
+                y: [-50, 90, 90, 90], 
+                opacity: [0, 1, 1, 0], 
+                scale: [0.5, 1, 1, 0.8],
+                rotateX: rotateX,
+                rotateY: rotateY,
+              } : { 
+                y: -50, opacity: 0, scale: 0.5, rotateX: 0, rotateY: 0 
+              }}
+              transition={{ 
+                duration: 1.5, 
+                times: [0, 0.4, 0.7, 1], // 0-0.4: düşüş, 0.4-0.7: bekleme (~0.45sn), 0.7-1.0: kaybolma
+                ease: ["easeOut", "linear", "easeInOut"],
+                delay: isHovered ? i * 0.15 : 0 
+              }}
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: `${32 + (i * 11)}%`, // 5 konteyneri dorseye yaydık
+                width: "35px",
+                height: "25px",
+                background: "rgba(15, 23, 42, 0.8)", // Yarı saydam karanlık
+                backdropFilter: "blur(4px)",
+                border: "1px solid rgba(59, 130, 246, 0.5)", // İnce mavi hat
+                borderRadius: "3px",
+                boxShadow: "0 10px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transform: "translateZ(20px)"
+              }}
+            >
+              {/* Konteyner üzerindeki endüstriyel çizgiler */}
+              <div style={{ width: "25px", height: "3px", background: "#3b82f6", opacity: 0.6, borderRadius: "2px" }} />
+            </motion.div>
           ))}
         </div>
-        <div className="container-crane">
-          <div className="crane-arm" />
-          <div className="crane-cable" />
-          <div className="crane-hook" />
-        </div>
-      </div>
-    </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -245,34 +286,38 @@ function Hero() {
       {/* Parallax grid lines */}
       <div className="hero-grid-overlay" />
 
-      <motion.div className="landing-hero-content" style={{ y: textY, opacity }}>
-        <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible" className="landing-hero-badge">
-          <span className="badge-dot" />
-          <span>6 Algoritma &bull; 3 Modül &bull; Gerçek Karar Motoru</span>
+      <div className="landing-hero-inner">
+        <motion.div className="landing-hero-content" style={{ y: textY, opacity }}>
+          <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible" className="landing-hero-badge">
+            <span className="badge-dot" />
+            <span>6 Algoritma &bull; 3 Modül &bull; Gerçek Karar Motoru</span>
+          </motion.div>
+
+          <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible" className="landing-hero-title">
+            Tedarik Zincirinizin<br />
+            <span className="landing-hero-gradient">Bilişsel Kontrol Kulesi</span>
+          </motion.h1>
+
+          <motion.p variants={fadeUp} custom={2} initial="hidden" animate="visible" className="landing-hero-desc">
+            Gecikme riskini öngör, talebi güven aralığıyla tahmin et, sahtekarlığı anomali skoru ile tespit et.<br />
+            Sadece veri değil — <strong>eyleme dönüştürülebilir karar.</strong>
+          </motion.p>
+
+          <motion.div variants={fadeUp} custom={3} initial="hidden" animate="visible" className="landing-hero-cta">
+            <Link to="/register" className="landing-btn-primary large">
+              Ücretsiz Dene — Kredi Kartı Gerekmez <IconArrow />
+            </Link>
+            <a href="#features" className="landing-btn-ghost large">Nasıl Çalışır?</a>
+          </motion.div>
         </motion.div>
 
-        <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible" className="landing-hero-title">
-          Tedarik Zincirinizin<br />
-          <span className="landing-hero-gradient">Bilişsel Kontrol Kulesi</span>
-        </motion.h1>
-
-        <motion.p variants={fadeUp} custom={2} initial="hidden" animate="visible" className="landing-hero-desc">
-          Gecikme riskini öngör, talebi güven aralığıyla tahmin et, sahtekarlığı anomali skoru ile tespit et.<br />
-          Sadece veri değil — <strong>eyleme dönüştürülebilir karar.</strong>
-        </motion.p>
-
-        <motion.div variants={fadeUp} custom={3} initial="hidden" animate="visible" className="landing-hero-cta">
-          <Link to="/register" className="landing-btn-primary large">
-            Ücretsiz Dene — Kredi Kartı Gerekmez <IconArrow />
-          </Link>
-          <a href="#features" className="landing-btn-ghost large">Nasıl Çalışır?</a>
+        {/* 3D Robot Visual from User */}
+        <motion.div className="hero-3d-wrapper" style={{ scale: shipScale, rotate: shipRotate }}>
+          <div className="hero-3d-iframe-container">
+            <spline-viewer url="https://prod.spline.design/5CeJpEcBFDsCw5jW/scene.splinecode" style={{ width: '100%', height: '100%' }}></spline-viewer>
+          </div>
         </motion.div>
-      </motion.div>
-
-      {/* 3D Ship Visual - Parallax */}
-      <motion.div className="hero-3d-visual" style={{ scale: shipScale, rotate: shipRotate }}>
-        <Visual3D type="ship" color="#6366f1" />
-      </motion.div>
+      </div>
 
       {/* Stats bar */}
       <motion.div
