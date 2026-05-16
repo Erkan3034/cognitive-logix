@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getOverviewMetrics, postWhatIfScenario } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 import { formatMoney, formatPct } from "../components/OperationsUI.jsx";
 
 const KPI_ITEMS = [
@@ -159,6 +160,7 @@ export default function ScenarioLab() {
       <PageIntro
         eyebrow="Karar laboratuvarı"
         title="Senaryo Laboratuvarı"
+        onTourStart={() => startTour("scenarioLab")}
         aside={
           <div className="pill">
             <span className="pill-dot" />
@@ -176,7 +178,7 @@ export default function ScenarioLab() {
       )}
 
       <section className="scenario-grid">
-        <form className="panel scenario-control-panel" onSubmit={(event) => { event.preventDefault(); runScenario(); }}>
+        <form id="scenario-form" className="panel scenario-control-panel" onSubmit={(event) => { event.preventDefault(); runScenario(); }}>
           <div className="panel-title-block">
             <h2 className="panel-title">Senaryo girdileri</h2>
             <p className="panel-subtitle">Girdiler sunucu simülasyon motoruna gönderilir.</p>
@@ -251,9 +253,11 @@ export default function ScenarioLab() {
                 </div>
               )}
 
-              <ScenarioFeedbackHero narrative={narrative} scenarioResult={scenarioResult} />
+              <div id="scenario-hero">
+                <ScenarioFeedbackHero narrative={narrative} scenarioResult={scenarioResult} />
+              </div>
 
-              <div className="scenario-result-grid">
+              <div id="scenario-kpi" className="scenario-result-grid">
                 {KPI_ITEMS.map((item) => {
                   const scenarioValue = scenarioResult?.[item.key];
                   return (

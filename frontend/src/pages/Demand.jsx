@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { postForecast } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -115,7 +116,7 @@ export default function Demand() {
 
   return (
     <div className="page-layout">
-      <PageIntro eyebrow="Talep tahmini" title="Stok ve Talep Planlama">
+      <PageIntro eyebrow="Talep tahmini" title="Stok ve Talep Planlama" onTourStart={() => startTour("demand")}>
         Ürün, pazar ve stok bilgisini kullanarak talep tahmini üretin; güven aralığı, güvenlik stoğu ve sipariş tetik noktasını birlikte değerlendirin.
       </PageIntro>
 
@@ -125,7 +126,7 @@ export default function Demand() {
         </StatusBanner>
       )}
 
-      <section className="guide-grid">
+      <section id="demand-guide" className="guide-grid">
         {[
           ["1", "Tahmin kapsamı", "Ürün, bölge ve dönem bilgisini seçin."],
           ["2", "Güven aralığı", "Tahmin çizgisini alt ve üst bantla birlikte okuyun."],
@@ -140,7 +141,7 @@ export default function Demand() {
       </section>
 
       <section className="two-column">
-        <form className="panel" onSubmit={handleSubmit}>
+        <form id="demand-form" className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Tahmin ayarları</h2>
@@ -211,7 +212,7 @@ export default function Demand() {
           </button>
         </form>
 
-        <div className="panel">
+        <div id="demand-result" className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Tahmin sonucu</h2>

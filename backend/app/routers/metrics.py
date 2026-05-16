@@ -6,6 +6,7 @@ from threading import Lock
 from pathlib import Path
 import pickle
 import hashlib
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -37,10 +38,29 @@ MODEL_DIR = PROJECT_ROOT / "backend" / "trained_models"
 
 
 METRICS_CACHE_TTL_SECONDS = 60
+RISK_MAP_CACHE_TTL_SECONDS = 90
+
+# --- Metrics KPI cache ---
 _metrics_cache_lock = Lock()
 _metrics_cache_payload: dict | None = None
 _metrics_cache_signature: tuple | None = None
 _metrics_cache_expires_at: float = 0.0
+
+# --- DataFrame cache (analysis CSV) ---
+_analysis_df_lock = Lock()
+_analysis_df_cache: "pd.DataFrame | None" = None
+_analysis_df_sig: "tuple | None" = None
+
+# --- DataFrame cache (full CSV) ---
+_full_df_lock = Lock()
+_full_df_cache: "pd.DataFrame | None" = None
+_full_df_sig: "tuple | None" = None
+
+# --- Risk map cache ---
+_risk_map_lock = Lock()
+_risk_map_cache: "RiskMapResponse | None" = None
+_risk_map_sig: "tuple | None" = None
+_risk_map_expires_at: float = 0.0
 
 
 def _file_signature(path: Path) -> tuple[int, int]:
@@ -156,8 +176,9 @@ def _uploaded_full_df(tenant_id: str | None) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _load_analysis_df(tenant_id: str | None = None) -> pd.DataFrame:
-    base = pd.read_csv(
+def _load_analysis_df_from_disk() -> pd.DataFrame:
+    """Read analysis CSV from disk (no cache). Internal use only."""
+    return pd.read_csv(
         ANALYSIS_PATH,
         encoding="utf-8-sig",
         usecols=[
@@ -173,14 +194,35 @@ def _load_analysis_df(tenant_id: str | None = None) -> pd.DataFrame:
         ],
         parse_dates=["order date (DateOrders)"],
     )
-    uploaded = _uploaded_analysis_df(tenant_id)
-    if uploaded.empty:
-        return base
-    return pd.concat([base, uploaded], ignore_index=True)
 
 
-def _load_full_df(tenant_id: str | None = None) -> pd.DataFrame:
-    base = pd.read_csv(
+def _get_cached_analysis_base() -> pd.DataFrame:
+    """Return the analysis DataFrame from memory cache, refreshing on file change."""
+    global _analysis_df_cache, _analysis_df_sig
+    sig = _file_signature(ANALYSIS_PATH)
+    with _analysis_df_lock:
+        if _analysis_df_cache is not None and _analysis_df_sig == sig:
+            return cast("pd.DataFrame", _analysis_df_cache)
+    df = _load_analysis_df_from_disk()
+    with _analysis_df_lock:
+        _analysis_df_cache = df
+        _analysis_df_sig = sig
+    logger.info("analysis_df cache refreshed | rows=%d", len(df))
+    return df
+
+
+def _load_analysis_df(tenant_id: str | None = None) -> pd.DataFrame:
+    base = _get_cached_analysis_base()
+    if tenant_id:
+        uploaded = _uploaded_analysis_df(tenant_id)
+        if not uploaded.empty:
+            return pd.concat([base, uploaded], ignore_index=True)
+    return base
+
+
+def _load_full_df_from_disk() -> pd.DataFrame:
+    """Read full CSV from disk (no cache). Internal use only."""
+    return pd.read_csv(
         LATEST_FULL_PATH,
         encoding="utf-8-sig",
         usecols=[
@@ -195,10 +237,30 @@ def _load_full_df(tenant_id: str | None = None) -> pd.DataFrame:
         ],
         parse_dates=["order_date"],
     )
-    uploaded = _uploaded_full_df(tenant_id)
-    if uploaded.empty:
-        return base
-    return pd.concat([base, uploaded], ignore_index=True)
+
+
+def _get_cached_full_base() -> pd.DataFrame:
+    """Return the full DataFrame from memory cache, refreshing on file change."""
+    global _full_df_cache, _full_df_sig
+    sig = _file_signature(LATEST_FULL_PATH)
+    with _full_df_lock:
+        if _full_df_cache is not None and _full_df_sig == sig:
+            return cast("pd.DataFrame", _full_df_cache)
+    df = _load_full_df_from_disk()
+    with _full_df_lock:
+        _full_df_cache = df
+        _full_df_sig = sig
+    logger.info("full_df cache refreshed | rows=%d", len(df))
+    return df
+
+
+def _load_full_df(tenant_id: str | None = None) -> pd.DataFrame:
+    base = _get_cached_full_base()
+    if tenant_id:
+        uploaded = _uploaded_full_df(tenant_id)
+        if not uploaded.empty:
+            return pd.concat([base, uploaded], ignore_index=True)
+    return base
 
 
 def _load_drilldown_df(tenant_id: str | None = None) -> pd.DataFrame:
@@ -491,7 +553,8 @@ def simulate_metrics(req: WhatIfScenarioRequest, request: Request) -> WhatIfScen
     )
 
 
-def _build_risk_map(limit: int = 12, tenant_id: str | None = None) -> RiskMapResponse:
+def _compute_risk_map(limit: int, tenant_id: str | None) -> RiskMapResponse:
+    """Pure computation — always reads from (cached) DataFrames."""
     df = _load_analysis_df(tenant_id)
     global_late_rate = float(df["Late_delivery_risk"].mean())
     prior_weight = 120
@@ -543,6 +606,32 @@ def _build_risk_map(limit: int = 12, tenant_id: str | None = None) -> RiskMapRes
             }
         )
     return RiskMapResponse(total=len(items), items=items)
+
+
+def _build_risk_map(limit: int = 12, tenant_id: str | None = None) -> RiskMapResponse:
+    """Returns risk map from TTL+signature cache for anonymous users, fresh for tenants."""
+    global _risk_map_cache, _risk_map_sig, _risk_map_expires_at
+    if tenant_id:
+        return _compute_risk_map(limit, tenant_id)
+
+    now = time.time()
+    sig = _current_data_signature()
+    with _risk_map_lock:
+        if (
+            _risk_map_cache is not None
+            and _risk_map_sig == sig
+            and now < _risk_map_expires_at
+        ):
+            logger.debug("risk_map cache hit")
+            return cast("RiskMapResponse", _risk_map_cache)
+
+    result = _compute_risk_map(limit, tenant_id)
+    with _risk_map_lock:
+        _risk_map_cache = result
+        _risk_map_sig = sig
+        _risk_map_expires_at = now + RISK_MAP_CACHE_TTL_SECONDS
+    logger.info("risk_map cache refreshed | items=%d", result.total)
+    return result
 
 
 @router.get("/risk-map", response_model=RiskMapResponse)

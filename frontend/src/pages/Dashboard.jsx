@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   getIncidents,
   getOverviewMetrics,
@@ -9,6 +10,7 @@ import {
 } from "../lib/api.js";
 import DigitalTwinMap from "../components/DigitalTwinMap.jsx";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 import {
   DecisionDrawer,
   formatMoney,
@@ -59,18 +61,34 @@ function regionLabel(value) {
 
 function KpiCard({ meta, value, explanation }) {
   return (
-    <article className={`usage-kpi usage-kpi-${meta.tone === "risk" ? "warning" : meta.tone}`}>
+    <motion.article 
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+      }}
+      className={`usage-kpi usage-kpi-${meta.tone === "risk" ? "warning" : meta.tone}`}
+    >
       <span>{meta.label}</span>
       <strong>{meta.formatter(value)}</strong>
       <p>{explanation}</p>
-    </article>
+    </motion.article>
   );
 }
 
 function RiskLaneRow({ zone, onOpen }) {
   const tone = zone.late_risk_pct >= 0.75 ? "red" : zone.late_risk_pct >= 0.55 ? "amber" : "green";
   return (
-    <button type="button" className="pro-table-row pro-table-button" onClick={() => onOpen(zone)}>
+    <motion.button 
+      variants={{
+        hidden: { opacity: 0, x: -10 },
+        show: { opacity: 1, x: 0 }
+      }}
+      whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.03)" }}
+      whileTap={{ scale: 0.99 }}
+      type="button" 
+      className="pro-table-row pro-table-button" 
+      onClick={() => onOpen(zone)}
+    >
       <span className="pro-td pro-td-name" style={{ flex: 2 }}>{regionLabel(zone.order_region)}</span>
       <span className="pro-td" style={{ flex: 1.4 }}>{shippingModeLabel(zone.shipping_mode)}</span>
       <span className="pro-td" style={{ flex: 1.5, gap: 10 }}>
@@ -80,7 +98,7 @@ function RiskLaneRow({ zone, onOpen }) {
         <strong>{formatPct(zone.late_risk_pct)}</strong>
       </span>
       <span className="pro-td" style={{ flex: 1 }}>{formatMoney(zone.financial_exposure_usd)}</span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -177,6 +195,7 @@ export default function Dashboard() {
       <PageIntro
         eyebrow="Operasyon merkezi"
         title="Operasyon Karar Merkezi"
+        onTourStart={() => startTour("dashboard")}
         aside={
           <div className="ct-top-actions">
             <Link to="/app/inbox" className="pro-btn-outline">Olay Kutusu</Link>
@@ -232,13 +251,15 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="usage-kpi-grid">
+      <section id="dashboard-kpi" className="usage-kpi-grid">
         {loading || !metrics ? (
           [1, 2, 3, 4].map((item) => <article key={item} className="usage-kpi"><div className="skeleton" style={{ height: 84 }} /></article>)
         ) : (
-          KPI_META.map((meta) => (
-            <KpiCard key={meta.key} meta={meta} value={metrics[meta.key]} explanation={explanations[meta.key]} />
-          ))
+          <motion.div variants={{ show: { transition: { staggerChildren: 0.1 } } }} initial="hidden" animate="show" style={{ display: 'contents' }}>
+            {KPI_META.map((meta) => (
+              <KpiCard key={meta.key} meta={meta} value={metrics[meta.key]} explanation={explanations[meta.key]} />
+            ))}
+          </motion.div>
         )}
       </section>
 
@@ -254,7 +275,7 @@ export default function Dashboard() {
       </section>
 
       <section className="two-column">
-        <div className="panel">
+        <div id="dashboard-risk-map" className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Riskli hatlar</h2>
@@ -275,12 +296,14 @@ export default function Dashboard() {
                 <span className="pro-th" style={{ flex: 1.5 }}>Risk</span>
                 <span className="pro-th" style={{ flex: 1 }}>Etki</span>
               </div>
-              {riskZones.map((zone) => <RiskLaneRow key={zone.id} zone={zone} onOpen={openZone} />)}
+              <motion.div variants={{ show: { transition: { staggerChildren: 0.05 } } }} initial="hidden" animate="show" style={{ display: 'contents' }}>
+                {riskZones.map((zone) => <RiskLaneRow key={zone.id} zone={zone} onOpen={openZone} />)}
+              </motion.div>
             </div>
           )}
         </div>
 
-        <div className="panel">
+        <div id="dashboard-incidents" className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Olay Kutusu önizlemesi</h2>
@@ -295,11 +318,27 @@ export default function Dashboard() {
           ) : incidents.length === 0 ? (
             <EmptyState title="Bekleyen olay yok" />
           ) : (
-            <div className="exception-card-list">
+            <motion.div 
+              variants={{ show: { transition: { staggerChildren: 0.08 } } }} 
+              initial="hidden" 
+              animate="show" 
+              className="exception-card-list"
+            >
               {incidents.slice(0, 4).map((item) => {
                 const sev = severityMeta(item.severity);
                 return (
-                  <button key={item.id} type="button" className="exception-card" onClick={() => setSelectedIncident(item)}>
+                  <motion.button 
+                    variants={{
+                      hidden: { opacity: 0, x: -20 },
+                      show: { opacity: 1, x: 0 }
+                    }}
+                    key={item.id} 
+                    type="button" 
+                    className="exception-card" 
+                    onClick={() => setSelectedIncident(item)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
                     <div>
                       <h3>{translateIncidentTitle(item.title)}</h3>
                       <div className="exception-card-meta">
@@ -308,10 +347,10 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="exception-card-impact">{formatMoney(item.impact_usd)}</div>
-                  </button>
+                  </motion.button>
                 );
               })}
-            </div>
+            </motion.div>
           )}
         </div>
       </section>

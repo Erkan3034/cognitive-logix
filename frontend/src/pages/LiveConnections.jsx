@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getLiveConnections } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 
 const STATUS_META = {
   online: { label: "Çalışıyor", tone: "success", pct: 100 },
@@ -88,6 +89,7 @@ export default function LiveConnections() {
       <PageIntro
         eyebrow="Canlı kaynaklar"
         title="Canlı Bağlantılar"
+        onTourStart={() => startTour("liveConnections")}
         aside={
           <button type="button" className="pro-btn-outline" onClick={() => fetchConnections({ soft: true })} disabled={refreshing}>
             {refreshing ? <InlineSpinner label="Yenileniyor" /> : "Yenile"}

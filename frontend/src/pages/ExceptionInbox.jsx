@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getIncidentActions, getIncidents, postIncidentAction } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 import {
   CommandFilterBar,
   DecisionDrawer,
@@ -127,6 +128,7 @@ export default function ExceptionInbox() {
       <PageIntro
         eyebrow="Operasyon kuyruğu"
         title="Olay Kutusu"
+        onTourStart={() => startTour("exceptionInbox")}
         aside={
           <div className="pill">
             <span className="pill-dot" />

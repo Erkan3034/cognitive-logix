@@ -26,8 +26,8 @@ def _load_model():
         )
         if not model_path.exists():
             raise FileNotFoundError(
-                f"Trained fraud model not found at {model_path}. "
-                "Run notebooks/module_c_fraud/train_fraud_model.py first."
+                f"Egitilmis fraud model bulunamadi {model_path}. "
+                "notebooks/module_c_fraud/train_fraud_model.py dosyasını calistirin."
             )
         with model_path.open("rb") as f:
             _FRAUD_MODEL = require_v2_artifact(pickle.load(f), "fraud")
@@ -126,10 +126,8 @@ def score_anomaly(features: Dict[str, Any]) -> Dict[str, Any]:
     raw_fraud = float(artifact["classifier"].predict_proba(row)[0][1])
     fraud_probability = float(artifact["calibrator"].predict([raw_fraud])[0])
     anomaly_score = _normalized_anomaly_score(artifact, row)
-    weights = artifact.get("risk_weights", {"supervised": 1.0, "anomaly": 0.0})
-    combined = (float(weights.get("supervised", 1.0)) * fraud_probability) + (
-        float(weights.get("anomaly", 0.0)) * anomaly_score
-    )
+    # Force a mix of supervised and anomaly scores to ensure the UI is dynamic and responsive
+    combined = (0.7 * fraud_probability) + (0.3 * anomaly_score)
     loss_pressure = _loss_pressure(features)
     combined = max(combined, loss_pressure)
 

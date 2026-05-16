@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Bar,
   BarChart,
@@ -11,16 +12,29 @@ import {
 } from "recharts";
 import { postFraud } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 
 const REASON_TR = {
-  "High sales amount": "Sipariş tutarı normalin üzerinde",
+  "High sales amount": "Yüksek sipariş tutarı",
+  "Negative profit order": "Sipariş zarar üretiyor",
   "Negative profit margin": "Sipariş zarar üretiyor",
   "Low profit margin": "Kar marjı düşük",
   "High order value relative to segment": "Segment için yüksek tutar",
   "Unusual payment pattern": "Ödeme deseninde sapma",
   "Market mismatch": "Pazar ve segment uyumsuzluğu",
-  raises_risk: "Riski artırıyor",
-  lowers_risk: "Riski azaltıyor",
+  "Type": "Ödeme tipi",
+  "Category Name": "Ürün kategorisi",
+  "Market": "Pazar",
+  "Customer Segment": "Müşteri segmenti",
+  "Order Region": "Sipariş bölgesi",
+  "Order Item Quantity": "Sipariş adedi",
+  "Order Item Discount Rate": "İndirim oranı",
+  "Sales_winsor": "Sipariş tutarı",
+  "Benefit per order_winsor": "Sipariş karlılığı",
+  "shipping_delay": "Sevkiyat gecikmesi",
+  "negative_profit_flag": "Negatif kar riski",
+  "raises_risk": "Riski artırıyor",
+  "lowers_risk": "Riski azaltıyor",
 };
 
 const INITIAL_FEATURES = {
@@ -140,16 +154,30 @@ export default function Fraud() {
 
   const resultStats = useMemo(() => {
     if (score == null) return null;
+    const pct = score * 100;
     return {
-      scoreText: `${Math.round(score * 100)}/100`,
+      scoreText: pct > 0 && pct < 1 ? `${pct.toFixed(1)}/100` : `${Math.round(pct)}/100`,
       valueAtRisk: grossValue * score,
       margin,
     };
   }, [score, grossValue, margin]);
 
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div className="page-layout">
-      <PageIntro eyebrow="Finansal risk" title="Sipariş Güvenlik Analizi">
+      <PageIntro eyebrow="Finansal risk" title="Sipariş Güvenlik Analizi" onTourStart={() => startTour("fraud")}>
         Sipariş tutarı, kar marjı, ödeme tipi ve müşteri segmentini birlikte değerlendirerek anomali riskini hesaplayın.
       </PageIntro>
 
@@ -159,22 +187,22 @@ export default function Fraud() {
         </StatusBanner>
       )}
 
-      <section className="guide-grid">
+      <motion.section id="fraud-guide" className="guide-grid" variants={staggerContainer} initial="hidden" animate="show">
         {[
           ["1", "İşlem bilgisi", "Sipariş, ödeme ve müşteri alanlarını girin."],
           ["2", "Risk skoru", "Skoru eşiklerle birlikte okuyun: normal, inceleme, yüksek risk."],
           ["3", "Karar", "Onay, bekletme veya manuel inceleme aksiyonunu uygulayın."],
         ].map(([step, title, text]) => (
-          <article key={step} className="guide-card">
+          <motion.article key={step} className="guide-card" variants={fadeInUp} whileHover={{ y: -4, boxShadow: "0 10px 30px -10px rgba(0,0,0,0.5)" }}>
             <span className="guide-step">{step}</span>
             <h3 className="guide-title">{title}</h3>
             <p className="guide-text">{text}</p>
-          </article>
+          </motion.article>
         ))}
-      </section>
+      </motion.section>
 
       <section className="two-column">
-        <form className="panel" onSubmit={handleSubmit}>
+        <form id="fraud-form" className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">İşlem bilgileri</h2>
@@ -194,7 +222,7 @@ export default function Fraud() {
             </label>
             <label className="field">
               <span className="field-label">Sipariş adedi</span>
-              <input type="number" min={1} max={200} className="input" value={features.quantity} onChange={(event) => setField("quantity", Number(event.target.value))} />
+              <input type="number" min={1} className="input" value={features.quantity} onChange={(event) => setField("quantity", Number(event.target.value))} />
             </label>
             <label className="field">
               <span className="field-label">İndirim oranı: %{Math.round(features.discount_rate * 100)}</span>
@@ -265,7 +293,7 @@ export default function Fraud() {
           </button>
         </form>
 
-        <div className="panel">
+        <div id="fraud-result" className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Karar özeti</h2>
@@ -279,23 +307,25 @@ export default function Fraud() {
               Formu tamamlayıp finansal risk analizini başlatın.
             </EmptyState>
           ) : (
-            <div className="result-stack">
-              <div className="decision-score-card">
+            <motion.div className="result-stack" variants={staggerContainer} initial="hidden" animate="show">
+              <motion.div className="decision-score-card" variants={fadeInUp}>
                 <span>Risk skoru</span>
                 <strong style={{ color: level.color }}>{resultStats.scoreText}</strong>
                 <p>Risk altındaki değer: ${resultStats.valueAtRisk.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}</p>
-              </div>
+              </motion.div>
 
-              <RiskAction score={score} />
+              <motion.div variants={fadeInUp}>
+                <RiskAction score={score} />
+              </motion.div>
 
-              <div className="risk-result-box">
+              <motion.div className="risk-result-box" variants={fadeInUp}>
                 <div className="panel-title-block">
                   <h3 className="panel-title">Gerekçeler</h3>
                   <p className="panel-subtitle">Modelin bu işlem için öne çıkardığı risk sinyalleri.</p>
                 </div>
                 <ReasonChart reasons={result.reason_codes} />
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
         </div>
       </section>

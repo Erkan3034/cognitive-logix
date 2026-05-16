@@ -1,3 +1,4 @@
+import { motion, AnimatePresence } from "framer-motion";
 import { InlineSpinner } from "./ProductUI.jsx";
 
 export function formatPct(value) {
@@ -140,14 +141,32 @@ export function CommandFilterBar({
 }
 
 export function DecisionDrawer({ open, item, onClose, onAction, loadingAction, drilldownAction }) {
-  if (!open || !item) return null;
-  const severity = severityMeta(item.severity);
+  const severity = item ? severityMeta(item.severity) : null;
   const busy = Boolean(loadingAction);
 
   return (
-    <>
-      <button type="button" className="ct-drawer-overlay" aria-label="Detay panelini kapat" onClick={onClose} />
-      <aside className="decision-drawer" role="dialog" aria-label="Olay detayları">
+    <AnimatePresence>
+      {open && item && (
+        <>
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            type="button"
+            className="ct-drawer-overlay"
+            aria-label="Detay panelini kapat"
+            onClick={onClose}
+          />
+          <motion.aside
+            initial={{ x: "100%", opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+            className="decision-drawer"
+            role="dialog"
+            aria-label="Olay detayları"
+          >
         <div className="decision-drawer-head">
           <div>
             <span className={`panel-header-badge ${severity.tone}`}>{severity.label}</span>
@@ -204,7 +223,9 @@ export function DecisionDrawer({ open, item, onClose, onAction, loadingAction, d
             </button>
           )}
         </div>
-      </aside>
-    </>
+        </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

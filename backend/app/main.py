@@ -20,7 +20,7 @@ from app.routers.forecast import router as forecast_router
 from app.routers.fraud import router as fraud_router
 from app.routers.metrics import get_model_health
 from app.routers.metrics import router as metrics_router
-from app.routers.metrics import warmup_overview_metrics
+from app.routers.metrics import warmup_overview_metrics, _get_cached_analysis_base, _get_cached_full_base, _build_risk_map
 from app.routers.api_keys import router as api_keys_router
 from app.routers.ops import router as ops_router
 from app.routers.predict import router as predict_router
@@ -70,10 +70,24 @@ async def _periodic_metrics_refresh_task() -> None:
 
 @app.on_event("startup")
 async def on_startup() -> None:
+    # Warm up DataFrame caches first (CSV reads) — this is the main bottleneck
+    try:
+        await run_in_threadpool(_get_cached_analysis_base)
+        await run_in_threadpool(_get_cached_full_base)
+        logger.info("DataFrame caches warmed up at startup")
+    except Exception:
+        logger.exception("Startup DataFrame cache warm-up failed")
+    # Warm up KPI metrics cache
     try:
         await run_in_threadpool(warmup_overview_metrics, True)
     except Exception:
         logger.exception("Startup metrics warm-up failed")
+    # Warm up risk-map cache
+    try:
+        await run_in_threadpool(_build_risk_map, 12, None)
+        logger.info("Risk-map cache warmed up at startup")
+    except Exception:
+        logger.exception("Startup risk-map warm-up failed")
     app.state.metrics_refresh_task = asyncio.create_task(_periodic_metrics_refresh_task())
 
 

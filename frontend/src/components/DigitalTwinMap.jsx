@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, LayerGroup, Circle } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, LayerGroup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { translateIncidentTitle } from "./OperationsUI.jsx";
@@ -126,6 +126,29 @@ function transportLabel(type) {
   if (type === "Ship") return "Deniz taşıması";
   if (type === "Air") return "Hava taşıması";
   return "Kara taşıması";
+}
+
+function MapBoundsUpdater({ vehicles }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!vehicles || vehicles.length === 0) return;
+    
+    // Check if there are any custom routes. If so, focus on them.
+    const customVehicles = vehicles.filter(v => v.custom);
+    const targets = customVehicles.length > 0 ? customVehicles : vehicles;
+
+    const bounds = L.latLngBounds();
+    targets.forEach(v => {
+      bounds.extend(v.start);
+      bounds.extend(v.end);
+    });
+
+    if (bounds.isValid()) {
+      map.flyToBounds(bounds, { padding: [50, 50], maxZoom: 5, duration: 1.5 });
+    }
+  }, [vehicles, map]);
+
+  return null;
 }
 
 export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_ARRAY, customRoutes = EMPTY_ARRAY }) {
@@ -266,6 +289,7 @@ export default function DigitalTwinMap({ zones = EMPTY_ARRAY, incidents = EMPTY_
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
+          <MapBoundsUpdater vehicles={vehicles} />
 
           {/* Weather Storm Layers (Model-Driven Radar) */}
           {showWeather && vehicles.filter(v => v.riskPct >= 0.35).map(v => (

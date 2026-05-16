@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDecisionImpact } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 import { formatMoney, translateAction, translateIncidentTitle, typeLabel } from "../components/OperationsUI.jsx";
 
 const STATUS_TR = {
@@ -64,6 +65,7 @@ export default function DecisionImpact() {
       <PageIntro
         eyebrow="Aksiyon getirisi"
         title="Karar Etkisi"
+        onTourStart={() => startTour("decisionImpact")}
         aside={
           <button type="button" className="pro-btn-outline" onClick={fetchImpact} disabled={loading}>
             {loading ? <InlineSpinner label="Yükleniyor" /> : "Yenile"}

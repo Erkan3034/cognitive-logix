@@ -13,6 +13,7 @@ import {
 import DigitalTwinMap from "../components/DigitalTwinMap.jsx";
 import { getDrilldownSkus, postPredict, postRouteIntelligence } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
+import { startTour } from "../lib/tourConfig.js";
 
 const FACTOR_TR = {
   shipping_mode: "Gönderim hızı",
@@ -31,7 +32,12 @@ const FACTOR_TR = {
   "Days for shipment scheduled": "Planlanan süre",
   "Order Region": "Sipariş bölgesi",
   "Category Name": "Ürün kategorisi",
-  Market: "Pazar",
+  "Market": "Pazar",
+  "Customer Segment": "Müşteri segmenti",
+  "Sales": "Sipariş tutarı",
+  "Quantity": "Sipariş adedi",
+  "Discount Rate": "İndirim oranı",
+  "Type": "Ödeme tipi",
 };
 
 const INITIAL_FORM = {
@@ -302,6 +308,24 @@ export default function Logistics() {
     });
   };
 
+  const fetchCoordinates = async (cityName, type) => {
+    if (!cityName) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}&format=json&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setRouteForm(prev => ({
+          ...prev,
+          [`${type}Lat`]: parseFloat(data[0].lat),
+          [`${type}Lng`]: parseFloat(data[0].lon),
+          preset: "custom"
+        }));
+      }
+    } catch (err) {
+      console.error("Koordinat bulunamadı", err);
+    }
+  };
+
   const buildRoutePayload = (baseRisk) => ({
     origin: {
       name: routeForm.originName,
@@ -391,7 +415,7 @@ export default function Logistics() {
 
   return (
     <div className="page-layout">
-      <PageIntro eyebrow="Lojistik" title="Teslimat Risk Analizi">
+      <PageIntro eyebrow="Lojistik" title="Teslimat Risk Analizi" onTourStart={() => startTour("logistics")}>
         Sipariş bazında gecikme olasılığını hesaplayın, gerekçeleri görün ve alternatif gönderim senaryosunu gerçek model çağrısıyla karşılaştırın.
       </PageIntro>
 
@@ -412,7 +436,7 @@ export default function Logistics() {
         </StatusBanner>
       )}
 
-      <section className="guide-grid">
+      <section id="logistics-guide" className="guide-grid">
         {[
           ["1", "Sipariş bilgisi", "Gönderim, bölge, tutar ve süre bilgilerini girin."],
           ["2", "Model skoru", "Risk oranı ve etkili faktörleri birlikte okuyun."],
@@ -427,7 +451,7 @@ export default function Logistics() {
       </section>
 
       <section className="two-column">
-        <form className="panel" onSubmit={handleSubmit}>
+        <form id="logistics-form" className="panel" onSubmit={handleSubmit}>
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Sipariş detayları</h2>
@@ -457,28 +481,12 @@ export default function Logistics() {
                   </select>
                 </label>
                 <label className="field">
-                  <span className="field-label">Çıkış noktası</span>
-                  <input className="input" value={routeForm.originName} onChange={(event) => setRouteField("originName", event.target.value)} />
+                  <span className="field-label">Çıkış noktası (Otomatik bul)</span>
+                  <input className="input" value={routeForm.originName} onChange={(event) => setRouteField("originName", event.target.value)} onBlur={(event) => fetchCoordinates(event.target.value, "origin")} />
                 </label>
                 <label className="field">
-                  <span className="field-label">Varış noktası</span>
-                  <input className="input" value={routeForm.destinationName} onChange={(event) => setRouteField("destinationName", event.target.value)} />
-                </label>
-                <label className="field">
-                  <span className="field-label">Çıkış enlem</span>
-                  <input type="number" step="0.0001" className="input" value={routeForm.originLat} onChange={(event) => setRouteField("originLat", Number(event.target.value))} />
-                </label>
-                <label className="field">
-                  <span className="field-label">Çıkış boylam</span>
-                  <input type="number" step="0.0001" className="input" value={routeForm.originLng} onChange={(event) => setRouteField("originLng", Number(event.target.value))} />
-                </label>
-                <label className="field">
-                  <span className="field-label">Varış enlem</span>
-                  <input type="number" step="0.0001" className="input" value={routeForm.destinationLat} onChange={(event) => setRouteField("destinationLat", Number(event.target.value))} />
-                </label>
-                <label className="field">
-                  <span className="field-label">Varış boylam</span>
-                  <input type="number" step="0.0001" className="input" value={routeForm.destinationLng} onChange={(event) => setRouteField("destinationLng", Number(event.target.value))} />
+                  <span className="field-label">Varış noktası (Otomatik bul)</span>
+                  <input className="input" value={routeForm.destinationName} onChange={(event) => setRouteField("destinationName", event.target.value)} onBlur={(event) => fetchCoordinates(event.target.value, "destination")} />
                 </label>
               </>
             )}
@@ -560,7 +568,7 @@ export default function Logistics() {
           </button>
         </form>
 
-        <div className="panel">
+        <div id="logistics-result" className="panel">
           <div className="panel-header">
             <div className="panel-title-block">
               <h2 className="panel-title">Karar özeti</h2>
