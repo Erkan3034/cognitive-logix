@@ -1,6 +1,6 @@
 import "../landing.css";
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 
@@ -11,20 +11,9 @@ const IconBrain = () => (
     <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24A2.5 2.5 0 0 0 14.5 2Z" />
   </svg>
 );
-const IconTruck = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-    <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3" />
-    <rect x="9" y="11" width="14" height="10" rx="2" /><circle cx="12" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-  </svg>
-);
-const IconTrend = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
-  </svg>
-);
-const IconShield = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+const IconArrow = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 );
 const IconCheck = () => (
@@ -32,120 +21,38 @@ const IconCheck = () => (
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
-const IconArrow = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
-    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-  </svg>
-);
 const IconStar = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 14, height: 14, color: "#f59e0b" }}>
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
-const IconZap = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
 
-/* ─── Data ────────────────────────────────────────────────── */
-const FEATURES = [
-  {
-    icon: <IconTruck />,
-    tag: "Modül A",
-    title: "Tahminleyici Lojistik",
-    desc: "CatBoost + SHAP ile kalibrasyon görmüş gecikme riski skoru. Her tahmin için 'Neden gecikiyor?' açıklaması ve karşı olgu aksiyon önerisi.",
-    color: "#6366f1",
-    algo: ["CatBoost sınıflandırıcı", "Olasılık kalibrasyonu", "SHAP açıklanabilirliği"],
-  },
-  {
-    icon: <IconTrend />,
-    tag: "Modül B",
-    title: "Talep ve Envanter Zekası",
-    desc: "Kantil regresyon ile düşük, beklenen ve yüksek senaryo tahmini. Hiyerarşik tahminleme ve güvenlik stoğu algoritmaları ile otonom yeniden sipariş önerileri.",
-    color: "#10b981",
-    algo: ["Kantil talep tahmini", "Güvenlik stoğu algoritması", "Yeniden sipariş noktası"],
-  },
-  {
-    icon: <IconShield />,
-    tag: "Modül C",
-    title: "Finansal Güvenlik ve Usulsüzlük",
-    desc: "CatBoost usulsüzlük sınıflandırıcısı ile bilinen kalıpları yakala; Isolation Forest ile daha önce hiç görülmemiş anomalileri tespit et. Her uyarıya açıklama kodu ekle.",
-    color: "#f43f5e",
-    algo: ["Usulsüzlük sınıflandırıcı", "Isolation Forest / LOF", "Anomali gerekçe kodları"],
-  },
-];
+/* ─── Animated Counter ────────────────────────────────────── */
+function AnimatedCounter({ value, suffix = "", duration = 2 }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+  const numericValue = parseFloat(value.replace(/[^0-9.]/g, ""));
 
-const STATS = [
-  { value: "54.8%", label: "Geç Teslimat Oranı", sub: "180K+ gerçek sipariş analizi" },
-  { value: "12x", label: "Daha Hızlı Karar", sub: "Manuel analize kıyasla" },
-  { value: "2.25%", label: "Usulsüzlük Tespiti", sub: "43:1 sınıf dengesizliği çözüldü" },
-  { value: "%90", label: "Güven Aralığı", sub: "Kantil tahmin bandı" },
-];
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const end = numericValue;
+    const stepTime = (duration * 1000) / 60;
+    const increment = end / 60;
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) { setCount(end); clearInterval(timer); }
+      else setCount(start);
+    }, stepTime);
+    return () => clearInterval(timer);
+  }, [inView, numericValue, duration]);
 
-const PLANS = [
-  {
-    name: "Ücretsiz",
-    price: "$0",
-    period: "/ ay",
-    desc: "Sistemi keşfet, demo verisiyle dene.",
-    features: ["100 yapay zeka tahmini / ay", "3 modülün deneme erişimi", "Güvenli oturum", "Topluluk desteği"],
-    cta: "Ücretsiz Başla",
-    highlight: false,
-  },
-  {
-    name: "Başlangıç",
-    price: "$49",
-    period: "/ ay",
-    desc: "KOBİ'ler için tam bulut ürün deneyimi.",
-    features: ["5.000 yapay zeka tahmini / ay", "Dosya veri yükleme", "SHAP açıklamaları", "E-posta desteği", "Bağlantı anahtarı erişimi"],
-    cta: "Başlangıç Planını Dene",
-    highlight: true,
-    badge: "Popüler",
-  },
-  {
-    name: "Profesyonel",
-    price: "$149",
-    period: "/ ay",
-    desc: "Büyüyen operasyonlar için eksiksiz motor.",
-    features: ["50.000 yapay zeka tahmini / ay", "Otomatik veri akışı / ERP entegrasyonu", "Olasılıksal simülatör", "Model sapma izleme", "Öncelikli destek"],
-    cta: "Profesyonel Plana Geç",
-    highlight: false,
-  },
-];
+  const display = numericValue % 1 !== 0 ? count.toFixed(1) : Math.floor(count);
+  return <span ref={ref}>{display}{suffix}</span>;
+}
 
-const TESTIMONIALS = [
-  {
-    name: "Mert Kaya",
-    role: "Tedarik Zinciri Direktörü, LogiCo",
-    text: "SHAP açıklamaları sayesinde artık gecikme raporlarını birkaç dakikada anlıyoruz. Operasyonel kararlarımız %40 hızlandı.",
-    stars: 5,
-  },
-  {
-    name: "Selin Arslan",
-    role: "Satın Alma Müdürü, NovaTrade",
-    text: "Güvenlik stoğu algoritması ilk ayda fazla stoğumuzu %23 düşürdü. Yatırım getirisini hesaplamak için uzun süre beklememiz gerekmedi.",
-    stars: 5,
-  },
-  {
-    name: "Emir Demir",
-    role: "CTO, MedSupply",
-    text: "ERP'den direkt veri akışı kurmak 30 dakika sürdü. Otomatik veri akışı entegrasyonu beklediğimizden çok daha kolaydı.",
-    stars: 5,
-  },
-];
-
-/* ─── Animation Variants ──────────────────────────────────── */
-const fadeUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] } }),
-};
-const fadeIn = {
-  hidden: { opacity: 0 },
-  visible: (i = 0) => ({ opacity: 1, transition: { duration: 0.6, delay: i * 0.1 } }),
-};
-
-/* ─── Reusable Section Wrapper ────────────────────────────── */
+/* ─── Section with InView ─────────────────────────────────── */
 function Section({ children, className = "", ...props }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
@@ -162,12 +69,133 @@ function Section({ children, className = "", ...props }) {
   );
 }
 
-/* ─── Removed Orbs ────────────────────────────────────────── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] } }),
+};
+
+/* ─── Data ────────────────────────────────────────────────── */
+const FEATURES = [
+  {
+    tag: "Lojistik Gecikme Analizi",
+    title: "Gecikmeyi Önceden Bilin",
+    desc: "CatBoost + SHAP ile kalibrasyon görmüş gecikme riski skoru. Her tahmin için 'Neden gecikiyor?' açıklaması ve karşı olgu aksiyon önerisi.",
+    color: "#6366f1",
+    algos: ["CatBoost Classifier", "Isotonic Regression", "SHAP Explainability"],
+    splineUrl: "https://my.spline.design/untitled-e2a1c8e05d2ef55bc5fcf3ff4e72aaaa/",
+    visual: "ship",
+  },
+  {
+    tag: "Talep ve Stok Tahmini",
+    title: "Talebi Güven Aralığıyla Tahmin Edin",
+    desc: "LightGBM Quantile Regressor ile düşük, beklenen ve yüksek senaryo tahmini. Aralıklı taleplerde Croston metodu otomatik devreye girer.",
+    color: "#10b981",
+    algos: ["LightGBM Quantile", "Croston Method", "Safety Stock Algorithm"],
+    splineUrl: "https://my.spline.design/untitled-e2a1c8e05d2ef55bc5fcf3ff4e72aaaa/",
+    visual: "globe",
+  },
+  {
+    tag: "Finansal Risk Dedektörü",
+    title: "Sahtekarlığı Anomali Skoru ile Durdurun",
+    desc: "CatBoost bilinen dolandırıcılık desenlerini yakalar. Isolation Forest daha önce hiç görülmemiş anomalileri tespit eder. Her uyarıya SHAP kodu eklenir.",
+    color: "#f43f5e",
+    algos: ["CatBoost + Isolation Forest", "Anomaly Scoring", "SHAP Reason Codes"],
+    splineUrl: "https://my.spline.design/untitled-e2a1c8e05d2ef55bc5fcf3ff4e72aaaa/",
+    visual: "container",
+  },
+];
+
+const STATS = [
+  { value: "54.8", suffix: "%", label: "Geç Teslimat Oranı", sub: "180K+ gerçek sipariş analizi" },
+  { value: "12", suffix: "x", label: "Daha Hızlı Karar", sub: "Manuel analize kıyasla" },
+  { value: "2.25", suffix: "%", label: "Usulsüzlük Tespiti", sub: "43:1 sınıf dengesizliği çözüldü" },
+  { value: "90", suffix: "%", label: "Güven Aralığı", sub: "Kantil tahmin bandı" },
+];
+
+const PLANS = [
+  { name: "Ücretsiz", price: "$0", period: "/ ay", desc: "Sistemi keşfet, demo verisiyle dene.", features: ["100 yapay zeka tahmini / ay", "3 modülün deneme erişimi", "Güvenli oturum", "Topluluk desteği"], cta: "Ücretsiz Başla", highlight: false },
+  { name: "Başlangıç", price: "$49", period: "/ ay", desc: "KOBİ'ler için tam bulut ürün deneyimi.", features: ["5.000 yapay zeka tahmini / ay", "Dosya veri yükleme", "SHAP açıklamaları", "E-posta desteği", "API erişimi"], cta: "Başlangıç Planını Dene", highlight: true, badge: "Popüler" },
+  { name: "Profesyonel", price: "$149", period: "/ ay", desc: "Büyüyen operasyonlar için eksiksiz motor.", features: ["50.000 yapay zeka tahmini / ay", "ERP entegrasyonu", "Olasılıksal simülatör", "Model sapma izleme", "Öncelikli destek"], cta: "Profesyonel Plana Geç", highlight: false },
+];
+
+const TESTIMONIALS = [
+  { name: "Mert Kaya", role: "Tedarik Zinciri Direktörü, LogiCo", text: "SHAP açıklamaları sayesinde artık gecikme raporlarını birkaç dakikada anlıyoruz. Operasyonel kararlarımız %40 hızlandı.", stars: 5 },
+  { name: "Selin Arslan", role: "Satın Alma Müdürü, NovaTrade", text: "Güvenlik stoğu algoritması ilk ayda fazla stoğumuzu %23 düşürdü. Yatırım getirisini hesaplamak için uzun süre beklememiz gerekmedi.", stars: 5 },
+  { name: "Emir Demir", role: "CTO, MedSupply", text: "ERP'den direkt veri akışı kurmak 30 dakika sürdü. Otomatik veri akışı entegrasyonu beklediğimizden çok daha kolaydı.", stars: 5 },
+];
+
+/* ─── 3D Visual Component (CSS-based) ────────────────────── */
+function Visual3D({ type, color }) {
+  if (type === "ship") {
+    return (
+      <div className="visual-3d-container" style={{ "--accent": color }}>
+        <div className="visual-3d-glow" />
+        <div className="ship-scene">
+          <div className="ship-water" />
+          <div className="ship-body">
+            <div className="ship-hull" />
+            <div className="ship-bridge" />
+            <div className="ship-containers">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="ship-container-box" style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </div>
+            <div className="ship-smoke">
+              <div className="smoke-puff s1" />
+              <div className="smoke-puff s2" />
+              <div className="smoke-puff s3" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (type === "globe") {
+    return (
+      <div className="visual-3d-container" style={{ "--accent": color }}>
+        <div className="visual-3d-glow" />
+        <div className="globe-scene">
+          <div className="globe-sphere">
+            <div className="globe-ring ring-1" />
+            <div className="globe-ring ring-2" />
+            <div className="globe-ring ring-3" />
+            <div className="globe-core" />
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="globe-dot" style={{ "--angle": `${i * 45}deg`, "--delay": `${i * 0.3}s` }} />
+            ))}
+          </div>
+          <div className="globe-pulse" />
+        </div>
+      </div>
+    );
+  }
+  // container
+  return (
+    <div className="visual-3d-container" style={{ "--accent": color }}>
+      <div className="visual-3d-glow" />
+      <div className="container-scene">
+        <div className="container-stack">
+          {[...Array(4)].map((_, row) => (
+            <div key={row} className="container-row">
+              {[...Array(3)].map((_, col) => (
+                <div key={col} className="container-box" style={{ animationDelay: `${(row * 3 + col) * 0.1}s` }} />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="container-crane">
+          <div className="crane-arm" />
+          <div className="crane-cable" />
+          <div className="crane-hook" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ─── Navbar ──────────────────────────────────────────────── */
 export function Navbar({ scrolled }) {
   const { user } = useAuth();
-
   return (
     <motion.nav
       className={`landing-nav${scrolled ? " scrolled" : ""}`}
@@ -187,15 +215,11 @@ export function Navbar({ scrolled }) {
         </div>
         <div className="landing-nav-actions">
           {user ? (
-            <Link to="/app" className="landing-btn-primary">
-              Uygulamaya Git <IconArrow />
-            </Link>
+            <Link to="/app" className="landing-btn-primary">Uygulamaya Git <IconArrow /></Link>
           ) : (
             <>
               <Link to="/login" className="landing-btn-ghost">Giriş Yap</Link>
-              <Link to="/register" className="landing-btn-primary">
-                Ücretsiz Başla <IconArrow />
-              </Link>
+              <Link to="/register" className="landing-btn-primary">Ücretsiz Başla <IconArrow /></Link>
             </>
           )}
         </div>
@@ -204,15 +228,27 @@ export function Navbar({ scrolled }) {
   );
 }
 
-/* ─── Hero ────────────────────────────────────────────────── */
+/* ─── Hero with Parallax ──────────────────────────────────── */
 function Hero() {
-  return (
-    <section className="landing-hero">
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const textY = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const opacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const shipScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const shipRotate = useTransform(scrollYProgress, [0, 1], [0, 8]);
 
-      <div className="landing-hero-content">
+  return (
+    <section className="landing-hero" ref={heroRef}>
+      {/* Gradient mesh background */}
+      <div className="hero-gradient-mesh" />
+
+      {/* Parallax grid lines */}
+      <div className="hero-grid-overlay" />
+
+      <motion.div className="landing-hero-content" style={{ y: textY, opacity }}>
         <motion.div variants={fadeUp} custom={0} initial="hidden" animate="visible" className="landing-hero-badge">
           <span className="badge-dot" />
-          <span>12 Endüstri Standardı Algoritma • Gerçek Ürün Karar Motoru</span>
+          <span>6 Algoritma &bull; 3 Modül &bull; Gerçek Karar Motoru</span>
         </motion.div>
 
         <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible" className="landing-hero-title">
@@ -231,132 +267,87 @@ function Hero() {
           </Link>
           <a href="#features" className="landing-btn-ghost large">Nasıl Çalışır?</a>
         </motion.div>
+      </motion.div>
 
-        <motion.div variants={fadeUp} custom={4} initial="hidden" animate="visible" className="landing-hero-stats">
-          {STATS.map((s, i) => (
-            <div key={i} className="hero-stat">
-              <span className="hero-stat-value">{s.value}</span>
-              <span className="hero-stat-label">{s.label}</span>
-              <span className="hero-stat-sub">{s.sub}</span>
-            </div>
-          ))}
-        </motion.div>
-      </div>
+      {/* 3D Ship Visual - Parallax */}
+      <motion.div className="hero-3d-visual" style={{ scale: shipScale, rotate: shipRotate }}>
+        <Visual3D type="ship" color="#6366f1" />
+      </motion.div>
 
-      {/* Animated dashboard mockup */}
+      {/* Stats bar */}
       <motion.div
-        className="landing-hero-mockup"
-        initial={{ opacity: 0, y: 60, rotateX: 15 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0 }}
-        transition={{ duration: 1.2, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="landing-hero-stats"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, duration: 0.7 }}
       >
-        <div className="mockup-bar">
-          <span className="mockup-dot red" /><span className="mockup-dot yellow" /><span className="mockup-dot green" />
-          <span className="mockup-url">cognitive-logix.app / kontrol</span>
-        </div>
-        <div className="mockup-body">
-          <div className="mockup-kpi-row">
-            {[
-              { label: "Gecikme Riski", value: "54.8%", trend: "↓ 12%", color: "#6366f1" },
-              { label: "Talep Güven Skoru", value: "91.3%", trend: "↑ 4%", color: "#10b981" },
-              { label: "Usulsüzlük Tespiti", value: "2.25%", trend: "↓ 0.8%", color: "#f43f5e" },
-            ].map((k, i) => (
-              <motion.div
-                key={i}
-                className="mockup-kpi"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1 + i * 0.15, duration: 0.5 }}
-              >
-                <span className="mockup-kpi-label">{k.label}</span>
-                <span className="mockup-kpi-value" style={{ color: k.color }}>{k.value}</span>
-                <span className="mockup-kpi-trend">{k.trend}</span>
-              </motion.div>
-            ))}
+        {STATS.map((s, i) => (
+          <div key={i} className="hero-stat">
+            <span className="hero-stat-value">
+              <AnimatedCounter value={s.value} suffix={s.suffix} />
+            </span>
+            <span className="hero-stat-label">{s.label}</span>
+            <span className="hero-stat-sub">{s.sub}</span>
           </div>
-          <div className="mockup-shap">
-            <div className="mockup-shap-title">SHAP Açıklaması — Gecikme Nedenleri</div>
-            {[
-              { label: "Kargo Modu", pct: 72, color: "#6366f1" },
-              { label: "Sipariş Bölgesi", pct: 55, color: "#8b5cf6" },
-              { label: "Ürün Kategorisi", pct: 38, color: "#a78bfa" },
-              { label: "Planlanan Süre", pct: 24, color: "#c4b5fd" },
-            ].map((bar, i) => (
-              <div key={i} className="mockup-bar-row">
-                <span className="mockup-bar-label">{bar.label}</span>
-                <div className="mockup-bar-track">
-                  <motion.div
-                    className="mockup-bar-fill"
-                    style={{ background: bar.color }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${bar.pct}%` }}
-                    transition={{ delay: 1.4 + i * 0.1, duration: 0.7, ease: "easeOut" }}
-                  />
-                </div>
-                <span className="mockup-bar-pct">{bar.pct}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </motion.div>
     </section>
   );
 }
 
-/* ─── Features ────────────────────────────────────────────── */
+/* ─── Zigzag Features with 3D Visuals ─────────────────────── */
 function Features() {
   return (
     <Section className="landing-section" id="features">
       <motion.div variants={fadeUp} className="section-header">
-        <span className="section-tag">12 Algoritma • 3 Modül</span>
-        <h2 className="section-title">Sektör Standardı Karar Motoru</h2>
+        <span className="section-tag">6 Algoritma &bull; 3 Modül</span>
+        <h2 className="section-title">Endüstri Standardı Karar Motoru</h2>
         <p className="section-desc">Her modül, yıllar içinde rafine edilmiş endüstriyel algoritmalarla birleştirilerek operasyonel mükemmeliyeti otomatize eder.</p>
       </motion.div>
 
-      <div className="features-grid">
-        {FEATURES.map((f, i) => (
-          <motion.div
-            key={i}
-            variants={fadeUp}
-            custom={i}
-            className="feature-card"
-            whileHover={{ y: -6, transition: { duration: 0.25 } }}
-          >
-            <div className="feature-card-top">
-              <div className="feature-icon" style={{ background: `${f.color}20`, color: f.color }}>{f.icon}</div>
-              <span className="feature-tag" style={{ background: `${f.color}15`, color: f.color }}>{f.tag}</span>
-            </div>
-            <h3 className="feature-title">{f.title}</h3>
-            <p className="feature-desc">{f.desc}</p>
-            <div className="feature-algos">
-              {f.algo.map((a, j) => (
-                <span key={j} className="algo-chip" style={{ borderColor: `${f.color}40`, color: f.color }}>
-                  <IconZap /> {a}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Extra modules row */}
-      <div className="extra-modules">
-        {[
-          { icon: "⚡", title: "Olasılıksal Simülatör", desc: "Varsayım senaryolarını olasılıksal olarak modelle" },
-          { icon: "📡", title: "Veri Sapması Tespiti", desc: "PSI/KS ile model bozulmasını gerçek zamanlı izle" },
-          { icon: "🔗", title: "Otomatik Veri Akışı / ERP Entegrasyonu", desc: "SAP, Oracle ve özel sistemlerden canlı veri akışı" },
-          { icon: "🗺️", title: "Otomatik Şema Eşleştirme", desc: "Esnek eşleştirme ile kendi kolon isimlerini otomatik tanı" },
-        ].map((m, i) => (
-          <motion.div key={i} variants={fadeUp} custom={i * 0.5} className="extra-module-card">
-            <span className="extra-module-icon">{m.icon}</span>
-            <div>
-              <div className="extra-module-title">{m.title}</div>
-              <div className="extra-module-desc">{m.desc}</div>
-            </div>
-          </motion.div>
-        ))}
+      <div className="features-zigzag">
+        {FEATURES.map((f, i) => {
+          const isReversed = i % 2 !== 0;
+          return (
+            <FeatureRow key={i} feature={f} index={i} reversed={isReversed} />
+          );
+        })}
       </div>
     </Section>
+  );
+}
+
+function FeatureRow({ feature: f, index, reversed }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <div ref={ref} className={`zigzag-row ${reversed ? "reversed" : ""}`}>
+      <motion.div
+        className="zigzag-content"
+        initial={{ opacity: 0, x: reversed ? 60 : -60 }}
+        animate={inView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <span className="zigzag-tag" style={{ background: `${f.color}15`, color: f.color, borderColor: `${f.color}40` }}>{f.tag}</span>
+        <h3 className="zigzag-title">{f.title}</h3>
+        <p className="zigzag-desc">{f.desc}</p>
+        <div className="zigzag-algos">
+          {f.algos.map((a, j) => (
+            <span key={j} className="algo-pill" style={{ borderColor: `${f.color}40`, color: f.color }}>{a}</span>
+          ))}
+        </div>
+      </motion.div>
+
+      <motion.div
+        className="zigzag-visual"
+        initial={{ opacity: 0, x: reversed ? -60 : 60, scale: 0.9 }}
+        animate={inView ? { opacity: 1, x: 0, scale: 1 } : {}}
+        transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Visual3D type={f.visual} color={f.color} />
+      </motion.div>
+    </div>
   );
 }
 
@@ -367,38 +358,21 @@ function Pricing() {
       <motion.div variants={fadeUp} className="section-header">
         <span className="section-tag">Fiyatlandırma</span>
         <h2 className="section-title">Operasyonunuzun Ölçeğine Uygun Plan</h2>
-        <p className="section-desc">Tüm planlarda 12 algoritmanın temel yetenekleri mevcut. İhtiyacınıza göre ölçeklendirin.</p>
+        <p className="section-desc">Tüm planlarda 6 algoritmanın temel yetenekleri mevcut. İhtiyacınıza göre ölçeklendirin.</p>
       </motion.div>
-
       <div className="pricing-grid">
         {PLANS.map((plan, i) => (
-          <motion.div
-            key={i}
-            variants={fadeUp}
-            custom={i}
-            className={`pricing-card${plan.highlight ? " highlighted" : ""}`}
-            whileHover={{ y: -8, transition: { duration: 0.25 } }}
-          >
+          <motion.div key={i} variants={fadeUp} custom={i} className={`pricing-card${plan.highlight ? " highlighted" : ""}`} whileHover={{ y: -8, transition: { duration: 0.25 } }}>
             {plan.badge && <span className="pricing-badge">{plan.badge}</span>}
             <div className="pricing-name">{plan.name}</div>
-            <div className="pricing-price">
-              {plan.price}<span className="pricing-period">{plan.period}</span>
-            </div>
+            <div className="pricing-price">{plan.price}<span className="pricing-period">{plan.period}</span></div>
             <p className="pricing-desc">{plan.desc}</p>
             <ul className="pricing-features">
               {plan.features.map((feat, j) => (
-                <li key={j} className="pricing-feature">
-                  <span className="check-icon"><IconCheck /></span>
-                  {feat}
-                </li>
+                <li key={j} className="pricing-feature"><span className="check-icon"><IconCheck /></span>{feat}</li>
               ))}
             </ul>
-            <Link
-              to="/register"
-              className={`pricing-cta${plan.highlight ? " primary" : " ghost"}`}
-            >
-              {plan.cta}
-            </Link>
+            <Link to="/register" className={`pricing-cta${plan.highlight ? " primary" : " ghost"}`}>{plan.cta}</Link>
           </motion.div>
         ))}
       </div>
@@ -414,19 +388,10 @@ function Testimonials() {
         <span className="section-tag">Müşteri Görüşleri</span>
         <h2 className="section-title">Onlar Kullandı, Dönüştü</h2>
       </motion.div>
-
       <div className="testimonials-grid">
         {TESTIMONIALS.map((t, i) => (
-          <motion.div
-            key={i}
-            variants={fadeUp}
-            custom={i}
-            className="testimonial-card"
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          >
-            <div className="testimonial-stars">
-              {Array.from({ length: t.stars }).map((_, j) => <IconStar key={j} />)}
-            </div>
+          <motion.div key={i} variants={fadeUp} custom={i} className="testimonial-card" whileHover={{ y: -4, transition: { duration: 0.2 } }}>
+            <div className="testimonial-stars">{Array.from({ length: t.stars }).map((_, j) => <IconStar key={j} />)}</div>
             <p className="testimonial-text">"{t.text}"</p>
             <div className="testimonial-author">
               <div className="testimonial-avatar">{t.name[0]}</div>
@@ -447,16 +412,10 @@ function CTABanner() {
   return (
     <Section className="landing-cta-section">
       <motion.div variants={fadeUp} className="cta-banner">
-        <motion.h2 variants={fadeUp} custom={0} className="cta-title">
-          Karar Motorunuzu Bugün Başlatın
-        </motion.h2>
-        <motion.p variants={fadeUp} custom={1} className="cta-desc">
-          Kredi kartı gerekmez. 5 dakikada sisteme bağlanın. İlk 100 tahmin ücretsiz.
-        </motion.p>
+        <motion.h2 variants={fadeUp} custom={0} className="cta-title">Karar Motorunuzu Bugün Başlatın</motion.h2>
+        <motion.p variants={fadeUp} custom={1} className="cta-desc">Kredi kartı gerekmez. 5 dakikada sisteme bağlanın. İlk 100 tahmin ücretsiz.</motion.p>
         <motion.div variants={fadeUp} custom={2} className="cta-actions">
-          <Link to="/register" className="landing-btn-primary large">
-            Ücretsiz Hesap Oluştur <IconArrow />
-          </Link>
+          <Link to="/register" className="landing-btn-primary large">Ücretsiz Hesap Oluştur <IconArrow /></Link>
           <Link to="/login" className="landing-btn-ghost large">Giriş Yap</Link>
         </motion.div>
       </motion.div>
@@ -492,7 +451,7 @@ export function Footer() {
           <span className="footer-links-title">Destek</span>
           <a href="mailto:hello@cognitive-logix.app">İletişim</a>
           <Link to="/docs">Dokümantasyon</Link>
-          <Link to="/api-docs">Bağlantı Referansı</Link>
+          <Link to="/api-docs">API Referansı</Link>
         </div>
       </div>
       <div className="footer-bottom">
@@ -517,9 +476,7 @@ export default function Landing() {
   useEffect(() => {
     if (location.hash) {
       const el = document.getElementById(location.hash.slice(1));
-      if (el) {
-        setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
-      }
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 100);
     } else {
       window.scrollTo(0, 0);
     }

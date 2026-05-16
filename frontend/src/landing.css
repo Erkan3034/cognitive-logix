@@ -1203,4 +1203,500 @@
   .extra-modules {
     grid-template-columns: 1fr;
   }
+
+  .zigzag-row {
+    grid-template-columns: 1fr !important;
+    gap: 32px;
+  }
+
+  .zigzag-row.reversed .zigzag-content {
+    order: 0;
+  }
+
+  .hero-3d-visual {
+    max-width: 280px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   PARALLAX & 3D VISUALS — New Landing Redesign
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Hero Gradient Mesh Background ───────────── */
+.hero-gradient-mesh {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 70%, rgba(16, 185, 129, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 10%, rgba(244, 63, 94, 0.08) 0%, transparent 50%);
+  animation: meshShift 12s ease-in-out infinite alternate;
+}
+
+@keyframes meshShift {
+  0% { transform: scale(1) translate(0, 0); }
+  50% { transform: scale(1.05) translate(-2%, 1%); }
+  100% { transform: scale(1) translate(1%, -1%); }
+}
+
+/* ── Hero Grid Overlay ───────────────────────── */
+.hero-grid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 20%, transparent 70%);
+}
+
+/* ── Hero 3D Visual ──────────────────────────── */
+.hero-3d-visual {
+  position: relative;
+  z-index: 1;
+  margin-top: 40px;
+  max-width: 400px;
+  width: 100%;
+}
+
+/* ── Zigzag Feature Layout ───────────────────── */
+.features-zigzag {
+  display: flex;
+  flex-direction: column;
+  gap: 80px;
+}
+
+.zigzag-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+.zigzag-row.reversed {
+  direction: rtl;
+}
+
+.zigzag-row.reversed > * {
+  direction: ltr;
+}
+
+.zigzag-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.zigzag-tag {
+  display: inline-block;
+  width: fit-content;
+  padding: 5px 14px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.zigzag-title {
+  font-family: 'Sora', 'Inter', system-ui, sans-serif;
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.zigzag-desc {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #94a3b8;
+}
+
+.zigzag-algos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.algo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 1px solid;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.zigzag-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CSS 3D VISUALS — Ship, Globe, Container
+   ═══════════════════════════════════════════════════════ */
+
+.visual-3d-container {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.visual-3d-glow {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: var(--accent, #6366f1);
+  opacity: 0.1;
+  filter: blur(60px);
+  animation: glowPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes glowPulse {
+  0% { opacity: 0.08; transform: scale(0.9); }
+  100% { opacity: 0.15; transform: scale(1.1); }
+}
+
+/* ── Ship Scene ──────────────────────────────── */
+.ship-scene {
+  position: relative;
+  width: 320px;
+  height: 240px;
+  perspective: 800px;
+}
+
+.ship-water {
+  position: absolute;
+  bottom: 20px;
+  left: -20px;
+  right: -20px;
+  height: 60px;
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0.03) 100%);
+  border-radius: 50%;
+  animation: waterWave 3s ease-in-out infinite;
+}
+
+@keyframes waterWave {
+  0%, 100% { transform: scaleY(1) translateY(0); }
+  50% { transform: scaleY(0.85) translateY(4px); }
+}
+
+.ship-body {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: shipFloat 4s ease-in-out infinite;
+}
+
+@keyframes shipFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0) rotate(-1deg); }
+  50% { transform: translateX(-50%) translateY(-8px) rotate(1deg); }
+}
+
+.ship-hull {
+  width: 200px;
+  height: 40px;
+  background: linear-gradient(135deg, #27272a 0%, #3f3f46 100%);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  border: 1px solid rgba(255,255,255,0.1);
+  position: relative;
+}
+
+.ship-bridge {
+  position: absolute;
+  bottom: 38px;
+  right: 20px;
+  width: 40px;
+  height: 50px;
+  background: linear-gradient(180deg, #52525b 0%, #3f3f46 100%);
+  border-radius: 4px 4px 0 0;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.ship-bridge::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  right: 6px;
+  height: 12px;
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+}
+
+.ship-containers {
+  position: absolute;
+  bottom: 38px;
+  left: 15px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+
+.ship-container-box {
+  width: 38px;
+  height: 22px;
+  border-radius: 2px;
+  border: 1px solid rgba(255,255,255,0.1);
+  animation: containerLoad 0.6s ease-out both;
+}
+
+.ship-container-box:nth-child(1) { background: rgba(99, 102, 241, 0.5); }
+.ship-container-box:nth-child(2) { background: rgba(16, 185, 129, 0.5); }
+.ship-container-box:nth-child(3) { background: rgba(244, 63, 94, 0.5); }
+.ship-container-box:nth-child(4) { background: rgba(245, 158, 11, 0.5); }
+.ship-container-box:nth-child(5) { background: rgba(139, 92, 246, 0.5); }
+.ship-container-box:nth-child(6) { background: rgba(6, 182, 212, 0.5); }
+
+@keyframes containerLoad {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ship-smoke {
+  position: absolute;
+  bottom: 85px;
+  right: 32px;
+}
+
+.smoke-puff {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.smoke-puff.s1 {
+  width: 16px; height: 16px;
+  bottom: 0; left: 0;
+  animation: smokeRise 3s ease-out infinite;
+}
+
+.smoke-puff.s2 {
+  width: 12px; height: 12px;
+  bottom: 0; left: 8px;
+  animation: smokeRise 3s ease-out 0.8s infinite;
+}
+
+.smoke-puff.s3 {
+  width: 10px; height: 10px;
+  bottom: 0; left: 4px;
+  animation: smokeRise 3s ease-out 1.6s infinite;
+}
+
+@keyframes smokeRise {
+  0% { opacity: 0.4; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-50px) scale(2.5) translateX(10px); }
+}
+
+/* ── Globe Scene ─────────────────────────────── */
+.globe-scene {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.globe-sphere {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.globe-core {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.03) 70%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: inset 0 0 40px rgba(16, 185, 129, 0.1), 0 0 30px rgba(16, 185, 129, 0.08);
+}
+
+.globe-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+}
+
+.globe-ring.ring-1 {
+  width: 100%;
+  height: 100%;
+  transform: rotateX(70deg);
+  animation: globeSpin 10s linear infinite;
+}
+
+.globe-ring.ring-2 {
+  width: 90%;
+  height: 90%;
+  transform: rotateX(70deg) rotateY(30deg);
+  animation: globeSpin 14s linear infinite reverse;
+  border-color: rgba(16, 185, 129, 0.10);
+}
+
+.globe-ring.ring-3 {
+  width: 80%;
+  height: 80%;
+  transform: rotateY(70deg);
+  animation: globeSpin 8s linear infinite;
+  border-color: rgba(16, 185, 129, 0.08);
+}
+
+@keyframes globeSpin {
+  from { transform: rotateX(70deg) rotateZ(0deg); }
+  to { transform: rotateX(70deg) rotateZ(360deg); }
+}
+
+.globe-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  top: 50%;
+  left: 50%;
+  transform: rotate(var(--angle)) translateX(85px) translateY(-50%);
+  animation: dotPulse 2s ease-in-out var(--delay) infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.3; transform: rotate(var(--angle)) translateX(85px) translateY(-50%) scale(1); }
+  50% { opacity: 1; transform: rotate(var(--angle)) translateX(85px) translateY(-50%) scale(1.5); }
+}
+
+.globe-pulse {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  animation: globePulseAnim 3s ease-out infinite;
+}
+
+@keyframes globePulseAnim {
+  0% { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* ── Container / Warehouse Scene ─────────────── */
+.container-scene {
+  position: relative;
+  width: 300px;
+  height: 260px;
+  perspective: 600px;
+}
+
+.container-stack {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) rotateX(5deg) rotateY(-15deg);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+  transform-style: preserve-3d;
+}
+
+.container-row {
+  display: flex;
+  gap: 4px;
+}
+
+.container-box {
+  width: 60px;
+  height: 32px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.1);
+  animation: containerAppear 0.5s ease-out both;
+  position: relative;
+}
+
+.container-box::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+}
+
+.container-row:nth-child(odd) .container-box:nth-child(1) { background: rgba(244, 63, 94, 0.4); }
+.container-row:nth-child(odd) .container-box:nth-child(2) { background: rgba(99, 102, 241, 0.4); }
+.container-row:nth-child(odd) .container-box:nth-child(3) { background: rgba(245, 158, 11, 0.4); }
+.container-row:nth-child(even) .container-box:nth-child(1) { background: rgba(6, 182, 212, 0.4); }
+.container-row:nth-child(even) .container-box:nth-child(2) { background: rgba(139, 92, 246, 0.4); }
+.container-row:nth-child(even) .container-box:nth-child(3) { background: rgba(16, 185, 129, 0.4); }
+
+@keyframes containerAppear {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.container-crane {
+  position: absolute;
+  top: 10px;
+  right: 50px;
+}
+
+.crane-arm {
+  width: 120px;
+  height: 4px;
+  background: linear-gradient(90deg, #52525b, #3f3f46);
+  border-radius: 2px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.crane-cable {
+  position: absolute;
+  right: 10px;
+  top: 4px;
+  width: 1px;
+  height: 40px;
+  background: rgba(255,255,255,0.15);
+  animation: cableSwing 3s ease-in-out infinite;
+  transform-origin: top;
+}
+
+@keyframes cableSwing {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+.crane-hook {
+  position: absolute;
+  right: 6px;
+  top: 44px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(245, 158, 11, 0.6);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  animation: cableSwing 3s ease-in-out infinite;
+  transform-origin: top;
 }
