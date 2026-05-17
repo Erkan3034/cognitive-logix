@@ -9,7 +9,7 @@ class MetricsOverviewResponse(BaseModel):
     financial_exposure_usd: float
     loss_making_orders: int
     total_analyzed_rows: int = 0
-    data_source_type: Literal["demo", "hybrid"] = "demo"
+    data_source_type: Literal["demo", "live"] = "demo"
 
 class WhatIfScenarioRequest(BaseModel):
     port_closed: bool = False

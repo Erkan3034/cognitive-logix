@@ -19,6 +19,7 @@ from app.services.supabase_ops import (
     is_configured,
     select_rows,
 )
+from app.routers.metrics import invalidate_tenant_cache
 
 
 router = APIRouter(prefix="/api/v1/ingest", tags=["ingestion"])
@@ -311,6 +312,8 @@ async def delete_history(record_id: str, request: Request):
     success = delete_history_record("ingested_data", record_id, tenant_id)
     if not success:
         raise HTTPException(status_code=404, detail="Kayit bulunamadi veya silinemedi.")
+    if tenant_id:
+        invalidate_tenant_cache(tenant_id)
     return {"status": "success"}
 
 
@@ -380,6 +383,9 @@ async def confirm_mapping_and_save(payload: dict[str, Any], request: Request):
     if summary_warning:
         persistence_warnings.append(summary_warning)
 
+    if tenant_id:
+        invalidate_tenant_cache(tenant_id)
+
     return {
         "status": "success",
         "message": f"{len(rows)} satir basariyla sisteme kaydedildi.",
@@ -394,7 +400,7 @@ async def confirm_mapping_and_save(payload: dict[str, Any], request: Request):
 
 
 @router.post("/webhook")
-async def erp_webhook_ingest(payload: dict[str, Any], request: Request):
+async def erp_webhook_ingest(payload: dict[str, Any] | list[dict[str, Any]], request: Request):
     """
     ERP sistemlerinden otomatik JSON beslemesi icin endpoint.
     """
@@ -454,6 +460,9 @@ async def erp_webhook_ingest(payload: dict[str, Any], request: Request):
         )
         if summary_warning:
             persistence_warnings.append(summary_warning)
+
+        if tenant_id:
+            invalidate_tenant_cache(tenant_id)
 
     return {
         "status": "success",

@@ -332,11 +332,17 @@ function MappingReview({ mappingResult, modelFeedReport, previewData, sourceName
 }
 
 function SourceHistory({ history, loading, error, onRefresh, onDelete }) {
+  const [expandedId, setExpandedId] = useState(null);
+
   const stats = useMemo(() => {
     const totalRows = history.reduce((sum, row) => sum + Number(row.persisted_record_count || row.row_count || 0), 0);
     const ready = history.filter((row) => feedInfo(row.model_feed_status || row.model_feed_report).label === "Hazır").length;
     return { totalRows, ready };
   }, [history]);
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   return (
     <section className="panel">
@@ -379,24 +385,56 @@ function SourceHistory({ history, loading, error, onRefresh, onDelete }) {
             const info = feedInfo(row.model_feed_status || row.model_feed_report);
             const count = Number(row.persisted_record_count || row.row_count || 0);
             return (
-              <article key={row.id ?? `${row.filename}-${row.created_at}`} className="source-history-row">
-                <div>
-                  <strong>{row.filename || row.source || "Otomatik veri alımı"}</strong>
-                  <span>{formatDate(row.created_at)} tarihinde kaydedildi</span>
+              <article key={row.id ?? `${row.filename}-${row.created_at}`} className="source-history-row" style={{ flexDirection: "column", alignItems: "stretch", padding: 0, gap: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px" }}>
+                  <div>
+                    <strong>{row.filename || (row.source === "webhook" ? "API Webhook Entegrasyonu" : row.source) || "Otomatik veri alımı"}</strong>
+                    <span>{formatDate(row.created_at)} tarihinde kaydedildi</span>
+                  </div>
+                  <div className="source-history-meta">
+                    <span>{count.toLocaleString("tr-TR")} satır</span>
+                    <span className={`panel-header-badge ${info.tone}`}>{info.label}</span>
+                    <button 
+                      type="button" 
+                      className="pro-btn-ghost" 
+                      style={{ padding: "4px 8px", minWidth: 0, color: "var(--fg)" }}
+                      onClick={() => toggleExpand(row.id)}
+                    >
+                      {expandedId === row.id ? "Gizle" : "Detayları Gör"}
+                    </button>
+                    <button 
+                      type="button" 
+                      className="pro-btn-ghost" 
+                      style={{ padding: "4px 8px", minWidth: 0, color: "var(--red)" }}
+                      onClick={() => onDelete(row.id)}
+                      title="Bu geçmiş kaydını sil"
+                    >
+                      Kaldır
+                    </button>
+                  </div>
                 </div>
-                <div className="source-history-meta">
-                  <span>{count.toLocaleString("tr-TR")} satır</span>
-                  <span className={`panel-header-badge ${info.tone}`}>{info.label}</span>
-                  <button 
-                    type="button" 
-                    className="pro-btn-ghost" 
-                    style={{ padding: "4px 8px", minWidth: 0, color: "var(--red)" }}
-                    onClick={() => onDelete(row.id)}
-                    title="Bu geçmiş kaydını sil"
-                  >
-                    Kaldır
-                  </button>
-                </div>
+                {expandedId === row.id && (
+                  <div style={{ padding: "16px", borderTop: "1px solid var(--border)", background: "rgba(255,255,255,0.02)", fontSize: "13px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+                      <div>
+                        <strong style={{ color: "var(--fg-muted)", display: "block", marginBottom: "8px" }}>
+                          {row.source === "webhook" ? "API Auto-Mapping (NLP) Raporu" : "Manuel Kolon Eşleştirmesi"}
+                        </strong>
+                        <pre style={{ margin: 0, padding: "12px", background: "#09090b", borderRadius: "8px", overflowX: "auto", color: "var(--green)", border: "1px solid var(--border)", maxHeight: "250px" }}>
+                          {row.mapping && Object.keys(row.mapping).length > 0 
+                            ? JSON.stringify(row.mapping, null, 2) 
+                            : (row.source === "webhook" ? "{}" : "Arayüz üzerinden manuel eşleştirme yapıldı.")}
+                        </pre>
+                      </div>
+                      <div>
+                        <strong style={{ color: "var(--fg-muted)", display: "block", marginBottom: "8px" }}>Yapay Zeka Besleme (Model Feed) Durumu</strong>
+                        <pre style={{ margin: 0, padding: "12px", background: "#09090b", borderRadius: "8px", overflowX: "auto", color: "var(--amber)", border: "1px solid var(--border)", maxHeight: "250px" }}>
+                          {JSON.stringify(row.model_feed_report || {}, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </article>
             );
           })}

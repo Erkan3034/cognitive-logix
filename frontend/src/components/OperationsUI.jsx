@@ -176,36 +176,38 @@ export function DecisionDrawer({ open, item, onClose, onAction, loadingAction, d
           <button type="button" className="ct-drawer-close" onClick={onClose}>Kapat</button>
         </div>
 
-        <div className="decision-drawer-metrics">
-          <div>
-            <span>Tür</span>
-            <strong>{typeLabel(item.type)}</strong>
-          </div>
-          <div>
-            <span>Güven</span>
-            <strong>{formatPct(item.confidence)}</strong>
-          </div>
-          <div>
-            <span>Etki</span>
-            <strong>{formatMoney(item.impact_usd)}</strong>
-          </div>
-        </div>
-
-        <section className="decision-drawer-section">
-          <h3>Önerilen aksiyon</h3>
-          <p>{translateAction(item.recommended_action)}</p>
-        </section>
-
-        {item.drilldown_params && Object.keys(item.drilldown_params).length > 0 && (
-          <section className="decision-drawer-section">
-            <h3>Bağlam</h3>
-            <div className="data-chip-list">
-              {Object.entries(item.drilldown_params).map(([key, value]) => (
-                value ? <span key={key} className="data-chip">{String(contextValueLabel(value))}</span> : null
-              ))}
+        <div className="decision-drawer-body">
+          <div className="decision-drawer-metrics">
+            <div>
+              <span>Tür</span>
+              <strong>{typeLabel(item.type)}</strong>
             </div>
+            <div>
+              <span>Güven</span>
+              <strong>{formatPct(item.confidence)}</strong>
+            </div>
+            <div>
+              <span>Etki</span>
+              <strong>{formatMoney(item.impact_usd)}</strong>
+            </div>
+          </div>
+
+          <section className="decision-drawer-section">
+            <h3>Önerilen aksiyon</h3>
+            <p>{translateAction(item.recommended_action)}</p>
           </section>
-        )}
+
+          {item.drilldown_params && Object.keys(item.drilldown_params).length > 0 && (
+            <section className="decision-drawer-section">
+              <h3>Bağlam</h3>
+              <div className="data-chip-list">
+                {Object.entries(item.drilldown_params).map(([key, value]) => (
+                  value ? <span key={key} className="data-chip">{String(contextValueLabel(value))}</span> : null
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
 
         <div className="decision-drawer-actions">
           <button type="button" className="btn" disabled={busy} onClick={() => onAction(item, "approved")}>

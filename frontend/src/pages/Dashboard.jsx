@@ -222,8 +222,8 @@ export default function Dashboard() {
               Operasyon Merkezi, analiz sonuçlarını ayrı kartlar olarak değil, günlük operasyon karar kuyruğu olarak sunar.
               {metrics && (
                 <span style={{ display: "inline-block", marginLeft: "12px", padding: "2px 8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px", fontSize: "0.85em" }}>
-                  <strong style={{ color: metrics.data_source_type === "hybrid" ? "var(--green)" : "var(--text-muted)" }}>
-                    {metrics.data_source_type === "hybrid" ? "🟢 Canlı + Sistem Verisi" : "⚪ Sistem  Verisi"}
+                  <strong style={{ color: metrics.data_source_type === "live" ? "var(--green)" : "var(--text-muted)" }}>
+                    {metrics.data_source_type === "live" ? "🟢 Canlı Şirket Verisi" : "⚪ Sistem  Verisi"}
                   </strong> ({metrics.total_analyzed_rows?.toLocaleString("tr-TR")} satır işleniyor)
                 </span>
               )}

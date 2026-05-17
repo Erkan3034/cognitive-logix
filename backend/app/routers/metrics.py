@@ -62,6 +62,17 @@ _risk_map_cache: "RiskMapResponse | None" = None
 _risk_map_sig: "tuple | None" = None
 _risk_map_expires_at: float = 0.0
 
+# --- Tenant Data Cache ---
+_uploaded_df_cache_lock = Lock()
+_uploaded_df_cache: dict[str, tuple[float, "pd.DataFrame"]] = {}
+_uploaded_full_cache: dict[str, tuple[float, "pd.DataFrame"]] = {}
+
+def invalidate_tenant_cache(tenant_id: str) -> None:
+    with _uploaded_df_cache_lock:
+        _uploaded_df_cache.pop(tenant_id, None)
+        _uploaded_full_cache.pop(tenant_id, None)
+    logger.info("Invalidated metrics cache for tenant: %s", tenant_id)
+
 
 def _file_signature(path: Path) -> tuple[int, int]:
     stat = path.stat()
@@ -154,6 +165,15 @@ def _load_uploaded_payloads(tenant_id: str | None, limit: int = 500000) -> list[
 
 
 def _uploaded_analysis_df(tenant_id: str | None) -> pd.DataFrame:
+    if not tenant_id:
+        return pd.DataFrame()
+        
+    now = time.time()
+    with _uploaded_df_cache_lock:
+        cached = _uploaded_df_cache.get(tenant_id)
+        if cached and now - cached[0] < 300:  # 5 minutes TTL
+            return cached[1]
+
     payloads = _load_uploaded_payloads(tenant_id)
     rows = []
     for idx, payload in enumerate(payloads, start=1):
@@ -179,10 +199,22 @@ def _uploaded_analysis_df(tenant_id: str | None) -> pd.DataFrame:
                 "Order Id": _stable_numeric_id(payload.get("Order_ID"), idx),
             }
         )
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    with _uploaded_df_cache_lock:
+        _uploaded_df_cache[tenant_id] = (time.time(), df)
+    return df
 
 
 def _uploaded_full_df(tenant_id: str | None) -> pd.DataFrame:
+    if not tenant_id:
+        return pd.DataFrame()
+        
+    now = time.time()
+    with _uploaded_df_cache_lock:
+        cached = _uploaded_full_cache.get(tenant_id)
+        if cached and now - cached[0] < 300:
+            return cached[1]
+
     payloads = _load_uploaded_payloads(tenant_id)
     rows = []
     for idx, payload in enumerate(payloads, start=1):
@@ -205,7 +237,10 @@ def _uploaded_full_df(tenant_id: str | None) -> pd.DataFrame:
                 "Category Name": payload.get("Category") or "Genel",
             }
         )
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    with _uploaded_df_cache_lock:
+        _uploaded_full_cache[tenant_id] = (time.time(), df)
+    return df
 
 
 def _load_analysis_df_from_disk() -> pd.DataFrame:
@@ -248,7 +283,7 @@ def _load_analysis_df(tenant_id: str | None = None) -> pd.DataFrame:
     if tenant_id:
         uploaded = _uploaded_analysis_df(tenant_id)
         if not uploaded.empty:
-            return pd.concat([base, uploaded], ignore_index=True)
+            return uploaded
     return base
 
 
@@ -291,7 +326,7 @@ def _load_full_df(tenant_id: str | None = None) -> pd.DataFrame:
     if tenant_id:
         uploaded = _uploaded_full_df(tenant_id)
         if not uploaded.empty:
-            return pd.concat([base, uploaded], ignore_index=True)
+            return uploaded
     return base
 
 
@@ -483,6 +518,12 @@ def _compute_overview_metrics(tenant_id: str | None = None) -> dict:
     loss_orders = int(loss_mask.sum())
     exposure = float(full.loc[loss_mask, "Sales_winsor"].sum())
 
+    is_live = False
+    if tenant_id:
+        uploaded = _uploaded_analysis_df(tenant_id)
+        if not uploaded.empty:
+            is_live = True
+
     return {
         "on_time_delivery_pct": on_time_rate,
         "late_delivery_risk_pct": late_rate,
@@ -491,7 +532,7 @@ def _compute_overview_metrics(tenant_id: str | None = None) -> dict:
         "financial_exposure_usd": exposure,
         "loss_making_orders": loss_orders,
         "total_analyzed_rows": len(anal),
-        "data_source_type": "hybrid" if len(anal) > len(_get_cached_analysis_base()) else "demo",
+        "data_source_type": "live" if is_live else "demo",
     }
 
 
@@ -598,7 +639,7 @@ def _compute_risk_map(limit: int, tenant_id: str | None) -> RiskMapResponse:
             late_shipments=("Late_delivery_risk", "sum"),
             financial_exposure_usd=("Sales", "sum"),
             order_count=("Order Id", "nunique"),
-            dominant_shipping_mode=("Shipping Mode", lambda s: s.mode().iat[0] if not s.mode().empty else "Mixed"),
+            dominant_shipping_mode=("Shipping Mode", lambda s: str(s.value_counts().index[0]) if not s.dropna().empty else "Mixed"),
         )
         .reset_index()
     )
@@ -611,7 +652,7 @@ def _compute_risk_map(limit: int, tenant_id: str | None) -> RiskMapResponse:
                 late_shipments=("Late_delivery_risk", "sum"),
                 financial_exposure_usd=("Sales", "sum"),
                 order_count=("Order Id", "nunique"),
-                dominant_shipping_mode=("Shipping Mode", lambda s: s.mode().iat[0] if not s.mode().empty else "Mixed"),
+                dominant_shipping_mode=("Shipping Mode", lambda s: str(s.value_counts().index[0]) if not s.dropna().empty else "Mixed"),
             )
             .reset_index()
         )
@@ -847,15 +888,15 @@ def get_drilldown_skus(
     sliced = grouped.head(safe_limit)
 
     items = []
-    for row in sliced.itertuples(index=False):
-        product_id = getattr(row, "_0")
-        product_name = getattr(row, "_1")
-        region = getattr(row, "_2")
-        mode = getattr(row, "_3")
-        category_name = getattr(row, "_4")
-        late_risk_pct = float(getattr(row, "_5"))
-        avg_sales_usd = float(getattr(row, "_6"))
-        sample_order_id = int(getattr(row, "_7"))
+    for row in sliced.to_dict(orient="records"):
+        product_id = row.get("Product Card Id")
+        product_name = row.get("Product Name")
+        region = row.get("Order Region")
+        mode = row.get("Shipping Mode")
+        category_name = row.get("Category Name")
+        late_risk_pct = float(row.get("late_risk_pct", 0.0))
+        avg_sales_usd = float(row.get("avg_sales_usd", 0.0))
+        sample_order_id = int(row.get("sample_order_id", 0))
 
         sku = f"SKU-{int(product_id)}" if pd.notna(product_id) else "SKU-UNKNOWN"
         items.append(

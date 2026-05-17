@@ -1358,19 +1358,30 @@
 
 .decision-drawer {
   position: fixed;
-  right: 0;
-  top: 0;
+  right: 16px;
+  top: 16px;
   z-index: 90;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  width: min(460px, 100%);
-  height: 100%;
-  padding: 22px;
-  border-left: 1px solid var(--border);
+  gap: 16px;
+  width: min(420px, calc(100% - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
   background: #111114;
-  box-shadow: var(--shadow-lg);
-  overflow: auto;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.decision-drawer-body {
+  flex: 0 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 4px; /* for scrollbar */
 }
 
 .decision-drawer-head {

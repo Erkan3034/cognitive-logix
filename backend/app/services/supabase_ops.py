@@ -37,14 +37,24 @@ def insert_row(table: str, row: dict[str, Any]) -> dict[str, Any] | None:
 
 def insert_rows(table: str, rows: list[dict[str, Any]], chunk_size: int = 500) -> int:
     inserted = 0
+    import time
     client = get_supabase_admin()
     for start in range(0, len(rows), chunk_size):
         chunk = rows[start : start + chunk_size]
         if not chunk:
             continue
-        response = client.table(table).insert(chunk).execute()
-        data = getattr(response, "data", None)
-        inserted += len(data) if isinstance(data, list) else len(chunk)
+        try:
+            response = client.table(table).insert(chunk).execute()
+            data = getattr(response, "data", None)
+            inserted += len(data) if isinstance(data, list) else len(chunk)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Chunk insert failed at %d: %s. Retrying...", start, exc)
+            time.sleep(0.5)
+            response = client.table(table).insert(chunk).execute()
+            data = getattr(response, "data", None)
+            inserted += len(data) if isinstance(data, list) else len(chunk)
+        time.sleep(0.05)  # Prevent Windows socket exhaustion
     return inserted
 
 
@@ -52,7 +62,14 @@ def select_rows(table: str, tenant_id: str | None, limit: int = 100) -> list[dic
     query = get_supabase_admin().table(table).select("*").order("created_at", desc=True).limit(limit)
     if tenant_id:
         query = query.eq("tenant_id", tenant_id)
-    response = query.execute()
+    try:
+        response = query.execute()
+    except Exception as exc:
+        import time
+        import logging
+        logging.getLogger(__name__).warning("select_rows failed: %s. Retrying...", exc)
+        time.sleep(0.5)
+        response = query.execute()
     return getattr(response, "data", None) or []
 
 
