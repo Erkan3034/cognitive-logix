@@ -349,7 +349,7 @@ function SourceHistory({ history, loading, error, onRefresh, onDelete }) {
       <div className="panel-header">
         <div className="panel-title-block">
           <h2 className="panel-title">Kaydedilen veri kaynakları</h2>
-          <p className="panel-subtitle">Sayfadan çıksanız bile Supabase havuzundaki kayıtlar burada yeniden görünür.</p>
+          <p className="panel-subtitle">Sayfadan çıksanız bile veri havuzundaki kayıtlar burada yeniden görünür.</p>
         </div>
         <button type="button" className="pro-btn-outline" onClick={onRefresh}>Yenile</button>
       </div>
