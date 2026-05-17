@@ -61,7 +61,7 @@ function regionLabel(value) {
 
 function KpiCard({ meta, value, explanation }) {
   return (
-    <motion.article 
+    <motion.article
       variants={{
         hidden: { opacity: 0, y: 20 },
         show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
@@ -78,15 +78,15 @@ function KpiCard({ meta, value, explanation }) {
 function RiskLaneRow({ zone, onOpen }) {
   const tone = zone.late_risk_pct >= 0.75 ? "red" : zone.late_risk_pct >= 0.55 ? "amber" : "green";
   return (
-    <motion.button 
+    <motion.button
       variants={{
         hidden: { opacity: 0, x: -10 },
         show: { opacity: 1, x: 0 }
       }}
       whileHover={{ scale: 1.01, backgroundColor: "rgba(255,255,255,0.03)" }}
       whileTap={{ scale: 0.99 }}
-      type="button" 
-      className="pro-table-row pro-table-button" 
+      type="button"
+      className="pro-table-row pro-table-button"
       onClick={() => onOpen(zone)}
     >
       <span className="pro-td pro-td-name" style={{ flex: 2 }}>{regionLabel(zone.order_region)}</span>
@@ -220,6 +220,13 @@ export default function Dashboard() {
             </h2>
             <p className="command-hero-text">
               Operasyon Merkezi, analiz sonuçlarını ayrı kartlar olarak değil, günlük operasyon karar kuyruğu olarak sunar.
+              {metrics && (
+                <span style={{ display: "inline-block", marginLeft: "12px", padding: "2px 8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px", fontSize: "0.85em" }}>
+                  <strong style={{ color: metrics.data_source_type === "hybrid" ? "var(--green)" : "var(--text-muted)" }}>
+                    {metrics.data_source_type === "hybrid" ? "🟢 Canlı + Sistem Verisi" : "⚪ Sistem  Verisi"}
+                  </strong> ({metrics.total_analyzed_rows?.toLocaleString("tr-TR")} satır işleniyor)
+                </span>
+              )}
             </p>
           </div>
           <div className="command-hero-actions">
@@ -318,23 +325,23 @@ export default function Dashboard() {
           ) : incidents.length === 0 ? (
             <EmptyState title="Bekleyen olay yok" />
           ) : (
-            <motion.div 
-              variants={{ show: { transition: { staggerChildren: 0.08 } } }} 
-              initial="hidden" 
-              animate="show" 
+            <motion.div
+              variants={{ show: { transition: { staggerChildren: 0.08 } } }}
+              initial="hidden"
+              animate="show"
               className="exception-card-list"
             >
               {incidents.slice(0, 4).map((item) => {
                 const sev = severityMeta(item.severity);
                 return (
-                  <motion.button 
+                  <motion.button
                     variants={{
                       hidden: { opacity: 0, x: -20 },
                       show: { opacity: 1, x: 0 }
                     }}
-                    key={item.id} 
-                    type="button" 
-                    className="exception-card" 
+                    key={item.id}
+                    type="button"
+                    className="exception-card"
                     onClick={() => setSelectedIncident(item)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

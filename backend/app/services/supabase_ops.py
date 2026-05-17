@@ -71,3 +71,49 @@ def summarize_usage(tenant_id: str | None) -> dict[str, Any]:
         "by_endpoint": by_endpoint,
         "recent": rows[:50],
     }
+
+
+def delete_rows_by_batch(table: str, batch_id: str) -> int:
+    """Belirli bir batch_id'ye ait tum satirlari siler (yarida kalan yuklemeler icin)."""
+    try:
+        client = get_supabase_admin()
+        response = client.table(table).delete().eq("batch_id", batch_id).execute()
+        data = getattr(response, "data", None)
+        return len(data) if isinstance(data, list) else 0
+    except Exception:
+        return 0
+
+
+def delete_history_record(table: str, record_id: str, tenant_id: str | None) -> bool:
+    """Belirli bir ID'ye sahip ozet kaydini ve ona bagli tum kalici satirlari siler."""
+    try:
+        client = get_supabase_admin()
+        
+        # 1. Once silinecek kaydi bul (dosya adini ogrenmek icin)
+        query = client.table(table).select("filename").eq("id", record_id)
+        if tenant_id:
+            query = query.eq("tenant_id", tenant_id)
+        record = query.execute()
+        data = getattr(record, "data", None)
+        
+        if not data or len(data) == 0:
+            return False
+            
+        filename = data[0].get("filename")
+        
+        # 2. Eger dosya adi varsa, ingested_records tablosundan bu dosyaya ait TUM verileri sil
+        if filename:
+            del_query = client.table("ingested_records").delete().eq("source_name", filename)
+            if tenant_id:
+                del_query = del_query.eq("tenant_id", tenant_id)
+            del_query.execute()
+            
+        # 3. Son olarak ozet kaydini (ingested_data) sil
+        del_summary = client.table(table).delete().eq("id", record_id).execute()
+        del_data = getattr(del_summary, "data", None)
+        return bool(isinstance(del_data, list) and len(del_data) > 0)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(f"delete_history_record hatasi: {exc}")
+        return False
+

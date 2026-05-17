@@ -6,6 +6,7 @@ import re
 import unicodedata
 
 try:
+    # pyrefly: ignore [missing-import]
     from thefuzz import process
 except ImportError:
     process = None
@@ -57,65 +58,130 @@ def _normalize(value: str) -> str:
 
 
 SYNONYMS = {
+    # ── Order ID ──
     "siparisno": "Order_ID",
     "siparisid": "Order_ID",
     "sipariskodu": "Order_ID",
     "orderid": "Order_ID",
     "ordernumber": "Order_ID",
+    "ordercustomerid": "Order_ID",
+    "orderitemid": "Order_ID",
+    # ── Product ID ──
     "urun": "Product_ID",
     "urunkodu": "Product_ID",
     "urunid": "Product_ID",
     "sku": "Product_ID",
     "productid": "Product_ID",
     "productcode": "Product_ID",
+    "productcardid": "Product_ID",
+    "productcategoryid": "Product_ID",
+    "orderitemcardprodid": "Product_ID",
+    "productname": "Product_ID",
+    "departmentid": "Product_ID",
+    "departmentname": "Product_ID",
+    # ── Category ──
     "kategori": "Category",
     "category": "Category",
+    "categoryname": "Category",
+    "categoryid": "Category",
+    # ── Quantity ──
     "miktar": "Quantity",
     "adet": "Quantity",
     "quantity": "Quantity",
+    "orderitemquantity": "Quantity",
+    "salespercustomer": "Quantity",
+    # ── Order Date ──
     "siparistarihi": "Order_Date",
     "tarih": "Order_Date",
     "orderdate": "Order_Date",
+    "orderdatedateorders": "Order_Date",
+    # ── Expected Delivery Date ──
     "beklenenteslimtarihi": "Expected_Delivery_Date",
     "planlananteslimtarihi": "Expected_Delivery_Date",
     "teslimtarihi": "Expected_Delivery_Date",
     "expecteddeliverydate": "Expected_Delivery_Date",
+    "daysforshipmentscheduled": "Expected_Delivery_Date",
+    # ── Actual Delivery Date ──
     "gerceklesenteslimtarihi": "Actual_Delivery_Date",
     "fiiliteslimtarihi": "Actual_Delivery_Date",
     "actualdeliverydate": "Actual_Delivery_Date",
+    "shippingdatedateorders": "Actual_Delivery_Date",
+    "daysforshippingreal": "Actual_Delivery_Date",
+    "latedeliveryrisk": "Actual_Delivery_Date",
+    "iscanceled": "Actual_Delivery_Date",
+    "orderstatus": "Actual_Delivery_Date",
+    # ── Origin ──
     "cikisyeri": "Origin",
     "kaynak": "Origin",
     "origin": "Origin",
+    "ordercity": "Origin",
+    "ordercountry": "Origin",
+    "orderstate": "Origin",
+    "latitude": "Origin",
+    "longitude": "Origin",
+    # ── Destination ──
     "varisyeri": "Destination",
     "hedef": "Destination",
     "bolge": "Destination",
     "region": "Destination",
     "destination": "Destination",
+    "orderregion": "Destination",
+    "customercity": "Destination",
+    "customercountry": "Destination",
+    "customerstate": "Destination",
+    "customerzipcode": "Destination",
+    "market": "Destination",
+    # ── Shipping Mode ──
     "kargo": "Shipping_Mode",
     "kargomodu": "Shipping_Mode",
     "kargotipi": "Shipping_Mode",
     "tasimamodu": "Shipping_Mode",
     "shippingmode": "Shipping_Mode",
+    "deliverystatus": "Shipping_Mode",
+    "shippingdelay": "Shipping_Mode",
+    # ── Sales ──
     "siparistutari": "Sales",
     "tutar": "Sales",
     "satis": "Sales",
     "ciro": "Sales",
     "sales": "Sales",
     "revenue": "Sales",
+    "orderitemtotal": "Sales",
+    "saleswinsor": "Sales",
+    "saleslog1p": "Sales",
+    "orderprofitperorder": "Sales",
+    "orderitemproductprice": "Sales",
+    "productprice": "Sales",
+    "orderitemproductpricewinsor": "Sales",
+    "orderitemproductpricelog1p": "Sales",
+    # ── Profit ──
     "kar": "Profit",
     "karzarar": "Profit",
     "profit": "Profit",
     "benefit": "Profit",
+    "benefitperorder": "Profit",
+    "orderitemprofitratio": "Profit",
+    "negativeprofitflag": "Profit",
+    "benefitperorderwinsor": "Profit",
+    # ── Customer Type ──
     "musteritipi": "Customer_Type",
     "musterisegmenti": "Customer_Type",
     "customersegment": "Customer_Type",
     "customertype": "Customer_Type",
+    "type": "Customer_Type",
+    "customerid": "Customer_Type",
+    "customerfname": "Customer_Type",
+    "customerlname": "Customer_Type",
+    # ── Payment Type ──
     "odemetipi": "Payment_Type",
     "odemeyontemi": "Payment_Type",
     "paymenttype": "Payment_Type",
+    # ── Discount Rate ──
     "indirim": "Discount_Rate",
     "indirimorani": "Discount_Rate",
     "discountrate": "Discount_Rate",
+    "orderitemdiscountrate": "Discount_Rate",
+    "orderitemdiscount": "Discount_Rate",
 }
 
 

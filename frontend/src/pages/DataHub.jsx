@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { confirmMapping, getIngestHistory, previewCsvFile } from "../lib/api.js";
+import { confirmMapping, getIngestHistory, previewCsvFile, deleteIngestHistory } from "../lib/api.js";
 import { EmptyState, InlineSpinner, PageIntro, StatusBanner } from "../components/ProductUI.jsx";
 import { useAuth } from "../lib/AuthContext.jsx";
 
@@ -331,7 +331,7 @@ function MappingReview({ mappingResult, modelFeedReport, previewData, sourceName
   );
 }
 
-function SourceHistory({ history, loading, error, onRefresh }) {
+function SourceHistory({ history, loading, error, onRefresh, onDelete }) {
   const stats = useMemo(() => {
     const totalRows = history.reduce((sum, row) => sum + Number(row.persisted_record_count || row.row_count || 0), 0);
     const ready = history.filter((row) => feedInfo(row.model_feed_status || row.model_feed_report).label === "Hazır").length;
@@ -387,6 +387,15 @@ function SourceHistory({ history, loading, error, onRefresh }) {
                 <div className="source-history-meta">
                   <span>{count.toLocaleString("tr-TR")} satır</span>
                   <span className={`panel-header-badge ${info.tone}`}>{info.label}</span>
+                  <button 
+                    type="button" 
+                    className="pro-btn-ghost" 
+                    style={{ padding: "4px 8px", minWidth: 0, color: "var(--red)" }}
+                    onClick={() => onDelete(row.id)}
+                    title="Bu geçmiş kaydını sil"
+                  >
+                    Kaldır
+                  </button>
                 </div>
               </article>
             );
@@ -407,6 +416,7 @@ export default function DataHub() {
   const [previewData, setPreviewData] = useState([]);
   const [stagedRows, setStagedRows] = useState([]);
   const [sourceName, setSourceName] = useState("");
+  const [sessionId, setSessionId] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState("");
@@ -422,6 +432,16 @@ export default function DataHub() {
       setHistoryError(err?.response?.data?.detail || "Veri alım geçmişi okunamadı.");
     } finally {
       setHistoryLoading(false);
+    }
+  }
+
+  async function handleDeleteHistory(id) {
+    if (!id || !window.confirm("Bu geçmiş kaydını ve ilgili verileri silmek istediğinize emin misiniz?")) return;
+    try {
+      await deleteIngestHistory(id);
+      loadHistory();
+    } catch (err) {
+      alert(err?.response?.data?.detail || "Kayıt silinemedi.");
     }
   }
 
@@ -443,6 +463,7 @@ export default function DataHub() {
       setModelFeedReport(data.model_feed_report);
       setPreviewData(data.preview_data || []);
       setStagedRows(data.staged_rows || []);
+      setSessionId(data.session_id || null);
       setSourceName(data.source_name || file.name);
     } catch (err) {
       setError(err?.response?.data?.detail || err.message || "Sunucuya bağlanılamadı.");
@@ -455,6 +476,7 @@ export default function DataHub() {
     const result = await confirmMapping({
       final_mapping: mappingResult.mapped,
       data: stagedRows,
+      session_id: sessionId,
       source_name: sourceName,
     });
     await loadHistory();
@@ -468,6 +490,7 @@ export default function DataHub() {
     setModelFeedReport(null);
     setPreviewData([]);
     setStagedRows([]);
+    setSessionId(null);
     setSourceName("");
   }
 
@@ -514,6 +537,7 @@ export default function DataHub() {
         loading={historyLoading}
         error={historyError}
         onRefresh={loadHistory}
+        onDelete={handleDeleteHistory}
       />
     </div>
   );

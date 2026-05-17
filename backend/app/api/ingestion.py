@@ -12,6 +12,8 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from app.services.mapping_engine import map_columns
 from app.services.supabase_ops import (
     SupabaseNotConfigured,
+    delete_history_record,
+    delete_rows_by_batch,
     insert_row,
     insert_rows,
     is_configured,
@@ -182,7 +184,17 @@ def _save_ingested_records(
     rows: list[dict[str, Any]],
     standardized: list[dict[str, Any]],
     mapping: dict[str, str],
+    batch_id: str | None = None,
 ) -> tuple[int, str | None]:
+    # Yarida kalan onceki yuklemeyi otomatik temizle
+    if batch_id:
+        cleaned = delete_rows_by_batch("ingested_records", batch_id)
+        if cleaned > 0:
+            import logging
+            logging.getLogger(__name__).info(
+                "Onceki yarida kalan yukleme temizlendi: batch_id=%s, silinen=%d", batch_id, cleaned
+            )
+
     record_rows = [
         {
             "tenant_id": tenant_id,
@@ -191,17 +203,25 @@ def _save_ingested_records(
             "standard_payload": standard_row,
             "original_payload": original_row,
             "mapping": mapping,
+            "batch_id": batch_id,
         }
         for original_row, standard_row in zip(rows, standardized)
     ]
     if not record_rows:
         return 0, None
+
+    inserted_count = 0
+    chunk_size = 10000
     try:
-        return insert_rows("ingested_records", record_rows), None
+        for i in range(0, len(record_rows), chunk_size):
+            chunk = record_rows[i:i + chunk_size]
+            count = insert_rows("ingested_records", chunk)
+            inserted_count += count
+        return inserted_count, None
     except SupabaseNotConfigured:
-        return 0, "Supabase baglantisi bulunamadi."
+        return inserted_count, "Supabase baglantisi bulunamadi."
     except Exception as exc:
-        return 0, f"Satir bazli kayit tamamlanamadi: {exc}"
+        return inserted_count, f"Satir bazli kayit parcali islemde (chunk {i}) yarida kaldi: {exc}"
 
 
 def _enrich_history_row(row: dict[str, Any]) -> dict[str, Any]:
@@ -217,6 +237,12 @@ def _enrich_history_row(row: dict[str, Any]) -> dict[str, Any]:
     return row
 
 
+import uuid
+from pathlib import Path
+
+TEMP_DIR = Path("data/temp")
+TEMP_DIR.mkdir(parents=True, exist_ok=True)
+
 @router.post("/csv-preview")
 async def preview_csv_mapping(file: UploadFile = File(...)):
     """
@@ -231,7 +257,14 @@ async def preview_csv_mapping(file: UploadFile = File(...)):
         columns = df.columns.tolist()
         mapping_result = map_columns(columns)
         df = df.where(pd.notnull(df), None)
-        staged_rows = df.to_dict(orient="records")
+        
+        # Buyuk veriler icin frontend'e tamamini gondermek yerine gecici dosyaya yaziyoruz
+        session_id = str(uuid.uuid4())
+        temp_path = TEMP_DIR / f"{session_id}.pkl"
+        df.to_pickle(temp_path)
+
+        # Raporlama icin ilk basta hizlica standardize edelim
+        staged_rows = df.head(100).to_dict(orient="records") # Rapor icin sadece 100 satir yeterli
         standardized = _standardize_rows(staged_rows, mapping_result.get("mapped", {}))
 
         return {
@@ -239,7 +272,8 @@ async def preview_csv_mapping(file: UploadFile = File(...)):
             "mapping_result": mapping_result,
             "columns_found": columns,
             "preview_data": df.head(3).to_dict(orient="records"),
-            "staged_rows": staged_rows,
+            "session_id": session_id,
+            "staged_rows": [], # RAM sismemesi icin bos gonderiyoruz
             "total_rows": len(df),
             "source_name": file.filename,
             "quality_report": _data_quality_report(df),
@@ -266,6 +300,20 @@ async def ingestion_history(request: Request, limit: int = 25):
     return {"items": [_enrich_history_row(row) for row in rows], "total": len(rows)}
 
 
+@router.delete("/history/{record_id}")
+async def delete_history(record_id: str, request: Request):
+    """
+    Belirli bir gecmis yukleme kaydini siler.
+    """
+    if not is_configured():
+        raise HTTPException(status_code=503, detail="Supabase is not configured.")
+    tenant_id = getattr(request.state, "tenant_id", None)
+    success = delete_history_record("ingested_data", record_id, tenant_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Kayit bulunamadi veya silinemedi.")
+    return {"status": "success"}
+
+
 @router.post("/confirm-mapping")
 async def confirm_mapping_and_save(payload: dict[str, Any], request: Request):
     """
@@ -273,12 +321,21 @@ async def confirm_mapping_and_save(payload: dict[str, Any], request: Request):
     """
     final_mapping = payload.get("final_mapping", {})
     rows = payload.get("data", [])
+    session_id = payload.get("session_id")
     source_name = payload.get("source_name", "customer-upload.csv")
+
+    if session_id:
+        temp_path = TEMP_DIR / f"{session_id}.pkl"
+        if temp_path.exists():
+            df = pd.read_pickle(temp_path)
+            df = df.where(pd.notnull(df), None)
+            rows = df.to_dict(orient="records")
+            temp_path.unlink() # Isimiz bitince sil
 
     if not final_mapping:
         raise HTTPException(status_code=400, detail="final_mapping is required.")
     if not rows:
-        raise HTTPException(status_code=400, detail="data rows are required.")
+        raise HTTPException(status_code=400, detail="data rows or session_id are required.")
 
     tenant_id = getattr(request.state, "tenant_id", None)
     user_id = getattr(request.state, "user_id", None)
@@ -300,6 +357,7 @@ async def confirm_mapping_and_save(payload: dict[str, Any], request: Request):
         rows=rows,
         standardized=standardized,
         mapping=final_mapping,
+        batch_id=session_id,
     )
     if record_warning:
         persistence_warnings.append(record_warning)

@@ -96,29 +96,61 @@ def _stable_numeric_id(value: object, fallback: int) -> int:
     return int(digest[:8], 16) % 1_000_000
 
 
-def _load_uploaded_payloads(tenant_id: str | None, limit: int = 5000) -> list[dict]:
+def _load_uploaded_payloads(tenant_id: str | None, limit: int = 500000) -> list[dict]:
     if not tenant_id or not is_configured():
         return []
-    try:
-        response = (
-            get_supabase_admin()
-            .table("ingested_records")
-            .select("standard_payload")
-            .eq("tenant_id", tenant_id)
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute()
-        )
-        rows = getattr(response, "data", None) or []
-    except Exception as exc:
-        logger.warning("uploaded records could not be loaded for metrics: %s", exc)
-        return []
     payloads = []
-    for row in rows:
-        payload = row.get("standard_payload")
-        if isinstance(payload, dict):
-            payloads.append(payload)
-    return payloads
+    chunk_size = 1000
+    offset = 0
+    client = get_supabase_admin()
+    while True:
+        try:
+            response = (
+                client.table("ingested_records")
+                .select("standard_payload")
+                .eq("tenant_id", tenant_id)
+                .order("created_at", desc=True)
+                .range(offset, offset + chunk_size - 1)
+                .execute()
+            )
+            rows = getattr(response, "data", None) or []
+            if not rows:
+                break
+            for row in rows:
+                payload = row.get("standard_payload")
+                if isinstance(payload, dict):
+                    payloads.append(payload)
+            offset += len(rows)
+            if len(rows) < chunk_size or offset >= limit:
+                break
+            time.sleep(0.05)  # Give Windows sockets time to breathe
+        except Exception as exc:
+            logger.warning("Pagination interrupted at offset %d: %s", offset, exc)
+            time.sleep(0.2)
+            try:
+                # Retry once
+                response = (
+                    client.table("ingested_records")
+                    .select("standard_payload")
+                    .eq("tenant_id", tenant_id)
+                    .order("created_at", desc=True)
+                    .range(offset, offset + chunk_size - 1)
+                    .execute()
+                )
+                rows = getattr(response, "data", None) or []
+                if not rows:
+                    break
+                for row in rows:
+                    payload = row.get("standard_payload")
+                    if isinstance(payload, dict):
+                        payloads.append(payload)
+                offset += len(rows)
+                if len(rows) < chunk_size or offset >= limit:
+                    break
+            except Exception as retry_exc:
+                logger.error("Retry failed at offset %d: %s", offset, retry_exc)
+                break
+    return payloads[:limit]
 
 
 def _uploaded_analysis_df(tenant_id: str | None) -> pd.DataFrame:
@@ -458,6 +490,8 @@ def _compute_overview_metrics(tenant_id: str | None = None) -> dict:
         "demand_risk_categories": demand_categories,
         "financial_exposure_usd": exposure,
         "loss_making_orders": loss_orders,
+        "total_analyzed_rows": len(anal),
+        "data_source_type": "hybrid" if len(anal) > len(_get_cached_analysis_base()) else "demo",
     }
 
 
@@ -838,4 +872,5 @@ def get_drilldown_skus(
         )
 
     return DrilldownSkuResponse(total=total, items=items)
+
 

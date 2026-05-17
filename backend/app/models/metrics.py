@@ -1,7 +1,5 @@
 from typing import Dict, List, Literal
-
 from pydantic import BaseModel, Field
-
 
 class MetricsOverviewResponse(BaseModel):
     on_time_delivery_pct: float
@@ -10,18 +8,17 @@ class MetricsOverviewResponse(BaseModel):
     demand_risk_categories: int
     financial_exposure_usd: float
     loss_making_orders: int
-
+    total_analyzed_rows: int = 0
+    data_source_type: Literal["demo", "hybrid"] = "demo"
 
 class WhatIfScenarioRequest(BaseModel):
     port_closed: bool = False
     demand_surge_pct: float = Field(0.0, ge=0.0, le=100.0)
     supplier_strike: Literal["none", "local", "global"] = "none"
 
-
 class XaiResponse(BaseModel):
     explanations: Dict[str, str]
     scenario_drivers: List[str] = Field(default_factory=list)
-
 
 class WhatIfScenarioResponse(BaseModel):
     metrics: MetricsOverviewResponse
@@ -104,3 +101,4 @@ class ModelHealthItem(BaseModel):
 class ModelHealthResponse(BaseModel):
     models: List[ModelHealthItem]
     drift: DriftResponse
+

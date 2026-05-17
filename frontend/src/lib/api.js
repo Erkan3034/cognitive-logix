@@ -128,6 +128,7 @@ export async function previewCsvFile(file) {
   formData.append("file", file);
   const { data } = await api.post("/api/v1/ingest/csv-preview", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 300_000, // 5 minutes for large file parsing
   });
   return data;
 }
@@ -137,8 +138,15 @@ export async function getIngestHistory(params = {}) {
   return data;
 }
 
+export async function deleteIngestHistory(recordId) {
+  const { data } = await api.delete(`/api/v1/ingest/history/${recordId}`);
+  return data;
+}
+
 export async function confirmMapping(payload) {
-  const { data } = await api.post("/api/v1/ingest/confirm-mapping", payload);
+  const { data } = await api.post("/api/v1/ingest/confirm-mapping", payload, {
+    timeout: 600_000, // 10 minutes for large file ingestion (470K+ rows)
+  });
   return data;
 }
 
