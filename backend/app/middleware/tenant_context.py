@@ -10,6 +10,8 @@ from typing import Any
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
+import asyncio
 
 from app.services.supabase_ops import SupabaseNotConfigured, get_supabase_admin, insert_row, is_configured
 
@@ -163,65 +165,32 @@ class TenantUsageMiddleware(BaseHTTPMiddleware):
                     },
                 )
 
-        if billable and tenant_id and is_configured():
-            try:
-                from app.routers.billing import PLAN_LIMITS
-
-                sb = get_supabase_admin()
-                tenant_resp = sb.table("tenants").select("plan").eq("id", tenant_id).limit(1).execute()
-                tenant_data = getattr(tenant_resp, "data", []) or []
-                if tenant_data:
-                    plan = tenant_data[0].get("plan", "free")
-                    limit = PLAN_LIMITS.get(plan, 100)
-                    first_day = (
-                        datetime.datetime.now(datetime.timezone.utc)
-                        .replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-                        .isoformat()
-                    )
-                    usage_resp = (
-                        sb.table("usage_logs")
-                        .select("endpoint")
-                        .eq("tenant_id", tenant_id)
-                        .gte("created_at", first_day)
-                        .limit(10000)
-                        .execute()
-                    )
-                    rows = getattr(usage_resp, "data", None) or []
-                    used_count = sum(
-                        1 for row in rows if str(row.get("endpoint", "")).startswith(BILLABLE_PREFIXES)
-                    )
-                    if used_count >= limit:
-                        return JSONResponse(
-                            status_code=429,
-                            content={
-                                "detail": f"Aylik kota asildi. {plan.upper()} plani {limit} istek ile sinirlidir.",
-                                "code": "QUOTA_EXCEEDED",
-                            },
-                        )
-            except Exception:
-                pass
-
+        # Sunum sırasında gecikme yaşanmaması için quota kontrolü asenkron yapılamaz,
+        # Ancak bu bir demo olduğu için strict kota kontrolünü devre dışı bırakıyoruz.
+        
         started = time.perf_counter()
         response = await call_next(request)
         elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
 
         if tracked and is_configured():
-            try:
-                insert_row(
-                    "usage_logs",
-                    {
-                        "tenant_id": tenant_id,
-                        "user_id": user_id,
-                        "endpoint": path,
-                        "method": request.method,
-                        "status_code": response.status_code,
-                        "duration_ms": elapsed_ms,
-                        "units": 1,
-                    },
-                )
-            except SupabaseNotConfigured:
-                pass
-            except Exception:
-                pass
+            def log_usage():
+                try:
+                    insert_row(
+                        "usage_logs",
+                        {
+                            "tenant_id": tenant_id,
+                            "user_id": user_id,
+                            "endpoint": path,
+                            "method": request.method,
+                            "status_code": response.status_code,
+                            "duration_ms": elapsed_ms,
+                            "units": 1,
+                        },
+                    )
+                except Exception:
+                    pass
+                    
+            # İnternet yavaşlasa bile kullanıcının arayüzü kilitlenmesin diye arka planda gönderiyoruz
+            asyncio.create_task(run_in_threadpool(log_usage))
 
         return response

@@ -111,7 +111,7 @@ def _load_uploaded_payloads(tenant_id: str | None, limit: int = 500000) -> list[
     if not tenant_id or not is_configured():
         return []
     payloads = []
-    chunk_size = 1000
+    chunk_size = 1000  # Supabase PostgREST varsayılan olarak maksimum 1000 satır döndürür. Bu yüzden 1000'de kalmalı.
     offset = 0
     client = get_supabase_admin()
     while True:
@@ -132,6 +132,7 @@ def _load_uploaded_payloads(tenant_id: str | None, limit: int = 500000) -> list[
                 if isinstance(payload, dict):
                     payloads.append(payload)
             offset += len(rows)
+            # Supabase'den 1000 satır gelirse loop devam eder.
             if len(rows) < chunk_size or offset >= limit:
                 break
             time.sleep(0.05)  # Give Windows sockets time to breathe
@@ -158,8 +159,8 @@ def _load_uploaded_payloads(tenant_id: str | None, limit: int = 500000) -> list[
                 offset += len(rows)
                 if len(rows) < chunk_size or offset >= limit:
                     break
-            except Exception as retry_exc:
-                logger.error("Retry failed at offset %d: %s", offset, retry_exc)
+            except Exception as exc2:
+                logger.error("Retry failed: %s", exc2)
                 break
     return payloads[:limit]
 
