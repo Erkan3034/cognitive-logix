@@ -67,18 +67,25 @@ def _tenant_from_profile(user_id: str | None) -> str | None:
     if not user_id or not is_configured():
         return None
     try:
-        response = (
-            get_supabase_admin()
-            .table("profiles")
-            .select("tenant_id")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
+        admin = get_supabase_admin()
+        response = admin.table("profiles").select("tenant_id").eq("id", user_id).limit(1).execute()
         data = getattr(response, "data", None) or []
-        if data:
+        
+        if data and data[0].get("tenant_id"):
             return data[0].get("tenant_id")
-    except Exception:
+            
+        # Eğer profil var ama tenant_id yoksa (yeni kayıt), otomatik tenant oluşturup bağlayalım
+        if data and not data[0].get("tenant_id"):
+            tenant_res = admin.table("tenants").insert({"name": "Yeni Şirket"}).execute()
+            new_tenant = getattr(tenant_res, "data", None)
+            if new_tenant and len(new_tenant) > 0:
+                new_tenant_id = new_tenant[0]["id"]
+                admin.table("profiles").update({"tenant_id": new_tenant_id}).eq("id", user_id).execute()
+                return new_tenant_id
+                
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).error(f"Tenant fetch/create failed: {exc}")
         return None
     return None
 

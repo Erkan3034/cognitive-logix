@@ -5,7 +5,7 @@ import time
 
 # 1. ADIM: Arayüzden (Bağlantı Anahtarları sayfasından) oluşturduğunuz 
 # "Veri gönderimi" yetkili API anahtarını buraya yapıştırın:
-API_KEY = "cl_bALwG2KkHp6RzTrooq933RPNfsEZ1lYmI0q144u1NfTDhZoVbFlVTg"
+API_KEY = "cl_6qvAug_1otNJPb43NKud9-Pee7VvDiAVr4iedoXQ768HSrN_IinNGw"
 
 URL = "http://localhost:8000/api/v1/ingest/webhook"
 
