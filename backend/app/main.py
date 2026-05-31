@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 _env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(_env_path)
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
 from app.api.ingestion import router as ingestion_router
@@ -31,6 +32,12 @@ app = FastAPI(title="Cognitive Logix API", version="1.0.0")
 logger = logging.getLogger(__name__)
 
 METRICS_REFRESH_INTERVAL_SECONDS = 30
+FRONTEND_DIST_DIR = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+FRONTEND_INDEX_FILE = FRONTEND_DIST_DIR / "index.html"
+
+
+def _frontend_is_packaged() -> bool:
+    return FRONTEND_INDEX_FILE.exists()
 
 
 def _allowed_origins() -> list[str]:
@@ -57,6 +64,22 @@ app.include_router(ingestion_router)
 app.include_router(ops_router)
 app.include_router(api_keys_router)
 app.include_router(billing_router)
+
+
+@app.middleware("http")
+async def _spa_fallback_middleware(request: Request, call_next):
+    response = await call_next(request)
+    if response.status_code != 404 or request.method not in {"GET", "HEAD"}:
+        return response
+
+    path = request.url.path
+    if path.startswith(("/api", "/predict", "/forecast", "/fraud", "/metrics", "/ops")):
+        return response
+    if path in {"/health", "/ready", "/openapi.json", "/docs", "/redoc"}:
+        return response
+    if _frontend_is_packaged():
+        return FileResponse(FRONTEND_INDEX_FILE)
+    return response
 
 
 async def _periodic_metrics_refresh_task() -> None:
@@ -129,6 +152,8 @@ def ready():
 
 @app.get("/")
 def root():
+    if _frontend_is_packaged():
+        return FileResponse(FRONTEND_INDEX_FILE)
     return {
         "message": "Cognitive Logix Supply Chain Intelligence API",
         "version": "1.0.0",

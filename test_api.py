@@ -3,8 +3,7 @@ import requests
 import json
 import time
 
-# 1. ADIM: Arayüzden (Bağlantı Anahtarları sayfasından) oluşturduğunuz 
-# "Veri gönderimi" yetkili API anahtarını buraya yapıştırın:
+
 API_KEY = "cl_6qvAug_1otNJPb43NKud9-Pee7VvDiAVr4iedoXQ768HSrN_IinNGw"
 
 URL = "http://localhost:8000/api/v1/ingest/webhook"
@@ -27,13 +26,13 @@ headers = {
     "Content-Type": "application/json"
 }
 
-print("🚀 ERP Sisteminden Cognitive Logix'e canlı veri gönderiliyor...")
+print(" ERP Sisteminden Cognitive Logix'e canlı veri gönderiliyor...")
 response = requests.post(URL, json=test_payload, headers=headers)
 
 if response.status_code == 200:
     print("✅ BAŞARILI! Veri sisteme ulaştı ve Yapay Zeka tarafından işlendi.")
-    print("🔍 Eşleştirme Raporu:", json.dumps(response.json(), indent=2, ensure_ascii=False))
-    print("\n👉 Şimdi Control Tower (Operasyon Merkezi) sayfasını yenileyin!")
+    print(" Eşleştirme Raporu:", json.dumps(response.json(), indent=2, ensure_ascii=False))
+    print("\n Şimdi Control Tower (Operasyon Merkezi) sayfasını yenileyin!")
 else:
-    print("❌ HATA:", response.status_code)
+    print(" HATA:", response.status_code)
     print(response.text)

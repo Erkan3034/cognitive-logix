@@ -163,6 +163,13 @@ npm run dev
 ```
 > 💡 Uygulama `http://localhost:5173` adresinde çalışacaktır.
 
+## 📦 Öğretmen için Tek Tıkla Çalıştırma
+
+Bu repo, zip olarak paylaşılacak sürüm için de hazırlanmıştır:
+- `build-teacher-package.ps1` ile `teacher_package\` klasörü ve `teacher_package.zip` üretilebilir.
+- `run-teacher-package.bat` zip içinden çift tıkla backend'i başlatır ve tarayıcıda projeyi açar.
+- Paket içinde `backend\trained_models\*.pkl`, `backend\.env`, `frontend\dist\` ve `data\` klasörleri bulunmalıdır.
+
 ## 🧠 Yapay Zeka Modelleri ve Algoritmalar
 
 Projedeki analitik yetenekler, *DataCo Supply Chain* veri seti üzerinde özel olarak eğitilmiş makine öğrenmesi modelleriyle desteklenmektedir:
