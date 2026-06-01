@@ -20,6 +20,7 @@ env/
 Thumbs.db
 .vscode/
 .idea/
+.claude
 
 # --- Frontend (Vite/React) ---
 frontend/node_modules/
@@ -32,7 +33,7 @@ data/raw/
 
 # --- Trained models (keep locally) ---
 backend/trained_models/
-
+CLATEST_PROGRESS.md
 # --- Misc ---
 *.log
 
@@ -40,3 +41,8 @@ my-claude-skills/
 V2_SAAS_ROADMAP.md
 PRESENTATION_PROMPT.md
 SAAS_MIMARISI.md
+test_kodlari/
+GERCEK_VERI_REHBERI.md
+SAAS_MIMARISI.md
+saas_implementation_plan.md
+
