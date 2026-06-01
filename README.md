@@ -603,12 +603,13 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 
 ---
 
-## 🧑‍💻 Ekip
+## 🧑‍💻 Ekip — ByteCrafters
 
-| | Geliştirici |
-|--|-------------|
-| 👤 | **Erkan Turgut** — Backend, ML Modelleri, Sistem Mimarisi |
-| 👤 | **Aslı Aydın** — Frontend, UI/UX |
+| Ad Soyad | Numara | Sorumluluk |
+|----------|--------|------------|
+| **Erkan TURGUT** | 22010708048 | Backend, ML Modelleri, Sistem Mimarisi |
+| **Aslı AYDIN** | 23010708008 | Frontend, UI/UX |
+| **Ismail NAIT OUCHEN** | — | Veri Mühendisliği |
 
 > **Kurs:** Yapay Zeka Dersi — 2025/2026 Bahar Dönemi
 
