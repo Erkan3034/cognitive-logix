@@ -343,64 +343,148 @@ cognitive-logix/
 
 ## 🚀 Kurulum
 
-### Seçenek A — Tek Tıkla Çalıştır (Önerilen)
+İki kurulum seçeneği sunulmuştur: **(A)** sıfır yapılandırmalı tek-tık paket *(hocaya teslim sürümü)*, **(B)** geliştirici ortamı (kaynaktan).
 
-> Sadece Windows + Python 3.11+ gerektirir. Node.js gerekmez.
+---
 
+### 🅰️ Seçenek A — Tek Tıkla Çalıştır (Önerilen — Hocaya Teslim Sürümü)
+
+> Teslim paketi (`cognitive-logix-teslim.zip`) **frontend'in derlenmiş halini** ve **tüm Python wheel'lerini** içerir. Node.js / npm gerekmez, **internet bile gerekmez**.
+
+#### Gereksinim
+✅ Yalnızca **Python 3.11+** (kurulum sırasında *“Add Python to PATH”* işaretli olmalı)
+
+#### Adımlar
 ```
-1. Repoyu klonlayın veya ZIP'i indirin
-2. BASLAT.bat'a çift tıklayın
-3. İlk çalıştırmada otomatik:
-   - Python sanal ortamı oluşturulur (.venv)
-   - Gerekli paketler kurulur (~5 dk, internet gerekir)
-   - Backend başlar (http://127.0.0.1:8000)
-   - Tarayıcı otomatik açılır
+1) cognitive-logix-teslim.zip → sağ tık → "Tümünü ayıkla..."
+2) Çıkan klasördeki BASLAT.bat dosyasına çift tıklayın
+3) İlk açılışta otomatik:
+   • Python sanal ortamı (.venv) oluşur
+   • wheels/ klasöründen tüm paketler offline kurulur (~1 dakika)
+   • Backend (FastAPI) :8000 portunda başlar
+   • React arayüzü aynı porttan servis edilir
+   • Tarayıcı otomatik açılır → http://127.0.0.1:8000
+4) Kapatmak için siyah komut penceresini kapatın
 ```
 
-### Seçenek B — Geliştirme Ortamı
+> ⏱️ İlk açılış 60–90 sn (paket kurulumu + model yükleme). Sonraki açılışlar 8–15 sn.
+
+---
+
+### 🅱️ Seçenek B — Manuel Kurulum (Geliştirici / Kaynak Koddan)
+
+> GitHub deposunu klonladıktan sonra kullanın. Frontend değiştirmek isteyenler için.
 
 #### Gereksinimler
-- Python 3.11+
-- Node.js 18+
-- Supabase projesi (ücretsiz tier yeterli)
+| Bileşen | Sürüm | İndirme |
+|---------|-------|---------|
+| **Python** | 3.11 veya 3.12 | <https://www.python.org/downloads/> |
+| **Node.js** | 18 LTS+ | <https://nodejs.org/> |
+| **Git** | herhangi | <https://git-scm.com/> |
+| **Supabase** | ücretsiz hesap (opsiyonel — test için zorunlu değil) | <https://supabase.com/> |
 
-#### Backend
+#### 1️⃣ Depoyu Klonla
 ```bash
+git clone https://github.com/Erkan3034/cognitive-logix.git
+cd cognitive-logix
+```
+
+#### 2️⃣ Backend (FastAPI + ML)
+
+<details open>
+<summary><b>🪟 Windows (PowerShell)</b></summary>
+
+```powershell
 cd backend
 
-# Sanal ortam oluştur
+# Sanal ortam
 python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS/Linux
+.\venv\Scripts\Activate.ps1
 
-# Bağımlılıkları kur
-pip install -r requirements.txt
+# Bağımlılıklar (~3-8 dk, ilk seferde — hızlandırmak için --prefer-binary kullanıyoruz)
+pip install --upgrade pip
+pip install --prefer-binary -r requirements.txt
 
-# Ortam değişkenlerini ayarla
-cp env.example .env
-# .env dosyasını düzenleyin:
-# SUPABASE_URL=https://xxx.supabase.co
-# SUPABASE_SERVICE_ROLE_KEY=eyJ...
+# Ortam değişkenleri (test için Supabase olmadan da çalışır)
+Copy-Item env.example .env
+notepad .env
 
 # Sunucuyu başlat
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
+</details>
 
-#### Frontend
+<details>
+<summary><b>🐧 macOS / Linux (bash)</b></summary>
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install --prefer-binary -r requirements.txt
+cp env.example .env
+nano .env
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+</details>
+
+> ✅ **Doğrulama:** `http://127.0.0.1:8000/health` → `{"status":"ok",...}` dönmeli
+> 📚 **İnteraktif API:** `http://127.0.0.1:8000/docs` (Swagger UI)
+> 💡 **Not:** Supabase değişkenleri yalnızca veri yükleme / multi-tenant özellikleri için gereklidir; ML tahmin/forecast/fraud uç noktaları onlarsız da çalışır.
+
+#### 3️⃣ Frontend (React + Vite)
+
 ```bash
 cd frontend
+
+# Bağımlılıklar
 npm install
 
-# Ortam değişkenlerini ayarla
+# Ortam değişkenleri (opsiyonel — test için boş bırakılabilir)
 cp env.example .env.local
-# VITE_SUPABASE_URL=https://xxx.supabase.co
-# VITE_SUPABASE_ANON_KEY=eyJ...
-# VITE_API_URL=http://localhost:8000
+# .env.local içeriği:
+#   VITE_SUPABASE_URL=https://xxx.supabase.co
+#   VITE_SUPABASE_ANON_KEY=eyJ...
+#   VITE_API_URL=http://localhost:8000
 
-npm run dev     # http://localhost:5173
-# veya
-npm run build   # Production build → dist/
+# Geliştirme modu (hot reload, ayrı port)
+npm run dev          # → http://localhost:5173
+
+# VEYA production build (backend ile aynı portta servis edilir)
+npm run build        # → frontend/dist/
 ```
+
+#### 4️⃣ Tek Port Servis (Production Mode)
+Frontend'i derledikten sonra backend her ikisini de `:8000`'den sunar — teslim paketinin kullandığı mod:
+
+```bash
+# Frontend build (bir kez)
+cd frontend && npm run build && cd ..
+
+# Backend başlat
+cd backend && uvicorn app.main:app --port 8000
+
+# → http://localhost:8000          (React arayüzü)
+# → http://localhost:8000/docs     (Swagger UI)
+# → http://localhost:8000/predict  (ML API)
+```
+
+---
+
+### 🔧 Sorun Giderme
+
+| Belirti | Çözüm |
+|---------|-------|
+| `Python bulunamadi` | Python kurulumunda **“Add Python to PATH”** işaretleyin, terminali yeniden başlatın |
+| `Microsoft Visual C++ 14.0 required` | Requirements güncel mi kontrol edin; `shap` artık dependency değil |
+| `MIME type text/html` (JS) | `frontend/dist/` boş; `cd frontend && npm run build` ile yeniden derleyin |
+| Port 8000 dolu | Çakışan uygulamayı kapatın veya `--port 8001` ile başlatın |
+| Modeller yüklenemiyor | `backend/trained_models/*.pkl` dosyalarının mevcut olduğunu kontrol edin |
+| `supabase_configured: false` | Normal — yalnızca veri yükleme özellikleri devre dışı kalır, ML uç noktaları çalışır |
+| `pip install` çok yavaş | `--prefer-binary --no-cache-dir` ekleyin |
+
+---
 
 ### Ortam Değişkenleri
 
@@ -524,8 +608,7 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 | | Geliştirici |
 |--|-------------|
 | 👤 | **Erkan Turgut** — Backend, ML Modelleri, Sistem Mimarisi |
-| 👤 | **[Ekip Üyesi 2]** — Frontend, UI/UX |
-| 👤 | **[Ekip Üyesi 3]** — Veri Mühendisliği, Model Eğitimi |
+| 👤 | **Aslı Aydın** — Frontend, UI/UX |
 
 > **Kurs:** Yapay Zeka Dersi — 2025/2026 Bahar Dönemi
 

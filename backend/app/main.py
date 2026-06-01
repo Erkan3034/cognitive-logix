@@ -12,6 +12,7 @@ load_dotenv(_env_path)
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from app.api.ingestion import router as ingestion_router
@@ -64,6 +65,33 @@ app.include_router(ingestion_router)
 app.include_router(ops_router)
 app.include_router(api_keys_router)
 app.include_router(billing_router)
+
+
+# --- Static assets (frontend dist) ---
+# Vite build /assets/index-XXX.js ve /assets/index-XXX.css uretir. Bunlari
+# JS/CSS olarak dogru MIME ile servis etmek icin StaticFiles ile mount ediyoruz.
+# (Aksi takdirde SPA fallback bu istekleri index.html'e dondurur ve tarayici
+# "MIME type text/html, expected JavaScript module" hatasi verir.)
+if _frontend_is_packaged():
+    _assets_dir = FRONTEND_DIST_DIR / "assets"
+    if _assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def _favicon():
+        fav = FRONTEND_DIST_DIR / "favicon.ico"
+        if fav.exists():
+            return FileResponse(fav)
+        from fastapi import Response
+        return Response(status_code=204)
+
+    @app.get("/vite.svg", include_in_schema=False)
+    def _vite_svg():
+        svg = FRONTEND_DIST_DIR / "vite.svg"
+        if svg.exists():
+            return FileResponse(svg)
+        from fastapi import Response
+        return Response(status_code=404)
 
 
 @app.middleware("http")
