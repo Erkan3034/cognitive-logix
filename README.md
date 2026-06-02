@@ -342,37 +342,7 @@ cognitive-logix/
 ---
 
 ## 🚀 Kurulum
-
-İki kurulum seçeneği sunulmuştur: **(A)** sıfır yapılandırmalı tek-tık paket *(hocaya teslim sürümü)*, **(B)** geliştirici ortamı (kaynaktan).
-
 ---
-
-### 🅰️ Seçenek A — Tek Tıkla Çalıştır (Önerilen — Hocaya Teslim Sürümü)
-
-> Teslim paketi (`cognitive-logix-teslim.zip`) **frontend'in derlenmiş halini** ve **tüm Python wheel'lerini** içerir. Node.js / npm gerekmez, **internet bile gerekmez**.
-
-#### Gereksinim
-✅ Yalnızca **Python 3.11+** (kurulum sırasında *“Add Python to PATH”* işaretli olmalı)
-
-#### Adımlar
-```
-1) cognitive-logix-teslim.zip → sağ tık → "Tümünü ayıkla..."
-2) Çıkan klasördeki BASLAT.bat dosyasına çift tıklayın
-3) İlk açılışta otomatik:
-   • Python sanal ortamı (.venv) oluşur
-   • wheels/ klasöründen tüm paketler offline kurulur (~1 dakika)
-   • Backend (FastAPI) :8000 portunda başlar
-   • React arayüzü aynı porttan servis edilir
-   • Tarayıcı otomatik açılır → http://127.0.0.1:8000
-4) Kapatmak için siyah komut penceresini kapatın
-```
-
-> ⏱️ İlk açılış 60–90 sn (paket kurulumu + model yükleme). Sonraki açılışlar 8–15 sn.
-
----
-
-### 🅱️ Seçenek B — Manuel Kurulum (Geliştirici / Kaynak Koddan)
-
 > GitHub deposunu klonladıktan sonra kullanın. Frontend değiştirmek isteyenler için.
 
 #### Gereksinimler
@@ -609,9 +579,7 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 |----------|--------|------------|
 | **Erkan TURGUT** | 22010708048 | Backend, ML Modelleri, Sistem Mimarisi |
 | **Aslı AYDIN** | 23010708008 | Frontend, UI/UX |
-| **Ismail NAIT OUCHEN** | — | Veri Mühendisliği |
-
-> **Kurs:** Yapay Zeka Dersi — 2025/2026 Bahar Dönemi
+| **Ismail NAIT OUCHEN** | 23670708089 | Veri Mühendisliği |
 
 ---
 
