@@ -25,23 +25,23 @@
 
 ---
 
-## 📋 İçindekiler
+## İçindekiler
 
-- [Proje Hakkında](#-proje-hakkında)
-- [Canlı Demo & Ekran Görüntüleri](#-canlı-demo--ekran-görüntüleri)
-- [Özellikler](#-özellikler)
-- [Sistem Mimarisi](#-sistem-mimarisi)
-- [Yapay Zeka Modelleri](#-yapay-zeka-modelleri)
-- [Teknoloji Yığını](#-teknoloji-yığını)
-- [Proje Yapısı](#-proje-yapısı)
-- [Kurulum](#-kurulum)
-- [API Referansı](#-api-referansı)
-- [Veri Seti](#-veri-seti)
-- [Ekip](#-ekip)
+- [Proje Hakkında](#proje-hakkında)
+- [Canlı Demo & Ekran Görüntüleri](#canlı-demo--ekran-görüntüleri)
+- [Özellikler](#özellikler)
+- [Sistem Mimarisi](#sistem-mimarisi)
+- [Yapay Zeka Modelleri](#yapay-zeka-modelleri)
+- [Teknoloji Yığını](#teknoloji-yığını)
+- [Proje Yapısı](#proje-yapısı)
+- [Kurulum](#kurulum)
+- [API Referansı](#api-referansı)
+- [Veri Seti](#veri-seti)
+- [Ekip](#ekip)
 
 ---
 
-## 🧠 Proje Hakkında
+## Proje Hakkında
 
 **Cognitive Logix**, karmaşık tedarik zinciri verilerini gerçek zamanlı analiz ederek şirketlere **lojistik gecikme riski**, **finansal dolandırıcılık tespiti** ve **talep tahmini** sunan B2B SaaS platformudur.
 
@@ -56,52 +56,52 @@ Cognitive Logix:        Model riski öngörür → Dashboard uyarır → Yöneti
 
 ---
 
-## 🖥️ Canlı Demo & Ekran Görüntüleri
+## Canlı Demo & Ekran Görüntüleri
 
 > **GitHub:** [github.com/Erkan3034/cognitive-logix](https://github.com/Erkan3034/cognitive-logix)
 
-### 🏠 Landing Page
+### Landing Page
 <p align="center">
   <img src="docs/screenshots/landing.png" alt="Cognitive Logix Landing Page" width="100%" />
 </p>
 
-### 📊 Operasyon Karar Merkezi (Dashboard)
+### Operasyon Karar Merkezi (Dashboard)
 Canlı KPI paneli — gecikme riski, fraud skoru, talep indeksi ve dünya geneli risk haritası.
 <p align="center">
   <img src="docs/screenshots/dashboard.png" alt="Operasyon Karar Merkezi — KPI Dashboard" width="100%" />
 </p>
 
-### 🚚 Lojistik — Teslimat Risk Analizi
+### Lojistik — Teslimat Risk Analizi
 Sipariş bazlı gecikme olasılığı, SHAP açıklamaları, karşıolgusal öneriler ve canlı rota görselleştirmesi.
 <p align="center">
   <img src="docs/screenshots/logistics.png" alt="Lojistik Teslimat Risk Analizi" width="100%" />
 </p>
 
-### 🛡️ Finansal Risk — Sipariş Güvenlik Analizi
+### Finansal Risk — Sipariş Güvenlik Analizi
 Hibrit fraud skoru (0–100), anomali tespiti ve modelin gerekçelendirmesi.
 <p align="center">
   <img src="docs/screenshots/fraud.png" alt="Finansal Risk — Sipariş Güvenlik Analizi" width="100%" />
 </p>
 
-### 📦 Talep Tahmini — Stok ve Talep Planlama
+### Talep Tahmini — Stok ve Talep Planlama
 LightGBM tabanlı talep tahmini, p10/p50/p90 güven aralıkları ve yeniden sipariş noktası önerileri.
 <p align="center">
   <img src="docs/screenshots/demand.png" alt="Talep Tahmini — Stok ve Talep Planlama" width="100%" />
 </p>
 
-### 🧪 Senaryo Laboratuvarı
+### Senaryo Laboratuvarı
 "What-if" stres testi — liman kapanması, talep artışı gibi senaryoların operasyonel etkisi.
 <p align="center">
   <img src="docs/screenshots/scenario-lab.png" alt="Senaryo Laboratuvarı — What-if Simülasyon" width="100%" />
 </p>
 
-### 🚨 Olay Kutusu (Exception Inbox)
+### Olay Kutusu (Exception Inbox)
 Otomatik uyarı ve aksiyon sırası — kritik/yüksek riskli sipariş ve olayların tek kuyrukta toplanması.
 <p align="center">
   <img src="docs/screenshots/exception-inbox.png" alt="Olay Kutusu — Exception Inbox" width="100%" />
 </p>
 
-### 🗂️ Sayfa Rehberi
+### Sayfa Rehberi
 
 | Sayfa | Açıklama |
 |-------|----------|
@@ -119,34 +119,34 @@ Otomatik uyarı ve aksiyon sırası — kritik/yüksek riskli sipariş ve olayla
 
 ---
 
-## ✨ Özellikler
+## Özellikler
 
-### 🚚 1. Lojistik Gecikme Analizi
+### 1. Lojistik Gecikme Analizi
 **CatBoost + Isotonic Regression** modeli, sipariş bölgesi, kargo modu, ürün kategorisi ve fiyat gibi 12 özelliği analiz eder. Milisaniyeler içinde:
 - Kalibre edilmiş gecikme olasılığı (0–100%)
 - SHAP tabanlı en kritik 5 gecikme faktörü
 - "Kargo modunu değiştirirseniz risk %X düşer" karşıolgusal (counterfactual) öneriler
 
-### 🛡️ 2. Finansal Risk & Dolandırıcılık Tespiti
+### 2. Finansal Risk & Dolandırıcılık Tespiti
 **CatBoost + Isolation Forest** hibrit modeli:
 - Denetimli öğrenme (supervised): Geçmiş fraud örüntülerinden öğrenir
 - Denetimsiz öğrenme (unsupervised): Daha önce görülmemiş anomalileri yakalar
 - Birleşik risk skoru: `0.7 × fraud_prob + 0.3 × anomaly_score`
 
-### 📦 3. Talep Tahmini & Stok Optimizasyonu
+### 3. Talep Tahmini & Stok Optimizasyonu
 **LightGBM Quantile Regression** (p10/p50/p90) + **Croston Metodu**:
 - Aralıklı talep (intermittent demand) için otomatik Croston aktivasyonu
 - Güven bantlı tahmin grafiği
 - Yeniden sipariş noktası hesaplama: `lead_time_demand + safety_stock`
 - Servis seviyesine göre emniyet stoğu (service_level parametresi)
 
-### 🧪 4. Senaryo Laboratuvarı
+### 4. Senaryo Laboratuvarı
 Gerçek veri üzerinde *what-if* simülasyonları:
 - "Ana liman kapanırsa ne olur?"
 - "Talep %30 artarsa stok yeterli mi?"
 - Karar etkisi analizi (Decision Impact)
 
-### 🏢 5. Kurumsal SaaS Altyapısı
+### 5. Kurumsal SaaS Altyapısı
 - **Multi-tenant** mimari: Her müşteri kendi tenant ID'siyle izole
 - **API Key Yönetimi:** Kapsam kısıtlı anahtarlar (predict-only, full-access)
 - **Data Hub:** CSV yükle → akıllı kolon eşleştirme → model beslemesi
@@ -155,7 +155,7 @@ Gerçek veri üzerinde *what-if* simülasyonları:
 
 ---
 
-## 🏗️ Sistem Mimarisi
+## Sistem Mimarisi
 
 ```mermaid
 graph TD
@@ -210,7 +210,7 @@ GET  /docs                → Swagger UI (otomatik)
 
 ---
 
-## 🤖 Yapay Zeka Modelleri
+## Yapay Zeka Modelleri
 
 | Model | Algoritmalar | Dosya | Boyut | Görev |
 |-------|-------------|-------|-------|-------|
@@ -240,13 +240,13 @@ Talep (p50):        MAPE < 22%           |  Coverage(p10-p90) > 88%
 
 ---
 
-## 🛠️ Teknoloji Yığını
+## Teknoloji Yığını
 
 <table>
 <tr>
 <td width="33%" valign="top">
 
-### 🌐 Frontend
+### Frontend
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)
 ![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)
@@ -262,7 +262,7 @@ Talep (p50):        MAPE < 22%           |  Coverage(p10-p90) > 88%
 </td>
 <td width="33%" valign="top">
 
-### ⚙️ Backend
+### Backend
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python)
 
@@ -278,7 +278,7 @@ Talep (p50):        MAPE < 22%           |  Coverage(p10-p90) > 88%
 </td>
 <td width="33%" valign="top">
 
-### 🗄️ Altyapı
+### Altyapı
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?logo=supabase)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql)
 
@@ -294,7 +294,7 @@ Talep (p50):        MAPE < 22%           |  Coverage(p10-p90) > 88%
 
 ---
 
-## 📁 Proje Yapısı
+## Proje Yapısı
 
 ```
 cognitive-logix/
@@ -368,7 +368,7 @@ cognitive-logix/
 
 ---
 
-## 🚀 Kurulum
+## Kurulum
 ---
 > GitHub deposunu klonladıktan sonra kullanın. Frontend değiştirmek isteyenler için.
 
@@ -469,7 +469,7 @@ cd backend && uvicorn app.main:app --port 8000
 
 ---
 
-### 🔧 Sorun Giderme
+### Sorun Giderme
 
 | Belirti | Çözüm |
 |---------|-------|
@@ -496,7 +496,7 @@ cd backend && uvicorn app.main:app --port 8000
 
 ---
 
-## 📡 API Referansı
+## API Referansı
 
 > Tam interaktif dokümantasyon: `http://localhost:8000/docs` (Swagger UI)
 
@@ -569,7 +569,7 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 
 ---
 
-## 📊 Veri Seti
+## Veri Seti
 
 | Özellik | Değer |
 |---------|-------|
@@ -589,7 +589,7 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 
 ---
 
-## 📚 Dokümantasyon
+## Dokümantasyon
 
 | Belge | İçerik |
 |-------|--------|
@@ -600,17 +600,17 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 
 ---
 
-## 🧑‍💻 Ekip — ByteCrafters
+## Ekip — ByteCrafters
 
-| Ad Soyad | Numara | Sorumluluk |
-|----------|--------|------------|
-| **Erkan TURGUT** | 22010708048 | Backend, ML Modelleri, Sistem Mimarisi |
-| **Aslı AYDIN** | 23010708008 | Frontend, UI/UX |
-| **Ismail NAIT OUCHEN** | 23670708089 | Veri Mühendisliği |
+| Ad Soyad | Sorumluluk |
+|----------|------------|
+| **Erkan TURGUT** | Backend, ML Modelleri, Sistem Mimarisi |
+| **Aslı AYDIN** | Frontend, UI/UX |
+| **Ismail NAIT OUCHEN** | Veri Mühendisliği |
 
 ---
 
-## 📄 Lisans
+## Lisans
 
 Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
 

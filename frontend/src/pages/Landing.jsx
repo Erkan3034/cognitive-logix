@@ -22,16 +22,6 @@ const IconArrow = () => (
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 );
-const IconCheck = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-const IconStar = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 14, height: 14, color: "#f59e0b" }}>
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-);
 
 /* ─── Animated Counter ────────────────────────────────────── */
 function AnimatedCounter({ value, suffix = "", duration = 2 }) {
@@ -116,18 +106,6 @@ const STATS = [
   { value: "12", suffix: "x", label: "Daha Hızlı Karar", sub: "Manuel analize kıyasla" },
   { value: "2.25", suffix: "%", label: "Usulsüzlük Tespiti", sub: "43:1 sınıf dengesizliği çözüldü" },
   { value: "90", suffix: "%", label: "Güven Aralığı", sub: "Kantil tahmin bandı" },
-];
-
-const PLANS = [
-  { name: "Ücretsiz", price: "$0", period: "/ ay", desc: "Sistemi keşfet, demo verisiyle dene.", features: ["100 yapay zeka tahmini / ay", "3 modülün deneme erişimi", "Güvenli oturum", "Topluluk desteği"], cta: "Ücretsiz Başla", highlight: false },
-  { name: "Başlangıç", price: "$49", period: "/ ay", desc: "KOBİ'ler için tam bulut ürün deneyimi.", features: ["5.000 yapay zeka tahmini / ay", "Dosya veri yükleme", "SHAP açıklamaları", "E-posta desteği", "API erişimi"], cta: "Başlangıç Planını Dene", highlight: true, badge: "Popüler" },
-  { name: "Profesyonel", price: "$149", period: "/ ay", desc: "Büyüyen operasyonlar için eksiksiz motor.", features: ["50.000 yapay zeka tahmini / ay", "ERP entegrasyonu", "Olasılıksal simülatör", "Model sapma izleme", "Öncelikli destek"], cta: "Profesyonel Plana Geç", highlight: false },
-];
-
-const TESTIMONIALS = [
-  { name: "Mert Kaya", role: "Tedarik Zinciri Direktörü, LogiCo", text: "SHAP açıklamaları sayesinde artık gecikme raporlarını birkaç dakikada anlıyoruz. Operasyonel kararlarımız %40 hızlandı.", stars: 5 },
-  { name: "Selin Arslan", role: "Satın Alma Müdürü, NovaTrade", text: "Güvenlik stoğu algoritması ilk ayda fazla stoğumuzu %23 düşürdü. Yatırım getirisini hesaplamak için uzun süre beklememiz gerekmedi.", stars: 5 },
-  { name: "Emir Demir", role: "CTO, MedSupply", text: "ERP'den direkt veri akışı kurmak 30 dakika sürdü. Otomatik veri akışı entegrasyonu beklediğimizden çok daha kolaydı.", stars: 5 },
 ];
 
 /* ─── 3D Visual Component ──────────────────────────── */
@@ -251,8 +229,7 @@ export function Navbar({ scrolled }) {
         </div>
         <div className="landing-nav-links">
           <a href="/#features" className="landing-nav-link">Özellikler</a>
-          <a href="/#pricing" className="landing-nav-link">Fiyatlandırma</a>
-          <a href="/#testimonials" className="landing-nav-link">Müşteriler</a>
+          <Link to="/algorithms" className="landing-nav-link">Algoritmalar</Link>
         </div>
         <div className="landing-nav-actions">
           {user ? (
@@ -396,62 +373,6 @@ function FeatureRow({ feature: f, index, reversed }) {
   );
 }
 
-/* ─── Pricing ─────────────────────────────────────────────── */
-function Pricing() {
-  return (
-    <Section className="landing-section" id="pricing">
-      <motion.div variants={fadeUp} className="section-header">
-        <span className="section-tag">Fiyatlandırma</span>
-        <h2 className="section-title">Operasyonunuzun Ölçeğine Uygun Plan</h2>
-        <p className="section-desc">Tüm planlarda 6 algoritmanın temel yetenekleri mevcut. İhtiyacınıza göre ölçeklendirin.</p>
-      </motion.div>
-      <div className="pricing-grid">
-        {PLANS.map((plan, i) => (
-          <motion.div key={i} variants={fadeUp} custom={i} className={`pricing-card${plan.highlight ? " highlighted" : ""}`} whileHover={{ y: -8, transition: { duration: 0.25 } }}>
-            {plan.badge && <span className="pricing-badge">{plan.badge}</span>}
-            <div className="pricing-name">{plan.name}</div>
-            <div className="pricing-price">{plan.price}<span className="pricing-period">{plan.period}</span></div>
-            <p className="pricing-desc">{plan.desc}</p>
-            <ul className="pricing-features">
-              {plan.features.map((feat, j) => (
-                <li key={j} className="pricing-feature"><span className="check-icon"><IconCheck /></span>{feat}</li>
-              ))}
-            </ul>
-            <Link to="/register" className={`pricing-cta${plan.highlight ? " primary" : " ghost"}`}>{plan.cta}</Link>
-          </motion.div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-/* ─── Testimonials ────────────────────────────────────────── */
-function Testimonials() {
-  return (
-    <Section className="landing-section" id="testimonials">
-      <motion.div variants={fadeUp} className="section-header">
-        <span className="section-tag">Müşteri Görüşleri</span>
-        <h2 className="section-title">Onlar Kullandı, Dönüştü</h2>
-      </motion.div>
-      <div className="testimonials-grid">
-        {TESTIMONIALS.map((t, i) => (
-          <motion.div key={i} variants={fadeUp} custom={i} className="testimonial-card" whileHover={{ y: -4, transition: { duration: 0.2 } }}>
-            <div className="testimonial-stars">{Array.from({ length: t.stars }).map((_, j) => <IconStar key={j} />)}</div>
-            <p className="testimonial-text">"{t.text}"</p>
-            <div className="testimonial-author">
-              <div className="testimonial-avatar">{t.name[0]}</div>
-              <div>
-                <div className="testimonial-name">{t.name}</div>
-                <div className="testimonial-role">{t.role}</div>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
 /* ─── CTA Banner ──────────────────────────────────────────── */
 function CTABanner() {
   return (
@@ -481,7 +402,6 @@ export function Footer() {
         <div className="footer-links">
           <span className="footer-links-title">Platform</span>
           <a href="/#features">Özellikler</a>
-          <a href="/#pricing">Fiyatlandırma</a>
           <Link to="/login">Giriş Yap</Link>
           <Link to="/register">Kayıt Ol</Link>
         </div>
@@ -532,8 +452,6 @@ export default function Landing() {
       <Navbar scrolled={scrolled} />
       <Hero />
       <Features />
-      <Pricing />
-      <Testimonials />
       <CTABanner />
       <Footer />
     </div>
