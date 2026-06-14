@@ -132,32 +132,32 @@ Gerçek veri üzerinde *what-if* simülasyonları:
 
 ```mermaid
 graph TD
-    Client["🌐 Web Client\n(React 18 / Vite)"] -->|HTTP REST| GW["⚡ FastAPI Gateway\n:8000"]
-    ERP["🏭 Müşteri ERP\n(SAP, Oracle)"] -->|API Key Auth| GW
+    Client["🌐 Web Client<br/>(React 18 / Vite)"] -->|HTTP REST| GW["⚡ FastAPI Gateway<br/>:8000"]
+    ERP["🏭 Müşteri ERP<br/>(SAP, Oracle)"] -->|API Key Auth| GW
 
     subgraph Backend["🖥️ Backend Sunucusu"]
         GW --> ML["🤖 ML Karar Motoru"]
-        GW --> DB_SVC["📊 Metrik Servisi\n(CSV Cache)"]
-        GW --> ING["📤 Ingestion API\n(CSV Upload)"]
+        GW --> DB_SVC["📊 Metrik Servisi<br/>(CSV Cache)"]
+        GW --> ING["📤 Ingestion API<br/>(CSV Upload)"]
         GW --> AUTH["🔑 API Key Servisi"]
 
         subgraph Models["Yapay Zeka Modelleri (.pkl)"]
-            ML -.->|predict| LOG["CatBoost + Isotonic\n🚚 Lojistik (2.4 MB)"]
-            ML -.->|score| FRD["CatBoost + IsolationForest\n🛡️ Fraud (6.6 MB)"]
-            ML -.->|forecast| DEM["LightGBM + Croston\n📦 Demand (14 MB)"]
+            ML -.->|predict| LOG["CatBoost + Isotonic<br/>🚚 Lojistik (2.4 MB)"]
+            ML -.->|score| FRD["CatBoost + IsolationForest<br/>🛡️ Fraud (6.6 MB)"]
+            ML -.->|forecast| DEM["LightGBM + Croston<br/>📦 Demand (14 MB)"]
         end
     end
 
     subgraph Storage["☁️ Supabase (PostgreSQL)"]
-        GW -->|SQL| SB[("PostgreSQL\n+ Row Level Security")]
+        GW -->|SQL| SB[("PostgreSQL<br/>+ Row Level Security")]
         SB --> T1["ingested_records"]
         SB --> T2["usage_logs"]
         SB --> T3["api_keys"]
     end
 
     subgraph DataLayer["💾 Lokal Veri"]
-        DB_SVC --> CSV1["analiz_veri.csv\n(72 MB)"]
-        DB_SVC --> CSV2["temiz_veri_final_latest.csv\n(91 MB)"]
+        DB_SVC --> CSV1["analiz_veri.csv<br/>(72 MB)"]
+        DB_SVC --> CSV2["temiz_veri_final_latest.csv<br/>(91 MB)"]
     end
 
     classDef client fill:#61DAFB,stroke:#333,color:#000

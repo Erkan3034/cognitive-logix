@@ -46,3 +46,10 @@ GERCEK_VERI_REHBERI.md
 SAAS_MIMARISI.md
 saas_implementation_plan.md
 
+# --- Internal planning / dev docs (keep locally, exclude from public repo) ---
+MODEL_TRAINING.md
+api_integration_docs.md
+data_mapping.md
+implementation_plan.md
+master_implementation_plan.md
+
