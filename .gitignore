@@ -53,3 +53,8 @@ data_mapping.md
 implementation_plan.md
 master_implementation_plan.md
 
+# --- One-off / internal scripts and artifacts (keep locally, exclude from public repo) ---
+check_css.py
+julius_ai_analysis.md.resolved
+build-teacher-package.ps1
+
