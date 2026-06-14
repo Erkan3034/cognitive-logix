@@ -610,12 +610,6 @@ GET  /ready                   # 3 modelin hazır olup olmadığı
 
 ---
 
-## Lisans
-
-Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
-
----
-
 <div align="center">
 
 **🔗 GitHub:** [github.com/Erkan3034/cognitive-logix](https://github.com/Erkan3034/cognitive-logix)
