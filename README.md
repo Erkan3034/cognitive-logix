@@ -60,21 +60,48 @@ Cognitive Logix:        Model riski öngörür → Dashboard uyarır → Yöneti
 
 > **GitHub:** [github.com/Erkan3034/cognitive-logix](https://github.com/Erkan3034/cognitive-logix)
 
-### Ana Dashboard — Supply Chain KPI Merkezi
+### 🏠 Landing Page
+<p align="center">
+  <img src="docs/screenshots/landing.png" alt="Cognitive Logix Landing Page" width="100%" />
+</p>
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  📊 COGNITIVE LOGIX — Supply Chain Intelligence                     │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
-│  │ Delay Risk   │  │ Fraud Score  │  │ Demand Index │             │
-│  │   73.4%  🔴  │  │   0.12  🟢   │  │  +12.3%  📈  │             │
-│  └──────────────┘  └──────────────┘  └──────────────┘             │
-│                                                                     │
-│  [Risk Haritası — Dünya Geneli Canlı]                              │
-│  [Gecikme Trendi — Son 30 Gün]    [En Riskli 5 Bölge]             │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### 📊 Operasyon Karar Merkezi (Dashboard)
+Canlı KPI paneli — gecikme riski, fraud skoru, talep indeksi ve dünya geneli risk haritası.
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Operasyon Karar Merkezi — KPI Dashboard" width="100%" />
+</p>
+
+### 🚚 Lojistik — Teslimat Risk Analizi
+Sipariş bazlı gecikme olasılığı, SHAP açıklamaları, karşıolgusal öneriler ve canlı rota görselleştirmesi.
+<p align="center">
+  <img src="docs/screenshots/logistics.png" alt="Lojistik Teslimat Risk Analizi" width="100%" />
+</p>
+
+### 🛡️ Finansal Risk — Sipariş Güvenlik Analizi
+Hibrit fraud skoru (0–100), anomali tespiti ve modelin gerekçelendirmesi.
+<p align="center">
+  <img src="docs/screenshots/fraud.png" alt="Finansal Risk — Sipariş Güvenlik Analizi" width="100%" />
+</p>
+
+### 📦 Talep Tahmini — Stok ve Talep Planlama
+LightGBM tabanlı talep tahmini, p10/p50/p90 güven aralıkları ve yeniden sipariş noktası önerileri.
+<p align="center">
+  <img src="docs/screenshots/demand.png" alt="Talep Tahmini — Stok ve Talep Planlama" width="100%" />
+</p>
+
+### 🧪 Senaryo Laboratuvarı
+"What-if" stres testi — liman kapanması, talep artışı gibi senaryoların operasyonel etkisi.
+<p align="center">
+  <img src="docs/screenshots/scenario-lab.png" alt="Senaryo Laboratuvarı — What-if Simülasyon" width="100%" />
+</p>
+
+### 🚨 Olay Kutusu (Exception Inbox)
+Otomatik uyarı ve aksiyon sırası — kritik/yüksek riskli sipariş ve olayların tek kuyrukta toplanması.
+<p align="center">
+  <img src="docs/screenshots/exception-inbox.png" alt="Olay Kutusu — Exception Inbox" width="100%" />
+</p>
+
+### 🗂️ Sayfa Rehberi
 
 | Sayfa | Açıklama |
 |-------|----------|
